@@ -144,9 +144,12 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
 
     if (!HEADLESS && !m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
-            let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id as string, "pingresponse", null)
+            let member = m.mentions.members?.at(i)
+            let pingresponse = user_options.getOpt(member?.user.id as string, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
+                let old_id = m.author.id
+                m.author.id = member!.user.id
                 command_commons.isCmd(pingresponse, globals.PREFIX)
                     ? await handleSending(m,
                         (await command_commons.cmd({
@@ -156,6 +159,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
                         })).rv
                     )
                     : m.channel.send(pingresponse)
+                m.author.id = old_id
             }
         }
     }
