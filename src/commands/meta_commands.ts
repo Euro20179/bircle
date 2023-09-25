@@ -22,7 +22,7 @@ import htmlRenderer from '../html-renderer'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
-    yield ['clear-snipes', ccmdV2(async function({msg, args}){
+    yield ['clear-snipes', ccmdV2(async function({ msg, args }) {
         clearSnipes()
         return crv("Snipes cleared")
     }, "Clears all snipes")]
@@ -1544,17 +1544,25 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts }) {
-
-
             let start = performance.now()
-            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
-            return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
+            let rv = await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
+            let end = performance.now()
+            if (!opts.getBool("n", false)) {
+                await handleSending(msg, rv.rv, sendCallback)
+                if(!opts.getBool("no-chat", false)){
+                    end = performance.now()
+                }
+            }
+            return { content: `${end - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
                 "...command": createHelpArgument("The command to run", true)
             }, helpOptions: {
-                "no-chat": createHelpOption("Exclude the time it takes to send result to chat")
-            }
+                "n": createHelpOption("Prevent from sending result of command to chat"),
+                "no-chat": createHelpOption("Dont include the time it takes to send to chat")
+            },
+            short_opts: "n",
+            long_opts: [["no-chat"]]
         })
     ]
 
