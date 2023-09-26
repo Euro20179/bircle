@@ -143,20 +143,20 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
-        "vim", ccmdV2(async function({msg, args, opts}){
+        "vim", ccmdV2(async function({ msg, args, opts }) {
             const nvim_proc = spawn("nvim", ["-u", "NONE", "-N", "--embed"], {})
-            const nvim = attach({proc: nvim_proc})
+            const nvim = attach({ proc: nvim_proc })
             try {
                 await nvim.command(`redir => var | sandbox ${args.join(" ")} | redir END`)
             }
-            catch(err){
-                return {content: `${err}`, status: StatusCode.ERR}
+            catch (err) {
+                return { content: `${err}`, status: StatusCode.ERR }
             }
             let res = await nvim.getVar("var")
-            try{
+            try {
                 nvim_proc.kill()
             }
-            catch(err){
+            catch (err) {
                 console.error("Could not kill nvim")
             }
             return crv(res.toString())
@@ -452,6 +452,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             "text": createHelpArgument("The text to shuffle", false)
         }
     })]
+
+    yield ['uniq', ccmdV2(async function({ args, stdin }) {
+        let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
+        let finalLines: string[] = []
+        for (let line of text) {
+            if (finalLines.includes(line)) continue
+            finalLines.push(line)
+        }
+        return crv(finalLines.join("\n"))
+    }, "Remove duplicate lines")]
 
     yield ["sort", ccmdV2(async function({ args, stdin, opts }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
@@ -859,7 +869,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (Number(range)) {
                     return [Number(range)]
                 }
-                else if(range === ".") {
+                else if (range === ".") {
                     return [currentLine]
                 }
                 else if (range === "$") {
