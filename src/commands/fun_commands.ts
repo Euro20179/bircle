@@ -695,7 +695,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let greater_than = opts.getNumber("total-gt", -1)
 
                 if (score_range !== null){
-                    let [minS, maxS] = parseRangeString(score_range)
+                    let [minS, maxS] = opts.getRange("total", [0, 0])
                     greater_than = minS
                     less_than = maxS
                 }

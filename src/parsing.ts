@@ -759,7 +759,7 @@ function getOptsWithNegate(args: ArgumentList): [Opts, ArgumentList] {
     return [opts, args.slice(idxOfFirstRealArg)]
 }
 
-function parseRangeString(rangeStr: string){
+function parseRangeString(rangeStr: string): [number, number]{
     let [min, max] = rangeStr.split("..")
     if (max === undefined){
         max = min

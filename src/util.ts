@@ -15,6 +15,7 @@ import events from './events'
 
 import { formatMoney, getOpt } from "./user-options"
 import { getConfigValue } from "./globals"
+import { parseRangeString } from "./parsing"
 
 
 export type MimeType = `${string}/${string}`
@@ -899,6 +900,12 @@ class Options extends Map {
         let n = super.get(key)
         if (n === undefined || n === true) return default_
         return toString(n) || default_
+    }
+
+    getRange<TDefault>(key: string, default_: TDefault, toRange: (v: string) => [number, number] = parseRangeString){
+        let n = super.get(key)
+        if(n === undefined || n === true) return default_
+        return toRange(n) || default_
     }
 
     getNumber<TDefault>(key: string, default_: TDefault, toNumber: (v: string) => number = Number): number | TDefault {
