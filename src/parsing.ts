@@ -759,6 +759,14 @@ function getOptsWithNegate(args: ArgumentList): [Opts, ArgumentList] {
     return [opts, args.slice(idxOfFirstRealArg)]
 }
 
+function parseRangeString(rangeStr: string){
+    let [min, max] = rangeStr.split("..")
+    if (max === undefined){
+        max = min
+    }
+    return [Number(min), Number(max)]
+}
+
 export {
     parsePosition,
     Parser,
@@ -781,5 +789,6 @@ export {
     parseBracketPair,
     getOpts,
     getOptsWithNegate,
-    getOptsUnix
+    getOptsUnix,
+    parseRangeString
 }

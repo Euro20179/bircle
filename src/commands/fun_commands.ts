@@ -19,7 +19,7 @@ import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searc
 
 import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
 
-import { format, getOpts } from '../parsing'
+import { format, getOpts, parseRangeString } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -40,7 +40,7 @@ import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
 
 let CHAT_LL: undefined | LLModel
-if(globals.getConfigValue("general.enable-chat")){
+if (globals.getConfigValue("general.enable-chat")) {
     if (globals.DEVBOT)
         loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll).catch(console.error)
 }
@@ -686,25 +686,44 @@ export default function*(): Generator<[string, CommandV2]> {
             let json = await data.json()
             let scores = json.matrix
 
-            let less_than = opts.getNumber("total-lt", 100000000000)
-            let greater_than = opts.getNumber("total-gt", -1)
 
-            let count = opts.getNumber("count", NaN)
+            let count = opts.getString("count", null)
 
-            if (!isNaN(count)) {
+            if (count !== null) {
+                let score_range = opts.getString("total", null)
+                let less_than = opts.getNumber("total-lt", 100000000000)
+                let greater_than = opts.getNumber("total-gt", -1)
+
+                if (score_range !== null){
+                    let [minS, maxS] = parseRangeString(score_range)
+                    greater_than = minS
+                    less_than = maxS
+                }
+
+                if(less_than <= 0){
+                    less_than = 1
+                }
+
+                let [minCount, maxCount] = parseRangeString(count)
+
+                if(minCount <= 0){
+                    minCount = 1
+                }
+
                 let results: { data: any, score: [number, number] }[] = []
                 for (let i = 0; i < scores.length; i++) {
                     let range = scores[i]
                     for (let j = 0; j < range.length; j++) {
-                        if (scores[i][j].count === count && i + j < less_than && i + j > greater_than) {
+                        if (isBetween(minCount - 1, scores[i][j].count, maxCount + 1) && isBetween(greater_than - 1, i + j, less_than + 1)) {
                             results.push({ data: scores[i][j], score: [i, j] })
                         }
                     }
                 }
                 let text = ""
-                let result_count = opts.getNumber("result-count", 1, parseInt)
+                let result_count = opts.getNumber("result-count", 1, parseFloat)
                 for (let i = 0; i < result_count && i < results.length; i++) {
-                    text += results[Math.floor(Math.random() * results.length)].score.join(" to ") + '\n'
+                    let result = results[Math.floor(Math.random() * results.length)]
+                    text += `${result.score.join(" to ")} (${result.data.count})\n`
                 }
                 return { content: text, status: StatusCode.RETURN }
             }
@@ -766,8 +785,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 score2: createHelpArgument("The second score"),
             },
             helpOptions: {
-                count: createHelpOption("Find a score that has happened this many times"),
+                count: createHelpOption("Find a score that has happened this many times, can be a range min..max"),
                 "result-count": createHelpOption("Show this many results"),
+                "total": createHelpOption("The total score, can be a range min..max"),
                 "total-lt": createHelpOption("When using -count, make sure the total score is less than this"),
                 "total-gt": createHelpOption("When using -count, make sure the total score is greater than this")
             }
@@ -2086,8 +2106,8 @@ Valid formats:
                     let green = Math.round(255 * (upPercent / 100))
                     let blue = 0
 
-                    if(isNaN(red)) red = 255
-                    if(isNaN(green)) green = 255
+                    if (isNaN(red)) red = 255
+                    if (isNaN(green)) green = 255
 
                     let color = rgbToHex(red, green, blue)
 
@@ -2473,7 +2493,7 @@ Valid formats:
     ]
 
     yield [
-        "psnipe", ccmdV2(async function({}) {
+        "psnipe", ccmdV2(async function({ }) {
             if (!purgeSnipe) {
                 return { content: "Nothing has been purged yet", status: StatusCode.ERR }
             }
@@ -2498,7 +2518,7 @@ Valid formats:
     ]
 
     yield [
-        "snipe", ccmdV2(async function({ args}) {
+        "snipe", ccmdV2(async function({ args }) {
             let snipeC = ((parseInt(args[0]) - 1) || 0)
             if (snipeC >= 5) {
                 return { content: "it only goes back 5", status: StatusCode.ERR }
