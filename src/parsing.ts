@@ -681,7 +681,13 @@ function getOptsUnix(args: ArgumentList, shortOpts: string, longOpts: [string, "
     for (i = 0; i < args.length; i++) {
         if(args[i] === "--") break
         else if(args[i][0] === "-" && args[i][1] === "-"){
-            if(longOpts.find(v => v[0] === args[i].slice(2))?.[1]){
+            //check this first because --x=y should ALWAYS work even if longOpts is set
+            //--x y should only work if longOpts is set
+            if(args[i].includes("=")){
+                let [left, value] = args[i].split("=")
+                opts[left.slice(2)] = value
+            }
+            else if(longOpts.find(v => v[0] === args[i].slice(2))?.[1]){
                 opts[args[i].slice(2)] = args[++i]
             }
             else {
