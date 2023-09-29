@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, clearSnipes, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, clearSnipes, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, helpArg, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -19,6 +19,7 @@ import { performance } from 'perf_hooks'
 
 import fetch from 'node-fetch'
 import htmlRenderer from '../html-renderer'
+import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
@@ -1549,7 +1550,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let end = performance.now()
             if (!opts.getBool("n", false)) {
                 await handleSending(msg, rv.rv, sendCallback)
-                if(!opts.getBool("no-chat", false)){
+                if (!opts.getBool("no-chat", false)) {
                     end = performance.now()
                 }
             }
@@ -2393,6 +2394,61 @@ ${styles}
         }
     })
     ]
+
+    yield ["abattle", ccmdV2(async function({ msg, args }) {
+        let responses: BattleResponses = {}
+        if (fs.existsSync("./database/battleV2")) {
+            let d = fs.readFileSync("./database/battleV2", "utf-8")
+            responses = JSON.parse(d)
+        }
+        args.beginIter()
+        let size = args[0]
+        if (!["tiny", "small", "big", "medium", "huge"].includes(size)) {
+            return crv("The first argument must be a size, eg: tiny/small/medium/big/huge", { status: StatusCode.ERR })
+        }
+        args = new ArgList(args.slice(1))
+        let response = args.join(" ").split('\n')[0]
+        if (!response) {
+            return crv("No response", { status: StatusCode.ERR })
+        }
+        let effects = args.join(" ").split("\n").slice(1)
+        let effectList: BattleResponse['effects'] = []
+        for (let effect of effects) {
+            let [t, players] = effect.split("|").map(v => v.trim())
+            let playerNumbers: ["all"] | number[] = []
+            for (let p of players.split(" ")) {
+                if (p === "all") {
+                    //@ts-ignore
+                    playerNumbers.push(p as "all")
+                    break
+                }
+                let n = Number(p)
+                if (isNaN(n)) {
+                    return crv(`${n} is not a player number`, { status: StatusCode.ERR })
+                }
+                playerNumbers.push(n)
+            }
+            effectList.push([t as BattleEffect, playerNumbers])
+        }
+        let added = {
+            effects: effectList,
+            response: response
+        }
+        if (!responses[size as keyof BattleResponses]) {
+            responses[size as keyof BattleResponses] = [added]
+        }
+        else {
+            responses[size as keyof BattleResponses]!.push(added)
+        }
+        fs.writeFileSync("./database/battleV2", JSON.stringify(responses))
+        return crv(`added: ${JSON.stringify(added)}`)
+    }, "Creates a battle response", {
+        helpArguments: {
+            size: helpArg("Amount of damage, can be<ul><li>tiny</li><li>small</li><li>medium</li><li>big</li><li>huge</li></ul>"),
+            response: helpArg("What it says, <code>{user<n>}</code> will be replaced with a player, if n is all it gets replaced with everyone in the game, if it is 1, it will be replaced with player 1, and so on, <code>{amount}</code> will be replaced with the amount of damage/heal it does"),
+            effects: helpArg("Format: <code>damage OR heal | all OR playernumber</code><br>there can be multiple on different lines")
+        }
+    })]
 
     yield ["alias", createCommandV2(async ({ msg, args, opts, sendCallback }) => {
 
