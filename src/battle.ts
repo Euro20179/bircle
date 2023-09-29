@@ -504,32 +504,14 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 return `<@${shuffledPlayers.at(playerNo)}>`
             }
         })
-        let nAmount = 0
+        let nAmount = {
+            tiny:  Math.floor(Math.random() * 10),
+            small:  Math.floor(Math.random() * (20 - 10) + 10),
+            medium:  Math.floor(Math.random() * (35 - 20) + 20),
+            big:  Math.floor(Math.random() * (50 - 35) + 35),
+            "huge":  Math.floor(Math.random() * (75 - 50) + 50)
+        }[amount]
         let eliminations = []
-        switch (amount) {
-            case "huge": {
-                nAmount = Math.floor(Math.random() * (75 - 50) + 50)
-                break
-            }
-            case "big": {
-                nAmount = Math.floor(Math.random() * (50 - 35) + 35)
-                break
-            }
-            case "medium": {
-                nAmount = Math.floor(Math.random() * (35 - 20) + 20)
-            }
-            case "small": {
-                nAmount = Math.floor(Math.random() * (20 - 10) + 10)
-                break
-            }
-            case "tiny": {
-                nAmount = Math.floor(Math.random() * 10)
-                break
-            }
-            default: {
-                continue
-            }
-        }
         if (responseMultiplier > 1) {
             nAmount *= responseMultiplier
             responseMultiplier = 1
