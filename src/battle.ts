@@ -622,16 +622,16 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
     */
     let lastMessages = []
     let responses: BattleResponses = {
-        // "huge": [{
-        //     effects: [["damage", ["all"]]],
-        //     response: "{userall} died"
-        // }, {
-        //     effects: [["heal", ["all"]]],
-        //     response: "{userall} lived"
-        // }, {
-        //     effects: [["damage", ["all"]]],
-        //     response: "ELEVATOR 👍"
-        // }],
+        "huge": [{
+            effects: [["damage", ["all"]]],
+            response: "{userall} died"
+        }, {
+            effects: [["heal", ["all"]]],
+            response: "{userall} lived"
+        }, {
+            effects: [["damage", ["all"]]],
+            response: "ELEVATOR 👍"
+        }],
     }
     if (fs.existsSync("./database/battleV2")) {
         let d = fs.readFileSync("./database/battleV2", "utf-8")
