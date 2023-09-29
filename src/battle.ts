@@ -369,8 +369,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             }
         }),
         chance: new Item({
-            percentCost: 0.008,
-            numberCost: 0.5,
+            percentCost: 0.005,
+            numberCost: 0.1,
             async onUse(m, e) {
                 let randItems = ["heal", "suicide"]
                 let name = randItems[Math.floor(Math.random() * randItems.length)]
@@ -386,7 +386,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 else {
                     e.setTitle("SUICIDE")
                     e.setColor("DarkRed")
-                    let damage = Math.floor(Math.random() * 12 + 2) * multiplier
+                    let damage = Math.floor(Math.random() * 19 + 1) * multiplier
                     e.setDescription(`<@${m.author.id}> took ${damage} damage`)
                     players[m.author.id].damage(damage)
                 }
