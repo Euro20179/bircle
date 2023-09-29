@@ -11,7 +11,7 @@ import { getOpts } from './parsing'
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy from './economy'
 import { StatusCode, crv, handleSending } from './common_to_commands'
-import { efd, isMsgChannel } from './util'
+import { efd, isMsgChannel, shuffleArray } from './util'
 import { cloneDeep } from 'lodash'
 
 let BATTLEGAME: boolean = false;
@@ -695,7 +695,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             [amount, responseChoice] = pickBattleResponse(responses)
         } while (responseChoice === undefined)
 
-        let shuffledPlayers = Object.keys(players).sort(() => Math.random() - .5)
+        let shuffledPlayers = shuffleArray(Object.keys(players))
 
         let responseText = replacePlaceholdersInBattleResponse(responseChoice.response, shuffledPlayers)
 
