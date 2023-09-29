@@ -20,6 +20,8 @@ const BATTLE_GAME_BONUS = 1.1;
 
 const ITEM_COOLDOWN: milliseconds_t = 8000
 
+const ITEM_RARITY_TABLE = { "huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1 }
+
 class Player {
     bet: number
     money_spent: number
@@ -58,8 +60,10 @@ class Player {
 
 class GameState {
     players: { [key: string]: Player }
+    mumboUser: null | string
     constructor(players: { [key: string]: Player }) {
         this.players = players
+        this.mumboUser = null
     }
 
     calculatebetTotal() {
@@ -135,13 +139,11 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
 
     let responseMultiplier = 1;
 
-    let mumboUser: string | null = null
-
     let negativeHpBonus: { [key: string]: number } = {}
 
     let start = Date.now() / 1000
 
-    let items: { [key: string]: Item } = {
+    let items: { [key: string]: Item } = {// {{{
         rheal: new Item({
             percentCost: 0.001,
             numberCost: 0.1,
@@ -287,9 +289,9 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             numberCost: 1,
             percentCost: 0.01,
             async onUse(m, e) {
-                if (mumboUser)
+                if (gameState.mumboUser)
                     return false
-                mumboUser = m.author.id
+                gameState.mumboUser = m.author.id
                 players['mumbo'] = new Player("mumbo", 0, 100)
                 e.setTitle("MUMBO JOINS THE BATTLE")
                 return true
@@ -342,17 +344,15 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         "yoink": new Item({
             numberCost: 2,
             async onUse(m, e) {
-                mumboUser = m.author.id
+                gameState.mumboUser = m.author.id
                 e.setTitle(`YOINK`)
                 e.setDescription(`<@${m.author.id}> HAS STOLEN MUMBOくん`)
                 return true
             }
         })
-    }
+    }// }}}
 
     let itemUseCollector = msg.channel.createMessageCollector({ filter: m => useItems && Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase()) })
-
-    let rarityTable = { "huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1 }
 
     itemUseCollector.on("collect", async (m) => {
         if (!isMsgChannel(msg.channel) || !isMsgChannel(m.channel)) return
@@ -396,22 +396,17 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
     while (Object.values(players).length > 0) {
         let embed = new EmbedBuilder()
         responses = responses.filter(v => {
-            let valid = true
             let matches = v.matchAll(/\{user(\d+|all)\}/g)
             let count = 0
             for (let match of matches) {
                 count++;
-                if (match[1] == 'all') {
-                    valid = true
-                }
-                else if (!Object.keys(players)[Number(match[1]) - 1]) {
-                    valid = false
-                    break
+                if (!Object.keys(players)[Number(match[1]) - 1]) {
+                    return false
                 }
             }
             if (count == 0)
                 return false
-            return valid
+            return true
         })
         if (responses.length < 1) {
             await msg.channel.send("No responses do anything, add better responses or you will die for real 100% factual statement")
@@ -425,7 +420,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             amount = responseChoice.match(/AMOUNT=(huge|big|medium|small|tiny)/)
             if (!amount)
                 continue
-            if (Math.random() < rarityTable[amount[1] as 'huge' | 'big' | 'medium' | 'small' | 'tiny']) {
+            if (Math.random() < ITEM_RARITY_TABLE[amount[1] as 'huge' | 'big' | 'medium' | 'small' | 'tiny']) {
                 break
             }
         }
@@ -530,7 +525,6 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         }
         if (!tawCount) continue
 
-        //let healthRemainingTable = "Health Remaining:\n"
         for (let player in players) {
             let mem = msg.guild.members.cache.find((v) => v.id == player)
             if (!mem) {
@@ -547,11 +541,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                     negativeHpBonus[player] = players[player].hp
                 }
             }
-            //healthRemainingTable += `<@${player}>: ${players[player]}\n`
         }
         responseChoice = responseChoice.replaceAll("{amount}", String(nAmount))
-        //embed.setDescription(responseChoice)
-        //let ms = await msg.channel.send(`${responseChoice}\n-------------------------\n${healthRemainingTable}`)
         let ms = await msg.channel.send({ content: `**${responseChoice}**`, embeds: [embed] })
         lastMessages.push(ms)
         if (lastMessages.length >= 4) {
@@ -563,10 +554,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         let text = ""
 
         for (let elim of eliminations) {
-            if (elim === 'mumbo' && mumboUser) {
-                text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`
-                economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
-                mumboUser = null
+            if (elim === 'mumbo' && gameState.mumboUser) {
+                text += `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`
+                economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
+                gameState.mumboUser = null
                 delete players[elim]
             }
             else {
@@ -577,10 +568,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
 
         for (let player in players) {
             if (isNaN(players[player].hp)) {
-                if (player === 'mumbo' && mumboUser) {
-                    await msg.channel.send(`<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`)
-                    economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
-                    mumboUser = null
+                if (player === 'mumbo' && gameState.mumboUser) {
+                    await msg.channel.send(`<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`)
+                    economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
+                    gameState.mumboUser = null
                 }
                 else {
                     let rv = await handleDeath(player, players, winningType)
@@ -608,10 +599,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         e.setColor("Yellow")
     }
     else if (winner[0] == 'mumbo') {
-        economy.addMoney(mumboUser || "", betTotal / 2)
+        economy.addMoney(gameState.mumboUser || "", betTotal / 2)
         e.setTitle("GAME OVER")
         e.setColor("DarkGreen")
-        e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GETS HALF THE WINNINGS! ($${betTotal / 2})`)
+        e.setDescription(`MUMBO WINS, <@${gameState.mumboUser}> SUMMONED MUMBO AND GETS HALF THE WINNINGS! ($${betTotal / 2})`)
     }
     else {
         economy.addMoney(winner[0], betTotal * BATTLE_GAME_BONUS)
