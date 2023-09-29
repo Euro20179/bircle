@@ -537,11 +537,11 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
 
         for (let effect of responseChoice.effects) {
             let [t, affected] = effect
+            let affectedPlayers = getPlayerNumbersFromBattleEffectList(affected, playerCount)
             switch (t) {
                 case "heal": {
                     embed.setColor("Green")
                     let playerCount = Object.keys(shuffledPlayers).length
-                    let affectedPlayers = getPlayerNumbersFromBattleEffectList(affected, playerCount)
                     for (let playerNumber of affectedPlayers) {
                         players[shuffledPlayers.at(playerNumber - 1) as string].hp += nAmount
                     }
@@ -550,14 +550,13 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 case "damage": {
                     embed.setColor("Red")
                     nAmount *= -1
-                    let affectedPlayers = getPlayerNumbersFromBattleEffectList(affected, playerCount)
                     for (let playerNumber of affectedPlayers) {
                         let player = players[shuffledPlayers.at(playerNumber - 1) as string]
                         if (player.shielded) {
-                            players[shuffledPlayers.at(id - 1) as string].shielded = false
+                            players[shuffledPlayers.at(playerNumber - 1) as string].shielded = false
                             let e = new EmbedBuilder()
                             e.setTitle("BLOCKED")
-                            e.setDescription(`<@${shuffledPlayers.at(id - 1) as string}> BLOCKED THE ATTACK`)
+                            e.setDescription(`<@${shuffledPlayers.at(playerNumber - 1) as string}> BLOCKED THE ATTACK`)
                             e.setColor("Navy")
                             await msg.channel.send({ embeds: [e] })
                         }
