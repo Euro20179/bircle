@@ -91,7 +91,11 @@ class Player {
 
     kill(){
         if(this.above0){
+            this.#dead = false
             return false
+        }
+        if(this.#dead){
+            return true
         }
         if(this.#extraLife){
             this.hp = 50
@@ -133,6 +137,9 @@ class Player {
 
     heal(amount: number) {
         this.hp += amount
+        if(this.above0){
+            this.#dead = false
+        }
         return true
     }
 
@@ -140,6 +147,9 @@ class Player {
         this.hp -= amount
         if (this.hp < this.#lowestHp) {
             this.#lowestHp = this.hp
+        }
+        if(this.above0){
+            this.#dead = false
         }
     }
 
@@ -418,8 +428,9 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                     let damage = Math.floor(Math.random() * 19 + 1) * multiplier
                     e.setDescription(`<@${m.author.id}> took ${damage} damage`)
                     players[m.author.id].damage(damage)
+                    players[m.author.id].kill()
                 }
-                    return true
+                return true
             }
         }),
         "anger toolbox": new Item({
@@ -571,7 +582,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                     damage *= 2
                 }
                 e.setFooter({ text: `𝐀𝐗𝐄 ${damage}` })
-                players[player].hp -= damage
+                players[player].damageThroughShield(damage)
+                players[player].kill()
                 return true
             }
         }),
