@@ -330,7 +330,7 @@ async function handleDeath(id: string, players: { [key: string]: Player }, winni
         e.setDescription(`<@${id}> HAS DIED and distributed ${total_spent / remaining * BATTLE_GAME_BONUS} to each player`)
         e.setColor("Blue")
         for (let player in players) {
-            economy.addMoney(player, total_spent / remaining * BATTLE_GAME_BONUS)
+            economy.addMoney(player.id, total_spent / remaining * BATTLE_GAME_BONUS)
         }
     }
     else {
