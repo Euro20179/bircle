@@ -1,3 +1,5 @@
+//TODO: refactor to be easier to change game logic and stuff
+
 import { Message, EmbedBuilder } from 'discord.js'
 
 import pet from './pets'
@@ -15,6 +17,36 @@ const { hasItem } = require("./shop.js")
 let BATTLEGAME: boolean = false;
 
 const BATTLE_GAME_BONUS = 1.1;
+
+class Item {
+    #allowedUses
+    #useCount = 0
+    #percentCost
+    #numberCost
+    #onUse
+    constructor(options: {
+        allowedUses?: number,
+        percentCost?: number,
+        numberCost?: number,
+        onUse: (this: Item, m: Message, embed: EmbedBuilder) => Promise<boolean>
+    }) {
+        this.#allowedUses = options.allowedUses || Infinity
+        this.#percentCost = options.percentCost || 0
+        this.#numberCost = options.numberCost || 0
+        this.#onUse = options.onUse
+    }
+
+    calculateFullCost(playerBalance: number){
+        return playerBalance * this.#percentCost + this.#numberCost
+    }
+    use(m: Message, embed: EmbedBuilder) {
+        this.#useCount++;
+        if (this.#useCount >= this.#allowedUses) {
+            return false
+        }
+        return this.#onUse.bind(this)(m, embed)
+    }
+}
 
 async function handleDeath(id: string, players: { [key: string]: number }, winningType: "distribute" | "wta", bets: { [key: string]: number }, ogBets: { [key: string]: number }): Promise<{ amountToRemoveFromBetTotal: number, send: EmbedBuilder }> {
     let remaining = Object.keys(players).length - 1
@@ -52,10 +84,6 @@ async function game(msg: Message, players: { [key: string]: number }, ogBets: { 
     let usedEarthquake = false;
     let mumboUser: string | null = null
 
-    let usedYoink: string[] = []
-
-    let usedTriple: string[] = []
-
     let negativeHpBonus: { [key: string]: number } = {}
 
     let itemUses: { [key: string]: number } = {}
@@ -83,184 +111,199 @@ async function game(msg: Message, players: { [key: string]: number }, ogBets: { 
 
     let start = Date.now() / 1000
 
-    //item cost table{{{
-    let items: { [key: string]: { percent?: number, amount?: number } } = {
-        "rheal": { percent: 0.001, amount: 0.1 },
-        "heal": { percent: 0.01, amount: 0.1 },
-        "anger toolbox": { amount: 3 },
-        "anger euro": { amount: 3 },
-        "blowtorch": { percent: 0.01, amount: 1 },
-        "swap": { percent: (3 * Object.keys(players).length) / 100 },
-        "double": { percent: 0.05, amount: 2 },
-        "triple": { percent: 0.10, amount: 3 },
-        "blue shell": { amount: 0.5, percent: 0.02 },
-        "shield": { amount: 0.5, percent: 0.003 },
-        "mumbo": { amount: 1, percent: 0.01 },
-        "suicide": { amount: 1, percent: 0.001 },
-        "earthquake": { amount: 2, percent: 0.04 },
-        "yoink": { amount: 2 },
+    let items: { [key: string]: Item } = {
+        rheal: new Item({
+            percentCost: 0.001, numberCost: 0.1,
+            async onUse(_, e) {
+                let playerNames = Object.keys(players)
+                let amount = Math.floor(Math.random() * (playerNames.length * 15))
+                e.setTitle("RANDOM HEAL")
+                e.setColor("Green")
+                let below50 = Object.entries(players).filter((p) => p[1] <= 50)
+                if (below50.length < 1) {
+                    await msg.channel.send("No one has less than 50 health")
+                    return false
+                }
+                let playerToHeal = below50[Math.floor(Math.random() * below50.length)][0]
+
+                e.setDescription(`<@${playerToHeal}> healed for ${amount}`)
+                if (players[playerToHeal])
+                    players[playerToHeal] += amount
+                return true
+
+            }
+        }),
+        "heal": new Item({
+            percentCost: 0.01, numberCost: 0.1, async onUse(m, e) {
+                let amount = Math.floor(Math.random() * 19 + 1)
+                e.setTitle("HEAL")
+                e.setColor("Green")
+                e.setDescription(`<@${m.author.id}> healed for ${amount}`)
+                if (players[m.author.id])
+                    players[m.author.id] += amount
+                return true
+            }
+        }),
+        "anger toolbox": new Item({
+            numberCost: 3, async onUse(m, e) {
+                e.setTitle("TOOLBOX IS ANGRY")
+                e.setColor("Red")
+                e.setDescription(`<@${m.author.id}> has angered toolbox`)
+                for (let player in players) {
+                    players[player] *= .99432382
+                }
+                return true
+            }
+        }),
+        "anger euro": new Item({
+            numberCost: 3, async onUse(m, e) {
+                if (!isMsgChannel(msg.channel)) return false
+                await msg.channel.send("STOPPING")
+                return false
+            }
+        }),
+        "blowtorch": new Item({
+            percentCost: 0.01, numberCost: 1, async onUse(m, e) {
+                let amount = Math.floor(Math.random() * 19 + 1)
+                e.setTitle("BLOWTORCH")
+                e.setColor("Red")
+                e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
+                for (let player in players) {
+                    if (player === m.author.id) continue
+                    players[player] -= amount
+                }
+                return true
+            }
+        }),
+        "swap": new Item({
+            percentCost: (3 * Object.keys(players).length) / 100, async onUse(m, e) {
+                let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
+                let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
+                let thisPlayerHealth = players[m.author.id]
+                let otherPlayerHealth = players[p]
+                e.setTitle(`SWAP HEALTH`)
+                e.setDescription(`<@${m.author.id}> <-> <@${p}>`)
+                e.setColor("#ffff00")
+                players[m.author.id] = otherPlayerHealth
+                players[p] = thisPlayerHealth
+                usedSwap.push(m.author.id)
+                return true
+            }
+        }),
+        "double": new Item({
+            percentCost: 0.05, numberCost: 2, async onUse(m, e) {
+                responseMultiplier *= 2
+                e.setTitle("DOUBLE")
+                e.setColor("Green")
+                e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                return true
+            }
+        }),
+        "triple": new Item({
+            percentCost: 0.10, numberCost: 3, async onUse(m, e) {
+                responseMultiplier *= 3
+
+                e.setTitle("TRIPLE")
+                e.setColor("Green")
+                e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                return true
+            }
+        }),
+        "blue shell": new Item({
+            numberCost: 0.5, percentCost: 0.02, async onUse(m, e) {
+                if (!isMsgChannel(msg.channel)) return false
+                if (usedShell.includes(m.author.id)) {
+                    return false
+                }
+                e.setTitle("BLUE SHELL")
+                e.setColor("Blue")
+                let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
+                let firstPlace = sort[0]
+                if (firstPlace[1] < 50) {
+                    await msg.channel.send("No one has more than 50 health")
+                    return false
+                }
+                e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
+                players[firstPlace[0]] -= 50
+                usedShell.push(m.author.id)
+                return true
+            }
+        }),
+        "shield": new Item({
+            numberCost: 0.5, percentCost: 0.003, async onUse(m, e) {
+                if (!Object.keys(shields).includes(m.author.id)) {
+                    shields[m.author.id] = true
+                    e.setTitle("SHIELD")
+                    e.setColor("White")
+                    e.setDescription(`<@${m.author.id}> bought a shield`)
+                    return true
+                }
+                return false
+            }
+        }),
+        "mumbo": new Item({
+            numberCost: 1, percentCost: 0.01, async onUse(m, e) {
+                if (mumboUser)
+                    return false
+                mumboUser = m.author.id
+                players['mumbo'] = 100
+                e.setTitle("MUMBO JOINS THE BATTLE")
+                return true
+            }
+        }),
+        "suicide": new Item({
+            numberCost: 1, percentCost: 0.001, async onUse(m, e) {
+                e.setTitle("SUICIDE")
+                e.setColor("DarkRed")
+                let damage = Math.floor(Math.random() * 8 + 2)
+                e.setDescription(`<@${m.author.id}> took ${damage} damage`)
+                players[m.author.id] -= damage
+                return true
+            }
+        }),
+        "axe": new Item({
+            numberCost: 1, percentCost: 0.001, async onUse(m, e){
+                let damage = Math.floor(Math.random() * Object.keys(players).length * 5)
+                let playerNames = Object.keys(players)
+                let player = playerNames[Math.floor(Math.random() *  playerNames.length)]
+                e.setDescription(`𝐘𝐎𝐔'𝐕𝐄 𝐁𝐄𝐄𝐍 𝐀𝐗𝐄𝐃 <@${player}>`)
+                if (player == m.author.id) {
+                    damage *= 2
+                }
+                e.setFooter({text: `𝐀𝐗𝐄 ${damage}`)
+                players[player] -= damage
+                return true
+            }
+        }),
+        "earthquake": new Item({
+            numberCost: 2, percentCost: 0.04, async onUse(m, e) {
+                if (usedEarthquake)
+                    return false
+                let sumHealths = Object.values(players).reduce((a, b) => a + b, 0)
+                let average = sumHealths / Object.keys(players).length
+                e.setTitle("EARTHQUAKE")
+                e.setColor("Grey")
+                for (let player in players) {
+                    players[player] = average
+                }
+                e.setDescription(`<@${m.author.id}> CAUSED AN EARTHQUAKE`)
+                usedEarthquake = true
+                return true
+            }
+        }),
+        "yoink": new Item({
+            numberCost: 2, async onUse(m, e) {
+                mumboUser = m.author.id
+                e.setTitle(`YOINK`)
+                e.setDescription(`<@${m.author.id}> HAS STOLEN MUMBOくん`)
+                return true
+            }
+        })
     }
-    //}}}
 
     let itemUseCollector = msg.channel.createMessageCollector({ filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase()) })
 
     let rarityTable = { "huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1 }
-
-    //item table{{{
-    let itemFunctionTable: { [key: string]: (m: Message, e: EmbedBuilder) => Promise<boolean> } = {
-        heal: async (m: Message, e: EmbedBuilder) => {
-            let amount = Math.floor(Math.random() * 19 + 1)
-            e.setTitle("HEAL")
-            e.setColor("Green")
-            e.setDescription(`<@${m.author.id}> healed for ${amount}`)
-            if (players[m.author.id])
-                players[m.author.id] += amount
-            return true
-        },
-        rheal: async (m, e) => {
-            let playerNames = Object.keys(players)
-            let amount = Math.floor(Math.random() * (playerNames.length * 15))
-            e.setTitle("RANDOM HEAL")
-            e.setColor("Green")
-            let below50 = Object.entries(players).filter((p) => p[1] <= 50)
-            if (below50.length < 1) {
-                await msg.channel.send("No one has less than 50 health")
-                return false
-            }
-            let playerToHeal = below50[Math.floor(Math.random() * below50.length)][0]
-
-            e.setDescription(`<@${playerToHeal}> healed for ${amount}`)
-            if (players[playerToHeal])
-                players[playerToHeal] += amount
-            return true
-        },
-        "anger toolbox": async (m, e) => {
-            e.setTitle("TOOLBOX IS ANGRY")
-            e.setColor("Red")
-            e.setDescription(`<@${m.author.id}> has angered toolbox`)
-            for (let player in players) {
-                players[player] *= .99432382
-            }
-            return true
-        },
-        "anger euro": async (m, e) => {
-            if (!isMsgChannel(msg.channel)) return false
-            await msg.channel.send("STOPPING")
-            return false
-        },
-        "blowtorch": async (m, e) => {
-            let amount = Math.floor(Math.random() * 19 + 1)
-            e.setTitle("BLOWTORCH")
-            e.setColor("Red")
-            e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
-            for (let player in players) {
-                if (player === m.author.id) continue
-                players[player] -= amount
-            }
-            return true
-        },
-        swap: async (m, e) => {
-            if (usedSwap.includes(m.author.id))
-                return false
-            let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
-            let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
-            let thisPlayerHealth = players[m.author.id]
-            let otherPlayerHealth = players[p]
-            e.setTitle(`SWAP HEALTH`)
-            e.setDescription(`<@${m.author.id}> <-> <@${p}>`)
-            e.setColor("#ffff00")
-            players[m.author.id] = otherPlayerHealth
-            players[p] = thisPlayerHealth
-            usedSwap.push(m.author.id)
-            return true
-        },
-        double: async (m, e) => {
-            responseMultiplier *= 2
-            e.setTitle("DOUBLE")
-            e.setColor("Green")
-            e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
-            return true
-        },
-        triple: async (m, e) => {
-            if (usedTriple.includes(m.author.id))
-                return false
-            usedTriple.push(m.author.id)
-            responseMultiplier *= 3
-
-            e.setTitle("TRIPLE")
-            e.setColor("Green")
-            e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
-            return true
-        },
-        "blue shell": async (m, e) => {
-            if (!isMsgChannel(msg.channel)) return false
-            if (usedShell.includes(m.author.id)) {
-                return false
-            }
-            e.setTitle("BLUE SHELL")
-            e.setColor("Blue")
-            let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
-            let firstPlace = sort[0]
-            if (firstPlace[1] < 50) {
-                await msg.channel.send("No one has more than 50 health")
-                return false
-            }
-            e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
-            players[firstPlace[0]] -= 50
-            usedShell.push(m.author.id)
-            return true
-        },
-        "shield": async (m, e) => {
-            if (!Object.keys(shields).includes(m.author.id)) {
-                shields[m.author.id] = true
-                e.setTitle("SHIELD")
-                e.setColor("White")
-                e.setDescription(`<@${m.author.id}> bought a shield`)
-                return true
-            }
-            return false
-        },
-        mumbo: async (m, e) => {
-            if (mumboUser)
-                return false
-            mumboUser = m.author.id
-            players['mumbo'] = 100
-            e.setTitle("MUMBO JOINS THE BATTLE")
-            return true
-        },
-        yoink: async (m, e) => {
-            if (usedYoink.includes(m.author.id))
-                return false
-            usedYoink.push(m.author.id)
-            mumboUser = m.author.id
-            e.setTitle(`YOINK`)
-            e.setDescription(`<@${m.author.id}> HAS STOLEN MUMBOくん`)
-            return true
-        },
-        suicide: async (m, e) => {
-            e.setTitle("SUICIDE")
-            e.setColor("DarkRed")
-            let damage = Math.floor(Math.random() * 8 + 2)
-            e.setDescription(`<@${m.author.id}> took ${damage} damage`)
-            players[m.author.id] -= damage
-            return true
-        },
-        earthquake: async (m, e) => {
-            if (usedEarthquake)
-                return false
-            let sumHealths = Object.values(players).reduce((a, b) => a + b, 0)
-            let average = sumHealths / Object.keys(players).length
-            e.setTitle("EARTHQUAKE")
-            e.setColor("Grey")
-            for (let player in players) {
-                players[player] = average
-            }
-            e.setDescription(`<@${m.author.id}> CAUSED AN EARTHQUAKE`)
-            usedEarthquake = true
-            return true
-        }
-    }
-    //}}}
 
     if (useItems) {
         itemUseCollector.on("collect", async (m) => {
@@ -280,24 +323,21 @@ async function game(msg: Message, players: { [key: string]: number }, ogBets: { 
                 return
             }
             let i = m.content.toLowerCase()
-            let cost = items[i]
-            let a = cost.amount ?? 0
-            if (cost.percent) {
-                a += economy.calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
-            }
-            if (economy.getEconomy()[m.author.id].money - bets[m.author.id] < a) {
+            let item = items[i]
+            let cost = item.calculateFullCost(m.author.economyData.money)
+            if (economy.getEconomy()[m.author.id].money - bets[m.author.id] < cost) {
                 await m.channel.send("You cannot afford this")
                 return
             }
             let e = new EmbedBuilder()
-            e.setFooter({ text: `Cost: ${a}` })
-            let rv = await itemFunctionTable[i](m, e)
+            e.setFooter({ text: `Cost: ${cost}` })
+            let rv = await item.use(m, e)
             if (rv) {
                 cooldowns[m.author.id] = Date.now() / 1000
-                economy.loseMoneyToBank(m.author.id, a)
+                economy.loseMoneyToBank(m.author.id, cost)
                 await m.channel.send({ embeds: [e] })
-                betTotal += a
-                bets[m.author.id] += a
+                betTotal += cost
+                bets[m.author.id] += cost
                 if (itemUses[m.author.id]) {
                     itemUses[m.author.id]++
                 }

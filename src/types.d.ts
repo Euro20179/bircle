@@ -7,7 +7,6 @@ import { UserOption } from "./user-options"
 
 declare module "discord.js" {
     export interface User {
-        balance: number,
         loan: number,
         economyData: EconomyData,
         netWorth: number
