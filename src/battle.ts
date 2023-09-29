@@ -195,7 +195,21 @@ async function handleDeath(id: string, players: { [key: string]: Player }, winni
     return rv
 }
 
-function handleResponseActions()
+function getPlayerNumbersFromBattleEffectList(list: BattleResponse['effects'][1][1], playerCount: number) {
+    //dont hit the same player twice
+    let numbers: Set<number> = new Set()
+    for (let player of list) {
+        if (player === 'all') {
+            for (let i = 0; i < playerCount; i++) {
+                numbers.add(i)
+            }
+        }
+        else {
+            numbers.add(player)
+        }
+    }
+    return numbers
+}
 
 async function game(msg: Message, gameState: GameState, cooldowns: { [key: string]: number }, useItems: boolean, winningType: "wta" | "distribute") {
 
@@ -507,11 +521,11 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             }
         })
         let nAmount = {
-            tiny:  Math.floor(Math.random() * 10),
-            small:  Math.floor(Math.random() * (20 - 10) + 10),
-            medium:  Math.floor(Math.random() * (35 - 20) + 20),
-            big:  Math.floor(Math.random() * (50 - 35) + 35),
-            "huge":  Math.floor(Math.random() * (75 - 50) + 50)
+            tiny: Math.floor(Math.random() * 10),
+            small: Math.floor(Math.random() * (20 - 10) + 10),
+            medium: Math.floor(Math.random() * (35 - 20) + 20),
+            big: Math.floor(Math.random() * (50 - 35) + 35),
+            "huge": Math.floor(Math.random() * (75 - 50) + 50)
         }[amount]
         let eliminations = []
         if (responseMultiplier > 1) {
@@ -519,28 +533,16 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             responseMultiplier = 1
         }
 
-        if(responseChoice.effects.length < 1) continue
+        if (responseChoice.effects.length < 1) continue
 
         for (let effect of responseChoice.effects) {
             let [t, affected] = effect
             switch (t) {
                 case "heal": {
                     embed.setColor("Green")
-                    //dont damage the same player twice
-                    let p: Set<number> = new Set();
                     let playerCount = Object.keys(shuffledPlayers).length
-                    for (let match of affected) {
-                        if (match == 'all') {
-                            for(let i = 0; i < playerCount; i++){
-                                p.add(i)
-                            }
-                        }
-                        else {
-                            let n = Number(match)
-                            p.add(n)
-                        }
-                    }
-                    for (let playerNumber of p) {
+                    let affectedPlayers = getPlayerNumbersFromBattleEffectList(affected, playerCount)
+                    for (let playerNumber of affectedPlayers) {
                         players[shuffledPlayers.at(playerNumber - 1) as string].hp += nAmount
                     }
                     break
@@ -548,25 +550,21 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 case "damage": {
                     embed.setColor("Red")
                     nAmount *= -1
-                    for (let player of affected) {
-                        let n = Number(player)
-                        let p = [n]
-                        if (player == 'all')
-                            p = Object.keys(shuffledPlayers).map(v => Number(v))
-                        for (let id of p) {
-                            if (players[shuffledPlayers.at(id - 1) as string].shielded) {
-                                players[shuffledPlayers.at(id - 1) as string].shielded = false
-                                let e = new EmbedBuilder()
-                                e.setTitle("BLOCKED")
-                                e.setDescription(`<@${shuffledPlayers.at(id - 1) as string}> BLOCKED THE ATTACK`)
-                                e.setColor("Navy")
-                                await msg.channel.send({ embeds: [e] })
-                            }
-                            else {
-                                players[shuffledPlayers.at(id - 1) as string].hp += nAmount
-                                if (players[shuffledPlayers.at(id - 1) as string].hp <= 0) {
-                                    eliminations.push(shuffledPlayers.at(id - 1) as string)
-                                }
+                    let affectedPlayers = getPlayerNumbersFromBattleEffectList(affected, playerCount)
+                    for (let playerNumber of affectedPlayers) {
+                        let player = players[shuffledPlayers.at(playerNumber - 1) as string]
+                        if (player.shielded) {
+                            players[shuffledPlayers.at(id - 1) as string].shielded = false
+                            let e = new EmbedBuilder()
+                            e.setTitle("BLOCKED")
+                            e.setDescription(`<@${shuffledPlayers.at(id - 1) as string}> BLOCKED THE ATTACK`)
+                            e.setColor("Navy")
+                            await msg.channel.send({ embeds: [e] })
+                        }
+                        else {
+                            player.hp += nAmount
+                            if (player.hp <= 0) {
+                                eliminations.push(player.id)
                             }
                         }
                     }
