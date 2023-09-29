@@ -52,6 +52,9 @@ class Player {
         this.id = id
     }
 
+    get alive() {
+        return this.hp > 0
+    }
     get total_spent() {
         return this.money_spent + this.bet
     }
@@ -69,14 +72,35 @@ class Player {
         economy.loseMoneyToBank(this.id, cost)
         this.itemUses++
     }
+
+    heal(amount: number) {
+        this.hp += amount
+        return true
+    }
+
+    damageThroughShield(amount: number) {
+        this.hp -= amount
+        return true
+    }
+
+    damage(amount: number) {
+        if (this.shielded) {
+            this.shielded = true
+            return false
+        }
+        this.hp -= amount
+        return true
+    }
 }
 
 class GameState {
     players: { [key: string]: Player }
     mumboUser: null | string
+    damageMultiplier: number
     constructor(players: { [key: string]: Player }) {
         this.players = players
         this.mumboUser = null
+        this.damageMultiplier = 1
     }
 
     get player_count() {
@@ -218,8 +242,6 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
 
     let players = gameState.players
 
-    let responseMultiplier = 1;
-
     let negativeHpBonus: { [key: string]: number } = {}
 
     let start = Date.now() / 1000
@@ -243,7 +265,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
 
                 e.setDescription(`<@${playerToHeal}> healed for ${amount}`)
                 if (players[playerToHeal])
-                    players[playerToHeal].hp += amount
+                    players[playerToHeal].heal(amount)
                 return true
 
             }
@@ -257,7 +279,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setColor("Green")
                 e.setDescription(`<@${m.author.id}> healed for ${amount}`)
                 if (players[m.author.id])
-                    players[m.author.id].hp += amount
+                    players[m.author.id].heal(amount)
                 return true
             }
         }),
@@ -268,7 +290,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setColor("Red")
                 e.setDescription(`<@${m.author.id}> has angered toolbox`)
                 for (let player in players) {
-                    players[player].hp *= .99432382
+                    players[player].hp *= .991
                 }
                 return true
             }
@@ -291,7 +313,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
                 for (let player in players) {
                     if (player === m.author.id) continue
-                    players[player].hp -= amount
+                    players[player].damageThroughShield(amount)
                 }
                 return true
             }
@@ -316,10 +338,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             percentCost: 0.05,
             numberCost: 2,
             async onUse(m, e) {
-                responseMultiplier *= 2
+                gameState.damageMultiplier *= 2
                 e.setTitle("DOUBLE")
                 e.setColor("Green")
-                e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${gameState.damageMultiplier}**`)
                 return true
             }
         }),
@@ -327,11 +349,11 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             percentCost: 0.10,
             numberCost: 3,
             async onUse(m, e) {
-                responseMultiplier *= 3
+                gameState.damageMultiplier *= 3
 
                 e.setTitle("TRIPLE")
                 e.setColor("Green")
-                e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${gameState.damageMultiplier}**`)
                 return true
             }
         }),
@@ -528,43 +550,40 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             "huge": Math.floor(Math.random() * (75 - 50) + 50)
         }[amount]
         let eliminations = []
-        if (responseMultiplier > 1) {
-            nAmount *= responseMultiplier
-            responseMultiplier = 1
+        if (gameState.damageMultiplier > 1) {
+            nAmount *= gameState.damageMultiplier
+            gameState.damageMultiplier = 1
         }
 
         if (responseChoice.effects.length < 1) continue
 
         for (let effect of responseChoice.effects) {
             let [t, affected] = effect
-            let affectedPlayers = getPlayerNumbersFromBattleEffectList(affected, playerCount)
+            let affectedPlayers = Array.from(
+                getPlayerNumbersFromBattleEffectList(affected, playerCount),
+                n => players[shuffledPlayers.at(n - 1) as string]
+            )
             switch (t) {
                 case "heal": {
                     embed.setColor("Green")
-                    let playerCount = Object.keys(shuffledPlayers).length
-                    for (let playerNumber of affectedPlayers) {
-                        players[shuffledPlayers.at(playerNumber - 1) as string].hp += nAmount
+                    for (let player of affectedPlayers) {
+                        player.heal(nAmount)
                     }
                     break
                 }
                 case "damage": {
                     embed.setColor("Red")
                     nAmount *= -1
-                    for (let playerNumber of affectedPlayers) {
-                        let player = players[shuffledPlayers.at(playerNumber - 1) as string]
-                        if (player.shielded) {
-                            players[shuffledPlayers.at(playerNumber - 1) as string].shielded = false
+                    for (let player of affectedPlayers) {
+                        if (!player.damage(nAmount)) {
                             let e = new EmbedBuilder()
                             e.setTitle("BLOCKED")
-                            e.setDescription(`<@${shuffledPlayers.at(playerNumber - 1) as string}> BLOCKED THE ATTACK`)
+                            e.setDescription(`<@${player.id}> BLOCKED THE ATTACK`)
                             e.setColor("Navy")
                             await msg.channel.send({ embeds: [e] })
                         }
-                        else {
-                            player.hp += nAmount
-                            if (player.hp <= 0) {
-                                eliminations.push(player.id)
-                            }
+                        if (!player.alive) {
+                            eliminations.push(player.id)
                         }
                     }
                     break
