@@ -195,6 +195,8 @@ async function handleDeath(id: string, players: { [key: string]: Player }, winni
     return rv
 }
 
+function handleResponseActions()
+
 async function game(msg: Message, gameState: GameState, cooldowns: { [key: string]: number }, useItems: boolean, winningType: "wta" | "distribute") {
 
     if (!isMsgChannel(msg.channel)) return
@@ -517,10 +519,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             responseMultiplier = 1
         }
 
-        let tawCount = 0
+        if(responseChoice.effects.length < 1) continue
+
         for (let effect of responseChoice.effects) {
             let [t, affected] = effect
-            tawCount++
             switch (t) {
                 case "heal": {
                     embed.setColor("Green")
@@ -572,7 +574,6 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 }
             }
         }
-        if (!tawCount) continue
 
         for (let player in players) {
             let mem = msg.guild.members.cache.find((v) => v.id == player)
