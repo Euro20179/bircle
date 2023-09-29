@@ -57,6 +57,8 @@ class Player {
     shielded: boolean
     id: string
     itemUses: number
+    #dead: boolean
+    #extraLife: boolean
     #lowestHp: number = 100
     #lastItemUsage: number | null = null
     #itemUsageTable: { [key: string]: number }
@@ -68,17 +70,36 @@ class Player {
         this.itemUses = 0
         this.id = id
         this.#itemUsageTable = {}
+        this.#extraLife = false
+        this.#dead = false
     }
 
     get lowestHp() {
         return this.#lowestHp
     }
 
+    get above0(){
+        return this.hp >0
+    }
+
     get alive() {
-        return this.hp > 0
+        return !this.#dead
     }
     get total_spent() {
         return this.money_spent + this.bet
+    }
+
+    kill(){
+        if(this.above0){
+            return false
+        }
+        if(this.#extraLife){
+            this.hp = 50
+            this.#extraLife = false
+            return false
+        }
+        this.#dead = true
+        return true
     }
 
     /**
@@ -144,7 +165,15 @@ class Player {
         else {
             return efd([`${mem.user.username}`, `${this.hp}`, true])
         }
+    }
 
+    canGetLife(){
+        return !this.#extraLife
+    }
+
+    getExtraLife(){
+        this.damageThroughShield(50)
+        this.#extraLife = true
     }
 }
 
@@ -596,7 +625,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         else if (!playerUsingItem.canUseItem(item)) {
             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${playerUsingItem.cooldownRemaining(Date.now(), item) / 1000}**`)
             playerUsingItem.damageThroughShield(5)
-            if (!playerUsingItem.alive) {
+            if (playerUsingItem.kill()) {
                 eliminated.push(playerUsingItem)
                 let rv = await handleDeath(m.author.id, players, winningType)
                 await m.channel.send({ embeds: [rv.send] })
@@ -698,7 +727,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                             e.setColor("Navy")
                             await msg.channel.send({ embeds: [e] })
                         }
-                        if (!player.alive) {
+                        if (player.kill()) {
                             eliminations.push(player.id)
                         }
                     }
