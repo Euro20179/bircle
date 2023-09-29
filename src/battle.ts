@@ -12,7 +12,6 @@ import { getOpts } from './parsing'
 import economy from './economy'
 import { StatusCode, crv, handleSending } from './common_to_commands'
 import { efd, isMsgChannel } from './util'
-const { hasItem } = require("./shop.js")
 
 let BATTLEGAME: boolean = false;
 
@@ -21,6 +20,20 @@ const BATTLE_GAME_BONUS = 1.1;
 const ITEM_COOLDOWN: milliseconds_t = 8000
 
 const ITEM_RARITY_TABLE = { "huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1 }
+
+type BattleEffect = "damage" | "heal"
+type BattleResponse = {
+    effects: [BattleEffect, ["all"] | number[]][]
+    response: string
+}
+
+type BattleResponses = {
+    tiny?: BattleResponse[],
+    small?: BattleResponse[],
+    big?: BattleResponse[],
+    huge?: BattleResponse[],
+    medium?: BattleResponse[],
+}
 
 class Player {
     bet: number
@@ -66,10 +79,62 @@ class GameState {
         this.mumboUser = null
     }
 
+    get player_count() {
+        return Object.keys(this.players).length
+    }
+
     calculatebetTotal() {
         return Object.values(this.players).reduce((p, c) => p + c.total_spent, 0)
     }
     //TODO
+}
+
+/**
+    * @description **filters out invalid responses**,
+    * an invalid response references a player that wont be in the game
+    * eg: *tries to damage player 4 but there's only 3 players in the game*
+*/
+function filterInvalidResponses(responses: BattleResponses, playerCount: number): BattleResponses {
+    for (let t of Object.keys(responses)) {
+        responses[t as keyof typeof responses] = responses[t as keyof typeof responses]!.filter(v => {
+            for (let effect of v.effects) {
+                let players = effect[1] as "all" | number[]
+                if (players === "all") continue
+                for (let p of players) {
+                    if (p > playerCount) return false
+                }
+            }
+            return true
+        })
+    }
+    return responses
+}
+
+function pickBattleResponse(responses: BattleResponses): [keyof BattleResponses, BattleResponse | undefined] {
+    let r = Math.random()
+    let t: keyof BattleResponses = "tiny"
+    for (let k in ITEM_RARITY_TABLE) {
+        if (r < ITEM_RARITY_TABLE[k as keyof typeof ITEM_RARITY_TABLE]) {
+            t = k as keyof BattleResponses
+        }
+    }
+    if (responses[t]!.length < 1) {
+        return [t, undefined]
+    }
+    return [t, responses[t]![Math.floor(Math.random() * responses[t]!.length)]]
+    // responses = responses.filter(v => {
+    //     let matches = v.matchAll(/\{user(\d+|all)\}/g)
+    //     let count = 0
+    //     for (let match of matches) {
+    //         count++;
+    //         if (!Object.keys(players)[Number(match[1]) - 1]) {
+    //             return false
+    //         }
+    //     }
+    //     if (count == 0)
+    //         return false
+    //     return true
+    // })
 }
 
 class Item {
@@ -385,48 +450,46 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
     })
 
     let lastMessages = []
-    let responses = [
-        "{userall} died AMOUNT=huge DAMAGE=all",
-        "{userall} lived AMOUNT=small HEAL=all",
-    ]
-    if (fs.existsSync("./command-results/battle")) {
-        let d = fs.readFileSync("./command-results/battle", "utf-8")
-        responses = d.split(";END").map(v => v.split(":").slice(1).join(":").trim())
+    let responses: BattleResponses = {
+        "huge": [{
+            effects: [["damage", ["all"]]],
+            response: "{userall} died"
+        }],
+        small: [{
+            effects: [["heal", ["all"]]],
+            response: "{userall} lived"
+        }]
+    }
+    if (fs.existsSync("./database/battleV2")) {
+        let d = fs.readFileSync("./database/battleV2", "utf-8")
+        responses = JSON.parse(d)
+    }
+    let playerCount = Object.keys(players).length
+    responses = filterInvalidResponses(responses, playerCount)
+    //if every responselist is empty we have no valid responses
+    if (Object.values(responses).every(v => v.length < 1)) {
+        await msg.channel.send("No responses do anything, add better responses or you will die for real 100% factual statement")
+        itemUseCollector.stop()
+        return
     }
     while (Object.values(players).length > 0) {
         let embed = new EmbedBuilder()
-        responses = responses.filter(v => {
-            let matches = v.matchAll(/\{user(\d+|all)\}/g)
-            let count = 0
-            for (let match of matches) {
-                count++;
-                if (!Object.keys(players)[Number(match[1]) - 1]) {
-                    return false
-                }
-            }
-            if (count == 0)
-                return false
-            return true
-        })
-        if (responses.length < 1) {
-            await msg.channel.send("No responses do anything, add better responses or you will die for real 100% factual statement")
-            itemUseCollector.stop()
-            return
-        }
-        let responseChoice;
-        let amount;
-        while (true) {
-            responseChoice = responses[Math.floor(Math.random() * responses.length)]
-            amount = responseChoice.match(/AMOUNT=(huge|big|medium|small|tiny)/)
-            if (!amount)
-                continue
-            if (Math.random() < ITEM_RARITY_TABLE[amount[1] as 'huge' | 'big' | 'medium' | 'small' | 'tiny']) {
-                break
-            }
-        }
+        let amount, responseChoice;
+        do {
+            [amount, responseChoice] = pickBattleResponse(responses)
+        } while (responseChoice === undefined)
+        // while (true) {
+        //     responseChoice = responses[Math.floor(Math.random() * responses.length)]
+        //     amount = responseChoice.match(/AMOUNT=(huge|big|medium|small|tiny)/)
+        //     if (!amount)
+        //         continue
+        //     if (Math.random() < ITEM_RARITY_TABLE[amount[1] as 'huge' | 'big' | 'medium' | 'small' | 'tiny']) {
+        //         break
+        //     }
+        // }
         let shuffledPlayers = Object.keys(players).sort(() => Math.random() - .5)
         let playersToDoStuffTo: string[] = []
-        responseChoice = responseChoice.replaceAll(/\{user(\d+|all)\}/g, (v, pn) => {
+        let responseText = responseChoice.response.replaceAll(/\{user(\d+|all)\}/g, (v, pn) => {
             if (pn === 'all') {
                 let text = ""
                 for (let player of shuffledPlayers) {
@@ -441,11 +504,9 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 return `<@${shuffledPlayers.at(playerNo)}>`
             }
         })
-        let responseTypeAndTwoWho = responseChoice.matchAll(/\b(DAMAGE|HEAL)=((?:(?:\d+|all),?)+)/g)
-        responseChoice = responseChoice.replace(amount[0], "")
         let nAmount = 0
         let eliminations = []
-        switch (amount[1]) {
+        switch (amount) {
             case "huge": {
                 nAmount = Math.floor(Math.random() * (75 - 50) + 50)
                 break
@@ -475,29 +536,35 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         }
 
         let tawCount = 0
-        for (let typeAndWho of responseTypeAndTwoWho) {
+        for (let effect of responseChoice.effects) {
+            let [t, affected] = effect
             tawCount++
-            responseChoice = responseChoice.replace(typeAndWho[0], "")
-            let type = typeAndWho[1]
-            let toWho = typeAndWho[2].split(",")
-            switch (type) {
-                case "HEAL": {
+            switch (t) {
+                case "heal": {
                     embed.setColor("Green")
-                    for (let match of toWho) {
-                        let n = Number(match)
-                        let p = [n]
-                        if (match == 'all')
-                            p = Object.keys(shuffledPlayers).map(v => Number(v))
-                        for (let id of p) {
-                            players[shuffledPlayers.at(id - 1) as string].hp += nAmount
+                    //dont damage the same player twice
+                    let p: Set<number> = new Set();
+                    let playerCount = Object.keys(shuffledPlayers).length
+                    for (let match of affected) {
+                        if (match == 'all') {
+                            for(let i = 0; i < playerCount; i++){
+                                p.add(i)
+                            }
                         }
+                        else {
+                            let n = Number(match)
+                            p.add(n)
+                        }
+                    }
+                    for (let playerNumber of p) {
+                        players[shuffledPlayers.at(playerNumber - 1) as string].hp += nAmount
                     }
                     break
                 }
-                case "DAMAGE": {
+                case "damage": {
                     embed.setColor("Red")
                     nAmount *= -1
-                    for (let player of toWho) {
+                    for (let player of affected) {
                         let n = Number(player)
                         let p = [n]
                         if (player == 'all')
@@ -542,7 +609,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 }
             }
         }
-        responseChoice = responseChoice.replaceAll("{amount}", String(nAmount))
+        responseText = responseText.replaceAll("{amount}", String(nAmount))
         let ms = await msg.channel.send({ content: `**${responseChoice}**`, embeds: [embed] })
         lastMessages.push(ms)
         if (lastMessages.length >= 4) {
