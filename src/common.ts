@@ -4,7 +4,7 @@ import { User } from "discord.js";
 
 import { Client, GatewayIntentBits } from "discord.js"
 
-const VERSION = { major: 8, minor: 2, bug: 8, part: "", beta: false, alpha: false }
+const VERSION = { major: 8, minor: 3, bug: 0, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
