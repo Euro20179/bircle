@@ -17,8 +17,6 @@ let BATTLEGAME: boolean = false;
 
 const BATTLE_GAME_BONUS = 1.1;
 
-const ITEM_COOLDOWN: milliseconds_t = 8000
-
 const ITEM_RARITY_TABLE = { "huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1 }
 
 type BattleEffect = "damage" | "heal"
@@ -62,8 +60,8 @@ class Player {
     /**
         * @description checks if enough time has passed for the player to use an item
     */
-    canUseItem() {
-        return Date.now() - (this.#lastItemUsage || 0) > ITEM_COOLDOWN
+    canUseItem(item: Item) {
+        return item.cooldownTimeHasPassed(Date.now(), this.#lastItemUsage || 0)
     }
 
     useItem(cost: number) {
@@ -168,11 +166,18 @@ class Item {
     #percentCost
     #numberCost
     #onUse
+    /**
+        * @description The amount of time the player must wait after their last item use before using this item
+        * Eg: *if 0, the player can use immediately after using the previous item.*
+        * Eg: *if 5000, the player must wait 5 seconds after using the previous item.*
+    */
+    #allowedAfter: milliseconds_t
     constructor(options: {
         allowedUses?: number,
         percentCost?: number,
         numberCost?: number,
         allowedGameUses?: number,
+        allowedAfter?: milliseconds_t,
         onUse: (this: Item, m: Message, embed: EmbedBuilder) => Promise<boolean>
     }) {
         this.#allowedUses = options.allowedUses || Infinity
@@ -180,6 +185,11 @@ class Item {
         this.#numberCost = options.numberCost || 0
         this.#onUse = options.onUse
         this.#allowedGameUses = options.allowedGameUses || Infinity
+        this.#allowedAfter = options.allowedAfter || 8000
+    }
+
+    cooldownTimeHasPassed(curTime: milliseconds_t, lastTime: milliseconds_t){
+        return curTime - lastTime > this.#allowedAfter
     }
 
     calculateFullCost(playerBalance: number) {
@@ -321,6 +331,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         "swap": new Item({
             allowedUses: 1,
             percentCost: (3 * Object.keys(players).length) / 100,
+            allowedAfter: 4,
             async onUse(m, e) {
                 let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
                 let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
@@ -337,6 +348,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         "double": new Item({
             percentCost: 0.05,
             numberCost: 2,
+            allowedAfter: 0,
             async onUse(m, e) {
                 gameState.damageMultiplier *= 2
                 e.setTitle("DOUBLE")
@@ -348,6 +360,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         "triple": new Item({
             percentCost: 0.10,
             numberCost: 3,
+            allowedAfter: 0,
             async onUse(m, e) {
                 gameState.damageMultiplier *= 3
 
@@ -361,6 +374,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedUses: 1,
             numberCost: 0.5,
             percentCost: 0.02,
+            allowedAfter: 0,
             async onUse(m, e) {
                 if (!isMsgChannel(msg.channel)) return false
                 e.setTitle("BLUE SHELL")
@@ -380,6 +394,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedUses: 1,
             numberCost: 0.5,
             percentCost: 0.003,
+            allowedAfter: 0,
             async onUse(m, e) {
                 players[m.author.id].shielded = true
                 e.setTitle("SHIELD")
@@ -403,6 +418,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         "suicide": new Item({
             numberCost: 1,
             percentCost: 0.001,
+            allowedAfter: 0,
             async onUse(m, e) {
                 e.setTitle("SUICIDE")
                 e.setColor("DarkRed")
@@ -432,6 +448,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedGameUses: 1,
             numberCost: 2,
             percentCost: 0.04,
+            allowedAfter: 0,
             async onUse(m, e) {
                 let sumHealths = Object.values(players).reduce((a, b) => a + b.hp, 0)
                 let average = sumHealths / Object.keys(players).length
@@ -446,6 +463,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         }),
         "yoink": new Item({
             numberCost: 2,
+            allowedGameUses: 1,
             async onUse(m, e) {
                 gameState.mumboUser = m.author.id
                 e.setTitle(`YOINK`)
@@ -462,17 +480,17 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         if (!economy.getEconomy()[m.author.id]) {
             return
         }
-        if (!players[m.author.id].canUseItem()) {
+        let i = m.content.toLowerCase()
+        let item = items[i]
+        if (!players[m.author.id].canUseItem(item)) {
             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
-            players[m.author.id].hp -= 5
-            if (players[m.author.id].hp <= 0) {
+            players[m.author.id].damageThroughShield(5)
+            if (!players[m.author.id].alive) {
                 let rv = await handleDeath(m.author.id, players, winningType)
                 await m.channel.send({ embeds: [rv.send] })
             }
             return
         }
-        let i = m.content.toLowerCase()
-        let item = items[i]
         let cost = item.calculateFullCost(m.author.economyData.money)
         if (m.author.economyData.money - players[m.author.id].total_spent < cost) {
             await m.channel.send("You cannot afford this")
