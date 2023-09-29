@@ -59,7 +59,7 @@ class Player {
     itemUses: number
     #lowestHp: number = 100
     #lastItemUsage: number | null = null
-    #itemUsageTable: {[key: string]: number}
+    #itemUsageTable: { [key: string]: number }
     constructor(id: string, bet: number, hp: number) {
         this.hp = hp
         this.bet = bet
@@ -88,8 +88,8 @@ class Player {
         return item.cooldownTimeHasPassed(Date.now(), this.#lastItemUsage || 0)
     }
 
-    canUseItemAgain(itemName: string, item: Item){
-        if((this.#itemUsageTable[itemName]|| 0) >= item.allowedUses){
+    canUseItemAgain(itemName: string, item: Item) {
+        if ((this.#itemUsageTable[itemName] || 0) >= item.allowedUses) {
             return false
         }
         return true
@@ -101,7 +101,7 @@ class Player {
 
     useItem(itemName: string, cost: number) {
         this.#lastItemUsage = Date.now()
-        if(!this.#itemUsageTable[itemName]){
+        if (!this.#itemUsageTable[itemName]) {
             this.#itemUsageTable[itemName] = 1
         }
         else this.#itemUsageTable[itemName] += 1
@@ -213,7 +213,7 @@ function pickBattleResponse(responses: BattleResponses): [keyof BattleResponses,
     let r = Math.random()
     let types = Object.keys(responses)
     let t: keyof BattleResponses = types[Math.floor(Math.random() * types.length)] as keyof BattleResponses
-    while(Math.random() > ITEM_RARITY_TABLE[t]){
+    while (Math.random() > ITEM_RARITY_TABLE[t]) {
         t = types[Math.floor(Math.random() * types.length)] as keyof BattleResponses
     }
     if (!responses[t] || (responses[t]?.length || 0) < 1) {
@@ -255,7 +255,7 @@ class Item {
         return this.#allowedAfter
     }
 
-    get allowedUses(){
+    get allowedUses() {
         return this.#allowedUses
     }
 
@@ -366,6 +366,31 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 if (players[m.author.id])
                     players[m.author.id].heal(amount)
                 return true
+            }
+        }),
+        chance: new Item({
+            percentCost: 0.008,
+            numberCost: 0.5,
+            async onUse(m, e) {
+                let randItems = ["heal", "suicide"]
+                let name = randItems[Math.floor(Math.random() * randItems.length)]
+                let multiplier = Math.floor(Math.random() * (4 - 2) + 2)
+                if (name == "heal") {
+                    let amount = Math.floor(Math.random() * 19 + 1) * multiplier
+                    e.setTitle("HEAL")
+                    e.setColor("Green")
+                    e.setDescription(`<@${m.author.id}> healed for ${amount}`)
+                    if (players[m.author.id])
+                        players[m.author.id].heal(amount)
+                }
+                else {
+                    e.setTitle("SUICIDE")
+                    e.setColor("DarkRed")
+                    let damage = Math.floor(Math.random() * 12 + 2) * multiplier
+                    e.setDescription(`<@${m.author.id}> took ${damage} damage`)
+                    players[m.author.id].damage(damage)
+                }
+                    return true
             }
         }),
         "anger toolbox": new Item({
@@ -499,7 +524,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             async onUse(m, e) {
                 e.setTitle("SUICIDE")
                 e.setColor("DarkRed")
-                let damage = Math.floor(Math.random() * 8 + 2)
+                let damage = Math.floor(Math.random() * 12 + 2)
                 e.setDescription(`<@${m.author.id}> took ${damage} damage`)
                 players[m.author.id].damage(damage)
                 return true
@@ -555,7 +580,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
 
     itemUseCollector.on("collect", async (m) => {
         let alivePlayers = gameState.alivePlayers()
-        if(!alivePlayers[m.author.id]){
+        if (!alivePlayers[m.author.id]) {
             return
         }
         if (!isMsgChannel(msg.channel) || !isMsgChannel(m.channel)) return
@@ -565,7 +590,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         let itemName = m.content.toLowerCase()
         let item = items[itemName]
         let playerUsingItem = players[m.author.id]
-        if(!playerUsingItem.canUseItemAgain(itemName, item)){
+        if (!playerUsingItem.canUseItemAgain(itemName, item)) {
             await msg.channel.send(`<@${m.author.id}> have reached the limit on ${itemName}`)
         }
         else if (!playerUsingItem.canUseItem(item)) {

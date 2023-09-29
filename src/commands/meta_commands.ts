@@ -2415,6 +2415,9 @@ ${styles}
         let effectList: BattleResponse['effects'] = []
         for (let effect of effects) {
             let [t, players] = effect.split("|").map(v => v.trim())
+            if(!["heal", "damage"].includes(t)){
+                return crv(`${t} must be heal or damage`, {status: StatusCode.ERR})
+            }
             let playerNumbers: ["all"] | number[] = []
             for (let p of players.split(" ")) {
                 if (p === "all") {
@@ -2424,7 +2427,7 @@ ${styles}
                 }
                 let n = Number(p)
                 if (isNaN(n)) {
-                    return crv(`${n} is not a player number`, { status: StatusCode.ERR })
+                    return crv(`${p} is not a player number`, { status: StatusCode.ERR })
                 }
                 playerNumbers.push(n)
             }
