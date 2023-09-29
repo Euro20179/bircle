@@ -18,20 +18,41 @@ let BATTLEGAME: boolean = false;
 
 const BATTLE_GAME_BONUS = 1.1;
 
+const ITEM_COOLDOWN: milliseconds_t = 8000
+
 class Player {
     bet: number
     money_spent: number
     hp: number
     shielded: boolean
-    constructor(bet: number, hp: number) {
+    id: string
+    itemUses: number
+    #lastItemUsage: number | null = null
+    constructor(id: string, bet: number, hp: number) {
         this.hp = hp
         this.bet = bet
         this.money_spent = 0
         this.shielded = false
+        this.itemUses = 0
+        this.id = id
     }
 
     get total_spent() {
         return this.money_spent + this.bet
+    }
+
+    /**
+        * @description checks if enough time has passed for the player to use an item
+    */
+    canUseItem() {
+        return Date.now() - (this.#lastItemUsage || 0) > ITEM_COOLDOWN
+    }
+
+    useItem(cost: number) {
+        this.#lastItemUsage = Date.now()
+        this.money_spent += cost
+        economy.loseMoneyToBank(this.id, cost)
+        this.itemUses++
     }
 }
 
@@ -117,8 +138,6 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
     let mumboUser: string | null = null
 
     let negativeHpBonus: { [key: string]: number } = {}
-
-    let itemUses: { [key: string]: number } = {}
 
     let start = Date.now() / 1000
 
@@ -271,7 +290,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 if (mumboUser)
                     return false
                 mumboUser = m.author.id
-                players['mumbo'] = new Player(0, 100)
+                players['mumbo'] = new Player("mumbo", 0, 100)
                 e.setTitle("MUMBO JOINS THE BATTLE")
                 return true
             }
@@ -340,7 +359,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         if (!economy.getEconomy()[m.author.id]) {
             return
         }
-        if (Date.now() / 1000 - cooldowns[m.author.id] < 8) {
+        if (!players[m.author.id].canUseItem()) {
             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
             players[m.author.id].hp -= 5
             if (players[m.author.id].hp <= 0) {
@@ -352,7 +371,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         let i = m.content.toLowerCase()
         let item = items[i]
         let cost = item.calculateFullCost(m.author.economyData.money)
-        if (economy.getEconomy()[m.author.id].money - players[m.author.id].total_spent < cost) {
+        if (m.author.economyData.money - players[m.author.id].total_spent < cost) {
             await m.channel.send("You cannot afford this")
             return
         }
@@ -360,16 +379,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         e.setFooter({ text: `Cost: ${cost}` })
         let rv = await item.use(m, e)
         if (rv) {
-            cooldowns[m.author.id] = Date.now() / 1000
-            economy.loseMoneyToBank(m.author.id, cost)
+            players[m.author.id].useItem(cost)
             await m.channel.send({ embeds: [e] })
-            players[m.author.id].money_spent += cost
-            if (itemUses[m.author.id]) {
-                itemUses[m.author.id]++
-            }
-            else {
-                itemUses[m.author.id] = 1
-            }
         }
     })
 
@@ -624,13 +635,11 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
         }
     }
-    if (Object.keys(itemUses).length > 0) {
-        let mostUsed = Object.entries(itemUses).sort((a, b) => b[1] - a[1])
-        let bonusAmount = mostUsed[0][1] - (mostUsed[1]?.[1] || 0)
-        if (bonusAmount && economy.getEconomy()[mostUsed[0][0]]) {
-            economy.addMoney(mostUsed[0][0], bonusAmount)
-            bonusText += `<@${mostUsed[0][0]}> GOT THE ITEM BONUS BY USING ${mostUsed[0][1]} ITEMS AND WON $${bonusAmount}\n`
-        }
+    let mostUsed = Object.values(players).sort((a, b) => b.itemUses - a.itemUses)
+    let bonusAmount = mostUsed[0].itemUses - (mostUsed[1] || { itemUses: 0 }).itemUses
+    if (bonusAmount && economy.getEconomy()[mostUsed[0].id]) {
+        economy.addMoney(mostUsed[0].id, bonusAmount)
+        bonusText += `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} ITEMS AND WON $${bonusAmount}\n`
     }
     if (bonusText)
         await handleSending(msg, { embeds: [e], content: bonusText, status: StatusCode.INFO })
@@ -665,7 +674,7 @@ async function battle(msg: Message, args: ArgumentList) {
         return { content: "You must bet at least 0.2%", status: StatusCode.ERR }
     }
 
-    let players: { [key: string]: Player } = { [msg.author.id]: new Player(nBet, pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100) }
+    let players: { [key: string]: Player } = { [msg.author.id]: new Player(msg.author.id, nBet, pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100) }
     let cooldowns: { [key: string]: number } = { [msg.author.id]: 0 }
 
     await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
@@ -691,7 +700,7 @@ async function battle(msg: Message, args: ArgumentList) {
         }
 
         if (!Object.keys(players).includes(m.author.id)) {
-            let p = new Player(nBet, pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
+            let p = new Player(m.author.id, nBet, pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
             cooldowns[m.author.id] = 0
             players[m.author.id] = p
         }
