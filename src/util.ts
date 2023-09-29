@@ -22,6 +22,14 @@ export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
 
+function shuffleArray<T>(arr: T[]) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
 function romanToBase10(roman: string) {
     const to10 = {
         "I": 1,
@@ -76,7 +84,7 @@ function prettyObject(obj: object, tab = 0) {
         text += `${"\t".repeat(tab + 1)}"${key}": ${prettyJSON(obj[key as keyof typeof obj], tab + 1)},\n`
     }
     //only if there are keys, otherwise we remove the initial {
-    if(Object.keys(obj).length)
+    if (Object.keys(obj).length)
         //remove the trailing comma and new line
         text = text.slice(0, -2)
     return text.trimStart() + `\n${"\t".repeat(tab)}}`
@@ -87,7 +95,7 @@ function prettyList(obj: Array<any>, tab = 0) {
     for (let item of obj) {
         text += `${"\t".repeat(tab + 1)}${prettyJSON(item, tab + 1)},\n`
     }
-    if(obj.length)
+    if (obj.length)
         //remove the trailing comma and new line
         text = text.slice(0, -2)
     return text.trimStart() + `\n${"\t".repeat(tab)}]`
@@ -102,7 +110,7 @@ function prettyJSON(obj: any, tab = 0) {
             if ("length" in obj) {
                 return prettyList(obj, tab)
             }
-            if(obj === null){
+            if (obj === null) {
                 return `null`
             }
             return prettyObject(obj, tab)
@@ -571,6 +579,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         renderHTML: htmlRenderer.renderHTML,
         generateCommandSummary,
         romanToBase10,
+        shuffleArray,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -902,9 +911,9 @@ class Options extends Map {
         return toString(n) || default_
     }
 
-    getRange<TDefault>(key: string, default_: TDefault, toRange: (v: string) => [number, number] = parseRangeString){
+    getRange<TDefault>(key: string, default_: TDefault, toRange: (v: string) => [number, number] = parseRangeString) {
         let n = super.get(key)
-        if(n === undefined || n === true) return default_
+        if (n === undefined || n === true) return default_
         return toRange(n) || default_
     }
 
@@ -1241,6 +1250,7 @@ export {
     romanToBase10,
     countOf,
     prettyJSON,
-    escapeRegex
+    escapeRegex,
+    shuffleArray
 }
 
