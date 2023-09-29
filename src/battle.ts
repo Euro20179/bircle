@@ -78,8 +78,8 @@ class Player {
         return this.#lowestHp
     }
 
-    get above0(){
-        return this.hp >0
+    get above0() {
+        return this.hp > 0
     }
 
     get alive() {
@@ -89,15 +89,15 @@ class Player {
         return this.money_spent + this.bet
     }
 
-    kill(){
-        if(this.above0){
+    kill() {
+        if (this.above0) {
             this.#dead = false
             return false
         }
-        if(this.#dead){
+        if (this.#dead) {
             return true
         }
-        if(this.#extraLife){
+        if (this.#extraLife) {
             this.hp = 50
             this.#extraLife = false
             return false
@@ -137,7 +137,7 @@ class Player {
 
     heal(amount: number) {
         this.hp += amount
-        if(this.above0){
+        if (this.above0) {
             this.#dead = false
         }
         return true
@@ -148,7 +148,7 @@ class Player {
         if (this.hp < this.#lowestHp) {
             this.#lowestHp = this.hp
         }
-        if(this.above0){
+        if (this.above0) {
             this.#dead = false
         }
     }
@@ -177,11 +177,11 @@ class Player {
         }
     }
 
-    canGetLife(){
+    canGetLife() {
         return !this.#extraLife
     }
 
-    getExtraLife(){
+    getExtraLife() {
         this.damageThroughShield(50)
         this.#extraLife = true
     }
@@ -491,6 +491,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedAfter: 0,
             allowedUses: 1,
             async onUse(m, e) {
+                if (players[m.author.id].shielded) {
+                    await m.channel.send(`double cannot be used while your shield is active`)
+                    return false
+                }
                 gameState.damageMultiplier *= 2
                 e.setTitle("DOUBLE")
                 e.setColor("Green")
@@ -504,6 +508,10 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedAfter: 0,
             allowedUses: 1,
             async onUse(m, e) {
+                if (players[m.author.id].shielded) {
+                    await m.channel.send(`double cannot be used while your shield is active`)
+                    return false
+                }
                 gameState.damageMultiplier *= 3
 
                 e.setTitle("TRIPLE")
