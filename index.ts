@@ -102,6 +102,7 @@ common.client.on(Events.ClientReady, async () => {
 })
 
 common.client.on(Events.MessageDelete, async (m) => {
+    if(m.author?.bot) return
     if (m.author?.id != common.client.user?.id) {
         for (let i = 3; i >= 0; i--) {
             command_commons.snipes[i + 1] = command_commons.snipes[i]

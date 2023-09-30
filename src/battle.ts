@@ -57,7 +57,7 @@ class Player {
     shielded: boolean
     id: string
     itemUses: number
-    #dead: boolean
+    protected dead: boolean
     #lowestHp: number = 100
     #lastItemUsage: number | null = null
     #itemUsageTable: { [key: string]: number }
@@ -69,7 +69,7 @@ class Player {
         this.itemUses = 0
         this.id = id
         this.#itemUsageTable = {}
-        this.#dead = false
+        this.dead = false
     }
 
     get lowestHp() {
@@ -81,7 +81,7 @@ class Player {
     }
 
     get alive() {
-        return !this.#dead
+        return !this.dead
     }
     get total_spent() {
         return this.money_spent + this.bet
@@ -91,19 +91,12 @@ class Player {
         if (this.above0) {
             return false
         }
-        if (this.#dead) {
+        if (this.dead) {
             return true
         }
-        if (this.id === 'mumbo' && gameState.mumboUser) {
-            economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
-            await handleSending(msg, { content: `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`, status: StatusCode.INFO })
-            gameState.mumboUser = null
-        }
-        else {
-            let rv = await handleDeath(this.id, gameState.alivePlayers(), "wta")
-            await msg.channel.send({ embeds: [rv.send] })
-        }
-        this.#dead = true
+        let rv = await handleDeath(this.id, gameState.alivePlayers(), "wta")
+        await msg.channel.send({ embeds: [rv.send] })
+        this.dead = true
         return true
     }
 
@@ -139,7 +132,7 @@ class Player {
     heal(amount: number) {
         this.hp += amount
         if (this.above0) {
-            this.#dead = false
+            this.dead = false
         }
         return true
     }
@@ -150,7 +143,7 @@ class Player {
             this.#lowestHp = this.hp
         }
         if (this.above0) {
-            this.#dead = false
+            this.dead = false
         }
     }
 
@@ -176,6 +169,24 @@ class Player {
         else {
             return efd([`${mem.user.username}`, `${this.hp}`, true])
         }
+    }
+}
+
+class Mumbo extends Player {
+    async kill(msg: Message<boolean>, gameState: GameState): Promise<boolean> {
+        if (this.above0) {
+            return false
+        }
+        if (this.dead) {
+            return true
+        }
+        if (gameState.mumboUser) {
+            economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
+            await handleSending(msg, { content: `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`, status: StatusCode.INFO })
+            gameState.mumboUser = null
+        }
+        this.dead = true
+        return true
     }
 }
 
@@ -550,7 +561,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 if (gameState.mumboUser)
                     return false
                 gameState.mumboUser = m.author.id
-                allPlayers['mumbo'] = new Player("mumbo", 0, 100)
+                allPlayers['mumbo'] = new Mumbo("mumbo", 0, 100)
                 e.setTitle("MUMBO JOINS THE BATTLE")
                 return true
             }
@@ -742,22 +753,6 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
         await gameState.sendMessage(msg, responseText, embed)
 
-        //hopefully i dont need this, solve the root problem instead of this garbage
-        //problem: hp can be NaN
-        // for (let player in players) {
-        //     if (isNaN(players[player].hp)) {
-        //         if (player === 'mumbo' && gameState.mumboUser) {
-        //             await msg.channel.send(`<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`)
-        //             economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
-        //             gameState.mumboUser = null
-        //             eliminated.push(players[player])
-        //         }
-        //         else {
-        //             let rv = await handleDeath(player, players, winningType)
-        //             await msg.channel.send(`<@${player}> HAS NaN HEALTH AND DIED`)
-        //         }
-        //     }
-        // }
         if (Object.keys(players).length <= 1) {
             break
         }
