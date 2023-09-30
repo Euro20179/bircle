@@ -58,7 +58,6 @@ class Player {
     id: string
     itemUses: number
     #dead: boolean
-    #extraLife: boolean
     #lowestHp: number = 100
     #lastItemUsage: number | null = null
     #itemUsageTable: { [key: string]: number }
@@ -70,7 +69,6 @@ class Player {
         this.itemUses = 0
         this.id = id
         this.#itemUsageTable = {}
-        this.#extraLife = false
         this.#dead = false
     }
 
@@ -89,18 +87,21 @@ class Player {
         return this.money_spent + this.bet
     }
 
-    kill() {
+    async kill(msg: Message, gameState: GameState) {
         if (this.above0) {
-            this.#dead = false
             return false
         }
         if (this.#dead) {
             return true
         }
-        if (this.#extraLife) {
-            this.hp = 50
-            this.#extraLife = false
-            return false
+        if (this.id === 'mumbo' && gameState.mumboUser) {
+            economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
+            await handleSending(msg, { content: `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`, status: StatusCode.INFO })
+            gameState.mumboUser = null
+        }
+        else {
+            let rv = await handleDeath(this.id, gameState.alivePlayers(), "wta")
+            await msg.channel.send({ embeds: [rv.send] })
         }
         this.#dead = true
         return true
@@ -175,15 +176,6 @@ class Player {
         else {
             return efd([`${mem.user.username}`, `${this.hp}`, true])
         }
-    }
-
-    canGetLife() {
-        return !this.#extraLife
-    }
-
-    getExtraLife() {
-        this.damageThroughShield(50)
-        this.#extraLife = true
     }
 }
 
@@ -330,7 +322,7 @@ async function handleDeath(id: string, players: { [key: string]: Player }, winni
         e.setDescription(`<@${id}> HAS DIED and distributed ${total_spent / remaining * BATTLE_GAME_BONUS} to each player`)
         e.setColor("Blue")
         for (let player in players) {
-            economy.addMoney(player.id, total_spent / remaining * BATTLE_GAME_BONUS)
+            economy.addMoney(player, total_spent / remaining * BATTLE_GAME_BONUS)
         }
     }
     else {
@@ -358,14 +350,12 @@ function getPlayerNumbersFromBattleEffectList(list: BattleResponse['effects'][1]
     return numbers
 }
 
-async function game(msg: Message, gameState: GameState, cooldowns: { [key: string]: number }, useItems: boolean, winningType: "wta" | "distribute") {
+async function game(msg: Message, gameState: GameState, useItems: boolean, winningType: "wta" | "distribute") {
 
     if (!isMsgChannel(msg.channel)) return
     if (!msg.guild) return
 
-    let players = gameState.players
-
-    let eliminated: Player[] = []
+    let allPlayers = gameState.players
 
     let start = Date.now() / 1000
 
@@ -388,8 +378,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 let playerToHeal = below50[Math.floor(Math.random() * below50.length)][0]
 
                 e.setDescription(`<@${playerToHeal}> healed for ${amount}`)
-                if (players[playerToHeal])
-                    players[playerToHeal].heal(amount)
+                if (allPlayers[playerToHeal])
+                    allPlayers[playerToHeal].heal(amount)
                 return true
 
             }
@@ -402,8 +392,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setTitle("HEAL")
                 e.setColor("Green")
                 e.setDescription(`<@${m.author.id}> healed for ${amount}`)
-                if (players[m.author.id])
-                    players[m.author.id].heal(amount)
+                if (allPlayers[m.author.id])
+                    allPlayers[m.author.id].heal(amount)
                 return true
             }
         }),
@@ -419,16 +409,16 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                     e.setTitle("HEAL")
                     e.setColor("Green")
                     e.setDescription(`<@${m.author.id}> healed for ${amount}`)
-                    if (players[m.author.id])
-                        players[m.author.id].heal(amount)
+                    if (allPlayers[m.author.id])
+                        allPlayers[m.author.id].heal(amount)
                 }
                 else {
                     e.setTitle("SUICIDE")
                     e.setColor("DarkRed")
                     let damage = Math.floor(Math.random() * 19 + 1) * multiplier
                     e.setDescription(`<@${m.author.id}> took ${damage} damage`)
-                    players[m.author.id].damage(damage)
-                    players[m.author.id].kill()
+                    allPlayers[m.author.id].damage(damage)
+                    await allPlayers[m.author.id].kill(m, gameState)
                 }
                 return true
             }
@@ -440,7 +430,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setColor("Red")
                 e.setDescription(`<@${m.author.id}> has angered toolbox`)
                 for (let player in gameState.alivePlayers()) {
-                    players[player].hp *= .991
+                    allPlayers[player].hp *= .991
                 }
                 return true
             }
@@ -463,25 +453,25 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
                 for (let player in gameState.alivePlayers()) {
                     if (player === m.author.id) continue
-                    players[player].damageThroughShield(amount)
+                    allPlayers[player].damageThroughShield(amount)
                 }
                 return true
             }
         }),
         "swap": new Item({
             allowedUses: 1,
-            percentCost: (3 * Object.keys(players).length) / 100,
+            percentCost: (3 * Object.keys(allPlayers).length) / 100,
             allowedAfter: 4000,
             async onUse(m, e) {
                 let playerKeys = Object.keys(gameState.alivePlayers()).filter(v => v !== m.author.id)
                 let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
-                let thisPlayerHealth = players[m.author.id].hp
-                let otherPlayerHealth = players[p]?.hp
+                let thisPlayerHealth = allPlayers[m.author.id].hp
+                let otherPlayerHealth = allPlayers[p]?.hp
                 e.setTitle(`SWAP HEALTH`)
                 e.setDescription(`<@${m.author.id}> <-> <@${p}>`)
                 e.setColor("#ffff00")
-                players[m.author.id].hp = otherPlayerHealth
-                players[p].hp = thisPlayerHealth
+                allPlayers[m.author.id].hp = otherPlayerHealth
+                allPlayers[p].hp = thisPlayerHealth
                 return true
             }
         }),
@@ -491,7 +481,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedAfter: 0,
             allowedUses: 1,
             async onUse(m, e) {
-                if (players[m.author.id].shielded) {
+                if (allPlayers[m.author.id].shielded) {
                     await m.channel.send(`double cannot be used while your shield is active`)
                     return false
                 }
@@ -508,7 +498,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             allowedAfter: 0,
             allowedUses: 1,
             async onUse(m, e) {
-                if (players[m.author.id].shielded) {
+                if (allPlayers[m.author.id].shielded) {
                     await m.channel.send(`double cannot be used while your shield is active`)
                     return false
                 }
@@ -536,7 +526,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                     return false
                 }
                 e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
-                players[firstPlace[0]].hp -= 50
+                allPlayers[firstPlace[0]].hp -= 50
                 return true
             }
         }),
@@ -546,7 +536,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             percentCost: 0.003,
             allowedAfter: 4000,
             async onUse(m, e) {
-                players[m.author.id].shielded = true
+                allPlayers[m.author.id].shielded = true
                 e.setTitle("SHIELD")
                 e.setColor("White")
                 e.setDescription(`<@${m.author.id}> bought a shield`)
@@ -560,7 +550,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 if (gameState.mumboUser)
                     return false
                 gameState.mumboUser = m.author.id
-                players['mumbo'] = new Player("mumbo", 0, 100)
+                allPlayers['mumbo'] = new Player("mumbo", 0, 100)
                 e.setTitle("MUMBO JOINS THE BATTLE")
                 return true
             }
@@ -574,7 +564,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                 e.setColor("DarkRed")
                 let damage = Math.floor(Math.random() * 12 + 2)
                 e.setDescription(`<@${m.author.id}> took ${damage} damage`)
-                players[m.author.id].damage(damage)
+                allPlayers[m.author.id].damage(damage)
                 return true
             }
         }),
@@ -582,7 +572,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             numberCost: 1,
             percentCost: 0.001,
             async onUse(m, e) {
-                let damage = Math.floor(Math.random() * Object.keys(players).length * 5)
+                let damage = Math.floor(Math.random() * Object.keys(allPlayers).length * 5)
                 let playerNames = Object.keys(gameState.alivePlayers())
                 let player = playerNames[Math.floor(Math.random() * playerNames.length)]
                 e.setDescription(`𝐘𝐎𝐔'𝐕𝐄 𝐁𝐄𝐄𝐍 𝐀𝐗𝐄𝐃 <@${player}>`)
@@ -590,8 +580,8 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                     damage *= 2
                 }
                 e.setFooter({ text: `𝐀𝐗𝐄 ${damage}` })
-                players[player].damageThroughShield(damage)
-                players[player].kill()
+                allPlayers[player].damageThroughShield(damage)
+                allPlayers[player].kill(m, gameState)
                 return true
             }
         }),
@@ -625,7 +615,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         })
     }// }}}
 
-    let itemUseCollector = msg.channel.createMessageCollector({ filter: m => useItems && Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase()) })
+    let itemUseCollector = msg.channel.createMessageCollector({ filter: m => useItems && Object.keys(allPlayers).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase()) })
 
     itemUseCollector.on("collect", async (m) => {
         let alivePlayers = gameState.alivePlayers()
@@ -638,22 +628,18 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         }
         let itemName = m.content.toLowerCase()
         let item = items[itemName]
-        let playerUsingItem = players[m.author.id]
+        let playerUsingItem = allPlayers[m.author.id]
         if (!playerUsingItem.canUseItemAgain(itemName, item)) {
             await msg.channel.send(`<@${m.author.id}> have reached the limit on ${itemName}`)
         }
         else if (!playerUsingItem.canUseItem(item)) {
             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${playerUsingItem.cooldownRemaining(Date.now(), item) / 1000}**`)
             playerUsingItem.damageThroughShield(5)
-            if (playerUsingItem.kill()) {
-                eliminated.push(playerUsingItem)
-                let rv = await handleDeath(m.author.id, players, winningType)
-                await m.channel.send({ embeds: [rv.send] })
-            }
+            playerUsingItem.kill(m, gameState)
             return
         }
         let cost = item.calculateFullCost(m.author.economyData.money)
-        if (m.author.economyData.money - players[m.author.id].total_spent < cost) {
+        if (m.author.economyData.money - allPlayers[m.author.id].total_spent < cost) {
             await m.channel.send("You cannot afford this")
             return
         }
@@ -661,15 +647,11 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         e.setFooter({ text: `Cost: ${cost}` })
         let rv = await item.use(m, e)
         if (rv) {
-            players[m.author.id].useItem(itemName, cost)
+            allPlayers[m.author.id].useItem(itemName, cost)
             await m.channel.send({ embeds: [e] })
         }
     })
 
-    /**
-        * @description only allows 4 previous embeds in the game to show at once
-    */
-    let lastMessages = []
     let responses: BattleResponses = {
         "huge": [{
             effects: [["damage", ["all"]]],
@@ -719,8 +701,6 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
             gameState.damageMultiplier = 1
         }
 
-        let eliminations = []
-
         if (responseChoice.effects.length < 1) continue
 
         for (let effect of responseChoice.effects) {
@@ -747,9 +727,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
                             e.setColor("Navy")
                             await msg.channel.send({ embeds: [e] })
                         }
-                        if (player.kill()) {
-                            eliminations.push(player.id)
-                        }
+                        player.kill(msg, gameState)
                     }
                     break
                 }
@@ -763,21 +741,6 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         responseText = responseText.replaceAll("{amount}", String(nAmount))
 
         await gameState.sendMessage(msg, responseText, embed)
-
-        let text = ""
-
-        for (let elim of eliminations) {
-            if (elim === 'mumbo' && gameState.mumboUser) {
-                text += `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`
-                economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
-                gameState.mumboUser = null
-                eliminated.push(players[elim])
-            }
-            else {
-                let rv = await handleDeath(elim, players, winningType)
-                await msg.channel.send({ embeds: [rv.send] })
-            }
-        }
 
         //hopefully i dont need this, solve the root problem instead of this garbage
         //problem: hp can be NaN
@@ -795,15 +758,12 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
         //         }
         //     }
         // }
-        if (text) {
-            await handleSending(msg, { content: text, status: StatusCode.INFO })
-        }
         if (Object.keys(players).length <= 1) {
             break
         }
         await new Promise(res => setTimeout(res, 4000))
     }
-    let winner = Object.entries(players).filter(v => v[1].hp > 0)?.[0]
+    let winner = Object.entries(allPlayers).filter(v => v[1].hp > 0)?.[0]
     let e = new EmbedBuilder()
     let bonusText = ""
     let betTotal = gameState.calculatebetTotal()
@@ -841,7 +801,7 @@ async function game(msg: Message, gameState: GameState, cooldowns: { [key: strin
     }
     e.setFooter({ text: `The game lasted: ${Date.now() / 1000 - start} seconds` })
 
-    bonusText += mostUsedBonus(players)
+    bonusText += mostUsedBonus(allPlayers)
 
     if (bonusText)
         await handleSending(msg, { embeds: [e], content: bonusText, status: StatusCode.INFO })
@@ -927,7 +887,7 @@ async function battle(msg: Message, args: ArgumentList) {
         }
         else {
             let gameState = new GameState(players)
-            await game(msg, gameState, cooldowns, useItems, winningType as "distribute" | "wta")
+            await game(msg, gameState, useItems, winningType as "distribute" | "wta")
         }
         BATTLEGAME = false
     })
