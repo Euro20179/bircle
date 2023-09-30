@@ -2520,9 +2520,6 @@ Valid formats:
     yield [
         "snipe", ccmdV2(async function({ args }) {
             let snipeC = ((parseInt(args[0]) - 1) || 0)
-            if (snipeC >= 5) {
-                return { content: "it only goes back 5", status: StatusCode.ERR }
-            }
             if (snipeC > snipes.length) {
                 return { content: "Not that many messages have been deleted yet", status: StatusCode.ERR }
             }
