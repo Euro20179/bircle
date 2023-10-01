@@ -371,6 +371,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
     let start = Date.now() / 1000
 
     let items: { [key: string]: Item } = {// {{{
+
         rheal: new Item({
             percentCost: 0.001,
             numberCost: 0.1,
@@ -586,11 +587,10 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 let damage = Math.floor(Math.random() * Object.keys(allPlayers).length * 5)
                 let playerNames = Object.keys(gameState.alivePlayers())
                 let player = playerNames[Math.floor(Math.random() * playerNames.length)]
-                e.setDescription(`𝐘𝐎𝐔'𝐕𝐄 𝐁𝐄𝐄𝐍 𝐀𝐗𝐄𝐃 <@${player}>`)
+                e.setDescription(`𝐘𝐎𝐔'𝐕𝐄 𝐁𝐄𝐄𝐍 𝐀𝐗𝐄𝐃 <@${player}>\n𝐀𝐗𝐄 ${damage}`)
                 if (player == m.author.id) {
                     damage *= 2
                 }
-                e.setFooter({ text: `𝐀𝐗𝐄 ${damage}` })
                 allPlayers[player].damageThroughShield(damage)
                 allPlayers[player].kill(m, gameState)
                 return true
