@@ -1658,13 +1658,14 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
         let text = stdin ? getContentFromResult(stdin) : args.join(" ")
         if (!text) return crv("Expected code", { status: StatusCode.ERR })
+        let relativeTo = opts.getNumber("r", 0)
         if (opts.getBool("tree", false)) {
-            return crv(amountParser.calculateAmountRelativeToInternals(0, text).expression.repr())
+            return crv(amountParser.calculateAmountRelativeToInternals(relativeTo, text).expression.repr())
         }
         else if (opts.getBool("s", false)) {
             let symbolTable;
             do {
-                let internals = amountParser.calculateAmountRelativeToInternals(0, text, symbolTable)
+                let internals = amountParser.calculateAmountRelativeToInternals(relativeTo, text, symbolTable)
                 await handleSending(msg, crv(internals.interpreter.visit().toString()))
                 symbolTable = internals.interpreter.symbolTable
                 let m = await promptUser(msg, undefined, undefined, { timeout: 60000 })
@@ -1673,9 +1674,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 text = m.content
             } while (true);
         }
-        return crv(amountParser.runRelativeCalculator(0, text).toString())
+        return crv(amountParser.runRelativeCalculator(relativeTo, text).toString())
     }, "Runs relscript", {
         helpOptions: {
+            r: createHelpOption("Set the relative number", undefined, "0"),
             s: createHelpOption("run a REPL<br>type <code>.exit</code> to exit the REPL"),
             tree: createHelpOption("See the ast")
         }, helpArguments: {
