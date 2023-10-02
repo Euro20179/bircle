@@ -14,7 +14,7 @@ import timer from '../timer'
 
 import htmlRenderer from '../html-renderer'
 
-import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
+import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply } from '../util'
 
@@ -143,7 +143,7 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
-        "vim", ccmdV2(async function({ msg, args, opts }) {
+        "vim", ccmdV2(async function({ args }) {
             const nvim_proc = spawn("nvim", ["-u", "NONE", "-N", "--embed"], {})
             const nvim = attach({ proc: nvim_proc })
             try {
@@ -1655,7 +1655,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         })
     ]
 
-    yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
+    yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin }) {
         let text = stdin ? getContentFromResult(stdin) : args.join(" ")
         if (!text) return crv("Expected code", { status: StatusCode.ERR })
         let relativeTo = opts.getNumber("r", 0)
@@ -2264,7 +2264,7 @@ middle
             }
             if (["with", "without", "with!"].includes(args[2])) {
                 filterInfo = { type: args[2] as "with" | "without" | "without!" | "with!", attribute: args[3], search: args.slice(4).join(" ") }
-                filter = function(v: any, k: any) {
+                filter = function(v: any, _k: any) {
                     let search = filterInfo?.search
                     let val = v;
                     for (let attr of filterInfo?.attribute.split(".") ?? ["__BIRCLE_UNDEFINED__"]) {
@@ -2314,7 +2314,7 @@ middle
                 }
                 case "rand": {
                     if (object === "command") {
-                        data = data.mapValues((v, k) => k)
+                        data = data.mapValues((_v, k) => k)
                     }
                     let text = ""
                     for (let i = 0; i < (number || 1); i++) {
@@ -2450,7 +2450,7 @@ The order these are given does not matter, excpet for field, which will be added
         ),
     ]
 
-    yield ["sh", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
+    yield ["sh", createCommandV2(async ({ msg, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         const cmd = spawn("bash")
         let dataToSend = ""
@@ -2486,7 +2486,7 @@ The order these are given does not matter, excpet for field, which will be added
         return { noSend: true, status: StatusCode.ERR }
     }, CommandCategory.UTIL, "Open a remote shell", undefined, undefined, undefined, m => globals.ADMINS.includes(m.author.id))]
 
-    yield ["qalc", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
+    yield ["qalc", createCommandV2(async ({ msg, args: argList, opts, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.IN_QALC.includes(msg.author.id)) {
             globals.IN_QALC.push(msg.author.id)
@@ -2521,7 +2521,7 @@ The order these are given does not matter, excpet for field, which will be added
     }, CommandCategory.UTIL, "Fancy calculator")]
 
     yield [
-        "pyjs", ccmdV2(async function({ msg, args }) {
+        "pyjs", ccmdV2(async function({  args }) {
             let text = args.join(" ")
             let context: { [key: string]: any } = {}
             while (text) {
@@ -2888,7 +2888,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "most-roles", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+        "most-roles", ccmdV2(async function({ msg, rawArgs: args  }) {
             let opts;
             [opts, args] = getOpts(args)
             let times = parseInt(args[0]) || 10
@@ -2934,7 +2934,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "whohas", createCommandV2(async ({ msg, argList }) => {
+        "whohas", createCommandV2(async ({ msg, args: argList }) => {
             argList.beginIter()
             let realRole = await argList.expectRole(msg.guild as Guild, truthy) as Role | typeof BADVALUE
             if (realRole === BADVALUE) {
@@ -2972,7 +2972,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         })
     ]
 
-    yield ["printf", createCommandV2(async ({ argList, opts, msg }) => {
+    yield ["printf", createCommandV2(async ({ args: argList, opts, msg }) => {
         class Format {
             /**
             * @abstract
@@ -3058,7 +3058,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     return `<@${user.id}>`
                 return text
             }
-            static parseFormatSpecifier(format: string): string | Format {
+            static parseFormatSpecifier(_format: string): string | Format {
                 return new UserFormat()
             }
         }
@@ -3268,7 +3268,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        'stackl', ccmdV2(async function({ msg, rawArgs: args, sendCallback, interpreter }) {
+        'stackl', ccmdV2(async function({ msg, rawArgs: args, interpreter }) {
             const stackl = require("../stackl")
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -3327,7 +3327,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "expr", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+        "expr", ccmdV2(async function({ msg, rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
 
@@ -3624,7 +3624,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         })
     ]
 
-    yield ["tr", createCommandV2(async ({ argList, stdin, opts }) => {
+    yield ["tr", createCommandV2(async ({ args: argList, stdin, opts }) => {
         let charsToDel = opts.getString("d", "")
         argList.beginIter()
         let from = argList.expectString()
@@ -3810,7 +3810,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "rand-user", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+        "rand-user", ccmdV2(async function({ msg, rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
             let member
@@ -3918,7 +3918,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "emote-info", ccmdV2(async function({ msg, args, sendCallback }) {
+        "emote-info", ccmdV2(async function({ msg, args }) {
             let emote = args[0].split(":")[2].slice(0, -1)
             let e
             try {
