@@ -5,7 +5,7 @@ import timer from './timer'
 import shop = require("./shop")
 import { cmd, getAliasesV2 } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
-import { isMsgChannel, fetchUser, getFonts, fetchUserFromClientOrGuild } from "./util"
+import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"
 
 export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>, optional?: string[], extra?: "msg"[]}} = {
     aliasType: {
@@ -147,7 +147,7 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
             if(argument.length == 19 && argument[0] == "%"){
                 return argument.slice(1)
             }
-            let member = msg.guild?.members.cache.find((val, key) => val.id == argument || val.user.username.toLowerCase().indexOf(argument) > -1 || (val.nickname?.toLowerCase().indexOf(argument) || -1) > -1)
+            let member = msg.guild?.members.cache.find((val, _key) => val.id == argument || val.user.username.toLowerCase().indexOf(argument) > -1 || (val.nickname?.toLowerCase().indexOf(argument) || -1) > -1)
             if(member)
                 return member.id
             return (await fetchUserFromClientOrGuild(argument, msg.guild))?.id || msg.author.id

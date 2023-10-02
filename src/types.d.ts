@@ -29,6 +29,10 @@ declare global {
     interface Object{
         hasEnumerableKeys<T extends {hasOwnProperty(key: string): boolean}>(o: T): boolean
     }
+
+    interface Array<T> {
+        shuffleArray(): Array<T>
+    }
 }
 
 //Utility

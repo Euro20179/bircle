@@ -22,13 +22,6 @@ export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
 
-function shuffleArray<T>(arr: T[]) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
 
 function romanToBase10(roman: string) {
     const to10 = {
@@ -391,7 +384,7 @@ async function fetchUserFromClient(client: Client, find: string) {
         find = res[1]
     }
     find = find.toLowerCase()
-    let user = client.users.cache.find((v, k) => {
+    let user = client.users.cache.find((v, _k) => {
         return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find
     })
     if (!user) {
@@ -579,7 +572,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         renderHTML: htmlRenderer.renderHTML,
         generateCommandSummary,
         romanToBase10,
-        shuffleArray,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -1251,6 +1243,5 @@ export {
     countOf,
     prettyJSON,
     escapeRegex,
-    shuffleArray
 }
 

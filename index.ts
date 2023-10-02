@@ -57,6 +57,14 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
 const PROCESS_OPTS = getOptsUnix(process.argv.slice(2), "", [["headless"]])
 const HEADLESS = PROCESS_OPTS[0]['headless']
 
+Array.prototype.shuffleArray = function() {
+    for (let i = this.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [this[i], this[j]] = [this[j], this[i]];
+    }
+    return this;
+}
+
 Message.prototype.execCommand = async function(local_prefix: string) {
     let c = this.content.slice(local_prefix.length)
     return await execCommand(this, c)
