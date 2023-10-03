@@ -14,7 +14,7 @@ import { slashCmds } from "./src/slashCommands"
 
 import command_commons, { Interpreter, StatusCode, handleSending } from './src/common_to_commands'
 
-import globals = require("./src/globals")
+import globals from './src/globals'
 import { defer, isMsgChannel } from "./src/util"
 import { Parser, format, getOptsUnix } from './src/parsing'
 import { getOpt } from "./src/user-options"

@@ -1,7 +1,7 @@
 import { Message } from "discord.js"
 import { AliasV2, Interpreter, getAliasesV2, getCommands } from "./common_to_commands"
+import { getOpt } from './user-options'
 
-const { getOpt } = require("./user-options")
 enum T {
     str,
     dofirst,
@@ -175,7 +175,7 @@ class Parser {
         return `\\\$${this.IFS}{%>;`
     }
 
-    constructor(msg: Message, string: string, isCmd = true) {
+    constructor(msg: Message, string: string) {
         this.tokens = []
         this.string = string
         this.#i = -1
@@ -329,7 +329,7 @@ class Parser {
         return this.tokens[this.tokens.length - 1]
     }
 
-    parseEscape(msg: Message) {
+    parseEscape(_msg: Message) {
 
         const escChars = "ntUusyYAbiSdDTVv\\ a"
 
@@ -358,7 +358,7 @@ class Parser {
         return new Token(T.esc, [char ?? "", sequence], this.#curArgNo)
     }
 
-    async parseFormat(msg: Message) {
+    async parseFormat(_msg: Message) {
         this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
         this.advance(inner.length)

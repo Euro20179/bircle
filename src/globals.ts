@@ -32,48 +32,48 @@ export let KNOW_YOUR_MEME_TIMEOUT: NodeJS.Timeout | undefined;
 export let KNOW_YOUR_MEME_PLAYERS: User[] = []
 
 //an array of commands that the user is running
-export let USER_IN_COMMANDS: {[id: string]: string[]} = {}
+export let USER_IN_COMMANDS: { [id: string]: string[] } = {}
 
-export function startCommand(id: string, command: string){
-    if(!USER_IN_COMMANDS[id]){
+export function startCommand(id: string, command: string) {
+    if (!USER_IN_COMMANDS[id]) {
         USER_IN_COMMANDS[id] = [command]
     }
-    else{
+    else {
         USER_IN_COMMANDS[id].push(command)
     }
 }
-export function endCommand(id: string, command: string){
-    if(!USER_IN_COMMANDS[id]){
+export function endCommand(id: string, command: string) {
+    if (!USER_IN_COMMANDS[id]) {
         return;
     }
-    USER_IN_COMMANDS[id] = USER_IN_COMMANDS[id].filter(v => v!==command)
+    USER_IN_COMMANDS[id] = USER_IN_COMMANDS[id].filter(v => v !== command)
 }
-export function userUsingCommand(id: string, command: string){
+export function userUsingCommand(id: string, command: string) {
     return USER_IN_COMMANDS[id]?.includes(command) ? true : false
 }
 
 export const RECURSION_LIMIT = 20
 
-function loadScallyWagTokens () {
+function loadScallyWagTokens() {
     let SCALLYWAG_TOKENS
-    if(fs.existsSync("./command-results/scallywag-tokens.json")){
+    if (fs.existsSync("./command-results/scallywag-tokens.json")) {
         SCALLYWAG_TOKENS = JSON.parse(fs.readFileSync("./command-results/scallywag-tokens.json", "utf-8"))
     }
-    else{
+    else {
         SCALLYWAG_TOKENS = {}
     }
     return SCALLYWAG_TOKENS
 }
 
-export function saveScallywagTokens () {
+export function saveScallywagTokens() {
     fs.writeFileSync("./command-results/scallywag-tokens.json", JSON.stringify(SCALLYWAG_TOKENS))
 }
 
 
-export let SCALLYWAG_TOKENS: {[key: string]: number} = loadScallyWagTokens()
+export let SCALLYWAG_TOKENS: { [key: string]: number } = loadScallyWagTokens()
 
 
-function _generateUsageFile(OBJECT: {[key: string]: string | number}){
+function _generateUsageFile(OBJECT: { [key: string]: string | number }) {
     let text = ""
     for (let key in OBJECT) {
         text += `${key}:${OBJECT[key]}\n`
@@ -107,7 +107,7 @@ export function addToCmdUse(cmd: string) {
     }
 }
 
-export function removeFromCmdUse(cmd: string){
+export function removeFromCmdUse(cmd: string) {
     CMDUSE[cmd] -= 1
 }
 
@@ -143,33 +143,75 @@ export function loadEmoteUse() {
     return emoteuse
 }
 
-export function editConfig(path: string, newValue: any){
+export function editConfig(path: string, newValue: any) {
     let WORKING_OBJ: any = BOT_CONFIG
-    let items =  path.split(".")
-    for(let i = 0; i < items.length - 1; i++){
+    let items = path.split(".")
+    for (let i = 0; i < items.length - 1; i++) {
         WORKING_OBJ = WORKING_OBJ?.[items[i] as keyof typeof WORKING_OBJ]
-        if(WORKING_OBJ === undefined) throw new Error(`${path} is not a valid config item`)
+        if (WORKING_OBJ === undefined) throw new Error(`${path} is not a valid config item`)
     }
-    if(WORKING_OBJ[items[items.length - 1] as keyof typeof WORKING_OBJ] === undefined) throw new Error(`${path} is not a valid config item`)
+    if (WORKING_OBJ[items[items.length - 1] as keyof typeof WORKING_OBJ] === undefined) throw new Error(`${path} is not a valid config item`)
     saveConfig()
     return WORKING_OBJ[items[items.length - 1]] = newValue
 }
 
-export function getConfigValue(path: string){
+export function getConfigValue(path: string) {
     let WORKING_OBJ: any = BOT_CONFIG
-    let items =  path.split(".")
-    for(let i = 0; i < items.length; i++){
+    let items = path.split(".")
+    for (let i = 0; i < items.length; i++) {
         WORKING_OBJ = WORKING_OBJ?.[items[i] as keyof typeof WORKING_OBJ]
-        if(WORKING_OBJ === undefined) {
+        if (WORKING_OBJ === undefined) {
             return false
         }
     }
     return WORKING_OBJ
 }
 
-export function saveConfig(){
+export function saveConfig() {
     fs.writeFileSync('./CONFIG.json', JSON.stringify(BOT_CONFIG))
 }
 
 export let CMDUSE = loadCmdUse()
 export let EMOTEUSE = loadEmoteUse()
+
+export default {
+    BOT_CONFIG,
+    CLIENT_ID,
+    GUILD_ID,
+    CLIENT_SECRET,
+    SPAM_ALLOWED,
+    DEVBOT,
+    PREFIX,
+    ADMINS,
+    BUTTONS,
+    POLLS,
+    BLACKJACK_GAMES,
+    EDS,
+    HEIST_PLAYERS,
+    HEIST_TIMEOUT,
+    HEIST_STARTED,
+    IN_QALC,
+    YAHTZEE_WAITING_FOR_PLAYERS,
+    KNOW_YOUR_MEME_TIMEOUT,
+    KNOW_YOUR_MEME_PLAYERS,
+    USER_IN_COMMANDS,
+    startCommand,
+    endCommand,
+    userUsingCommand,
+    RECURSION_LIMIT,
+    saveScallywagTokens,
+    SCALLYWAG_TOKENS,
+    generateCmdUseFile,
+    generateEmoteUseFile,
+    addToEmoteUse,
+    addToCmdUse,
+    removeFromCmdUse,
+    writeCmdUse,
+    loadCmdUse,
+    loadEmoteUse,
+    editConfig,
+    getConfigValue,
+    saveConfig,
+    CMDUSE,
+    EMOTEUSE,
+}

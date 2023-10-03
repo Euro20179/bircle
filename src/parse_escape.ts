@@ -39,7 +39,7 @@ export default {
     //this is different from \y because it splits the args whereas \y keeps everything as 1 arg
 
     escape_Y: async (_token, _, seq, int) => {
-        let p = new Parser(int.getMessage(), seq, false)
+        let p = new Parser(int.getMessage(), seq)
         await p.parse()
         let i = new Interpreter(int.getMessage(), p.tokens, {
             modifiers: p.modifiers,

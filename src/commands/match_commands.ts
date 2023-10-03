@@ -1,5 +1,5 @@
 import common from "../common"
-import { cmd, CommandCategory, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
+import { cmd, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
 import { Parser } from "../parsing"
 import { fetchUserFromClient, getContentFromResult, isMsgChannel } from "../util"
 
@@ -9,7 +9,7 @@ import { DMChannel, Message } from "discord.js"
 
 import {PREFIX} from '../globals'
 
-export default function*(CAT: CommandCategory) {
+export default function*() {
     yield [createMatchCommand(async ({ msg, match }) => {
         let find = match[1]
         let replace = match[2]
@@ -165,7 +165,7 @@ export default function*(CAT: CommandCategory) {
         let data = match[4]
 
         if (quoteType === '"') {
-            let p = new Parser(msg, data, false)
+            let p = new Parser(msg, data)
             await p.parse()
             let int = new Interpreter(msg, p.tokens, {
                 modifiers: p.modifiers,
@@ -184,7 +184,7 @@ export default function*(CAT: CommandCategory) {
         }
     })]
 
-    yield [createMatchCommand(async function({ msg, match }) {
+    yield [createMatchCommand(async function() {
         return { content: 'https://media.discordapp.net/attachments/969326196733136906/1035812838813474836/Screenshot_20221029-001015.png?width=278&height=602', status: StatusCode.RETURN }
     }, /Screenshot \(Oct 29, 2022 00:10:15\)/, "match:img")]
 

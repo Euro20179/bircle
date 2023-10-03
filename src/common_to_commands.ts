@@ -931,7 +931,7 @@ export class Interpreter {
         return [new Token(T.str, data, token.argNo)]
     }
     async [T.calc](token: Token): Promise<Token[] | false> {
-        let parser = new Parser(this.#msg, token.data as string, false)
+        let parser = new Parser(this.#msg, token.data as string)
         await parser.parse()
         let int = new Interpreter(this.#msg, parser.tokens, {
             modifiers: parser.modifiers,
@@ -990,7 +990,7 @@ export class Interpreter {
         return []
     }
     async[T.syntax](token: Token): Promise<Token[] | false> {
-        let parse = new Parser(this.#msg, token.data as string, false)
+        let parse = new Parser(this.#msg, token.data as string)
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, {
             modifiers: parse.modifiers,
