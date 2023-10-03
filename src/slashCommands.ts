@@ -4,7 +4,7 @@ import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, 
 import { StatusCode } from "./common_to_commands"
 import { efd, fetchUser, isMsgChannel, sleep } from "./util"
 
-import globals = require("./globals")
+import globals from "./globals"
 import economy from "./economy"
 
 export function createChatCommandOption(type: number, name: string, description: string, { min, max, required }: { min?: number, max?: number | null, required?: boolean }): APIApplicationCommandOption {

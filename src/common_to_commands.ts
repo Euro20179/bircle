@@ -5,8 +5,8 @@ import vars from './vars';
 
 import events from './events';
 
-import globals = require("./globals")
-import user_options = require("./user-options")
+import globals from "./globals"
+import user_options, { UserOption } from "./user-options"
 import common from './common';
 import { Parser, Token, T, WebModifier, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier, CommandModifier } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf, valuesOf } from './util';
@@ -1342,13 +1342,13 @@ function defileCommandReturn(rv: CommandReturn) {
 }
 
 function cmdUserExpansion(msg: Message, rv: CommandReturn) {
-    let optionToGet: user_options.UserOption = ({
+    let optionToGet:UserOption = ({
         [StatusCode.ERR]: "change-cmd-error",
         [StatusCode.INFO]: "change-cmd-info",
         [StatusCode.PROMPT]: "change-cmd-prompt",
         [StatusCode.RETURN]: "change-cmd-return",
         [StatusCode.WARNING]: "change-cmd-warning"
-    } as { [key: number]: user_options.UserOption })[rv.status] as user_options.UserOption
+    } as { [key: number]: UserOption })[rv.status] as UserOption
 
     let opt = user_options.getOpt(msg.author.id, optionToGet, "")
 

@@ -78,7 +78,7 @@ function do_lap(for_user: string, name: string, unit: LapUnit = "ms"){
 * @param {number} x_ms number of ms that have passed
     * @param {boolean} canBeUndef If the tiemr is undefined, should this return true, or false
 */
-function has_x_ms_passed(for_user: string , name: string, x_ms: milliseconds_t, canBeUndef = false){
+function has_x_ms_passed(for_user: string, name: string, x_ms: milliseconds_t, canBeUndef = false){
     if(TIMERS[for_user]?.[name] === undefined){
         return canBeUndef
     }

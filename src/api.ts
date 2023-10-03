@@ -2,7 +2,7 @@ import { Message, CollectorFilter } from "discord.js"
 import economy from './economy'
 import pet from './pets'
 import timer from './timer'
-import shop = require("./shop")
+import shop from "./shop"
 import { cmd, getAliasesV2 } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"

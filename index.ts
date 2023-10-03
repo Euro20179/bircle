@@ -65,11 +65,6 @@ Array.prototype.shuffleArray = function() {
     return this;
 }
 
-Message.prototype.execCommand = async function(local_prefix: string) {
-    let c = this.content.slice(local_prefix.length)
-    return await execCommand(this, c)
-}
-
 defer(() => {
     console.log('Started refreshing application (/) commands.');
 
@@ -252,7 +247,8 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
 
         if (command_commons.isCmd(content, local_prefix)) {
-            await command_commons.handleSending(m, (await m.execCommand(local_prefix)).rv)
+            let c = m.content.slice(local_prefix.length)
+            await command_commons.handleSending(m, (await execCommand(m, c)).rv)
         }
         else {
             await command_commons.Interpreter.handleMatchCommands(m, m.content, true)

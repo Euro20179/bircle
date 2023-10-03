@@ -94,7 +94,8 @@ export function getItems(){
     return ITEMS
 }
 
-module.exports = {
+
+export default {
     getInventory,
     getItems,
     buyItem,

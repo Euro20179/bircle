@@ -4,7 +4,7 @@ import fs = require("fs")
 import economy from './economy'
 import amountParser from './amount-parser'
 
-const { buyItem } = require("./shop.js")
+import { buyItem } from "./shop.js"
 
 type PetData = { [pet: string]: { description: string, "max-hunger": number, cost: string[], "favorite-food": string } }
 type UserPetData = { [pet: string]: { health: number, name: string } }
