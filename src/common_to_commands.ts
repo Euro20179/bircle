@@ -1468,7 +1468,7 @@ export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand
     return {
         run: run,
         match: match,
-        name: name,
+        name: `match:${name}`,
         help: help,
         category: CommandCategory.MATCH
     }

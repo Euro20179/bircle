@@ -18,7 +18,7 @@ export default function*() {
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
         return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1 })).rv as CommandReturn
 
-    }, /^\^([^\^]+)\^(.*)$/, "match:run-replace", {
+    }, /^\^([^\^]+)\^(.*)$/, "un-replace", {
         info: "^&lt;find&gt;^&lt;replace&gt;",
         arguments: {
             find: createHelpArgument("The text to find for replacing", true),
@@ -64,17 +64,17 @@ export default function*() {
 
 
 
-    }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
+    }, /^@([^\s]+) (.*)/, "end-mail-from-dms")]
 
     yield [createMatchCommand(async function({ msg, match }) {
         return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`})).rv as CommandReturn
-    }, /u!stop(.*)/, "match:u!stop", {
+    }, /u!stop(.*)/, "!stop", {
         info: "same as [stop"
     })]
 
     yield [createMatchCommand(async function({ msg, match }) {
         return (await cmd({ msg, command_excluding_prefix: `calc -python ${match[1] ?? ""}`})).rv as CommandReturn
-    }, /u!eval(.*)/, "match:u!eval", {
+    }, /u!eval(.*)/, "!eval", {
         info: "same as [calc -python"
     })]
 
@@ -82,13 +82,13 @@ export default function*() {
         user_options.unsetOpt(msg.author.id, 'prefix')
         return (await cmd({ msg, command_excluding_prefix: match[1] ?? "echo -D prefix unset"})).rv as CommandReturn
 
-    }, /s!(.*)/, "match:s!", {
+    }, /s!(.*)/, "!", {
         info: "In case of a bad prefix, unsets it"
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
         return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`})).rv
-    }, /^u!stop(.*)/, "match:u!stop", {
+    }, /^u!stop(.*)/, "!stop", {
         info: "same as [stop",
         arguments: {
             id: createHelpArgument("The id of the spam to stop", false, undefined, "Stops all spams")
@@ -97,7 +97,7 @@ export default function*() {
 
     yield [createMatchCommand(async ({ msg, match }) => {
         return (await cmd({ msg, command_excluding_prefix: `calc -python${match[1] ?? ""}`})).rv
-    }, /^u!eval(.*)/, "match:u!eval", {
+    }, /^u!eval(.*)/, "!eval", {
         info: "same as <code>[calc -python</code>",
         arguments: {
             expression: createHelpArgument("The python expression to run", true)
@@ -111,7 +111,7 @@ export default function*() {
         user_options.setOpt(msg.author.id, "prefix", PREFIX)
         return (await cmd({ msg, command_excluding_prefix: match[1]})).rv
 
-    }, /^s!(.*)/, "match:s!", {
+    }, /^s!(.*)/, "!", {
         info: "run <code>s!</code> in case you mess up the prefix"
     })]
 
@@ -153,7 +153,7 @@ export default function*() {
 
 
 
-    }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
+    }, /^@([^\s]+) (.*)/, "end-mail-from-dms")]
 
     yield [createMatchCommand(async ({ msg, match }) => {
         let prefix = match[1] ?? "__global__"
@@ -176,7 +176,7 @@ export default function*() {
 
         vars.setVarEasy(`${prefix}:${name}`, data, msg.author.id)
         return { noSend: true, status: StatusCode.RETURN }
-    }, /(?:([^ ]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
+    }, /(?:([^ ]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "reate-var", {
         info: "var=\"data\" or var='data'",
         arguments: {
             name: createHelpArgument("Name of the variable", true),
@@ -186,7 +186,7 @@ export default function*() {
 
     yield [createMatchCommand(async function() {
         return { content: 'https://media.discordapp.net/attachments/969326196733136906/1035812838813474836/Screenshot_20221029-001015.png?width=278&height=602', status: StatusCode.RETURN }
-    }, /Screenshot \(Oct 29, 2022 00:10:15\)/, "match:img")]
+    }, /Screenshot \(Oct 29, 2022 00:10:15\)/, "mg")]
 
     yield [createMatchCommand(async ({ msg: m, match: search }) => {
         if (!isMsgChannel(m.channel)) return { noSend: true, status: StatusCode.ERR }
@@ -251,5 +251,5 @@ export default function*() {
         }
         return { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
-    }, /^(\d*):(\/[^\/]+\/)(?:(.*)\/)*/, "match:find-run")]
+    }, /^(\d*):(\/[^\/]+\/)(?:(.*)\/)*/, "ind-run")]
 }
