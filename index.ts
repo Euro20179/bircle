@@ -111,7 +111,7 @@ common.client.on(Events.ClientReady, async () => {
 })
 
 common.client.on(Events.MessageDelete, async (m) => {
-    if(m.author?.bot) return
+    if (m.author?.bot) return
     if (m.author?.id != common.client.user?.id) {
         common_to_commands.snipes.unshift(m)
     }
@@ -124,6 +124,69 @@ setInterval(() => {
     vars.saveVars()
     timer.saveTimers()
 }, 30000)
+
+async function handlePingResponse(m: Message) {
+    for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
+        let member = m.mentions.members?.at(i)
+        let pingresponse = user_options.getOpt(member?.user.id as string, "pingresponse", null)
+        if (pingresponse) {
+            pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
+            let old_id = m.author.id
+            m.author.id = member!.user.id
+            command_commons.isCmd(pingresponse, globals.PREFIX)
+                ? await handleSending(m,
+                    (await command_commons.cmd({
+                        msg: m,
+                        command_excluding_prefix: pingresponse.slice(globals.PREFIX.length),
+                        disable: command_commons.generateDefaultRecurseBans()
+                    })).rv
+                )
+                : m.channel.send(pingresponse)
+            m.author.id = old_id
+        }
+    }
+}
+async function handleEarnings(m: Message) {
+    let deaths = pet.damageUserPetsRandomly(m.author.id)
+    if (deaths.length)
+        await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
+
+    let ap = pet.getActivePet(m.author.id)
+
+    let percent = 1.001
+    let pcount = Number(hasItem(m.author.id, "puffle chat"))
+
+    percent += .0001 * pcount
+
+    if (hasItem(m.author.id, "capitalism hat")) {
+        percent += .002
+    }
+    if (ap === 'cat') {
+        percent += pets.PETACTIONS['cat']()
+    }
+
+    if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
+        economy.createPlayer(m.author.id, 100)
+    }
+
+    economy.earnMoney(m.author.id, percent)
+
+    if (ap == 'puffle') {
+        let stuff = await pet.PETACTIONS['puffle'](m)
+        if (!HEADLESS && stuff) {
+            let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
+            await command_commons.handleSending(m, {
+                content: format(findMessage, {
+                    user: `<@${m.author.id}>`,
+                    name: pet.hasPet(m.author.id, ap)?.name,
+                    stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ")
+                }),
+                status: command_commons.StatusCode.INFO,
+                recurse: command_commons.generateDefaultRecurseBans()
+            })
+        }
+    }
+}
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
@@ -150,25 +213,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     let local_prefix = m.author.getBOpt("prefix", globals.PREFIX)
 
     if (!HEADLESS && !m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
-        for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
-            let member = m.mentions.members?.at(i)
-            let pingresponse = user_options.getOpt(member?.user.id as string, "pingresponse", null)
-            if (pingresponse) {
-                pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                let old_id = m.author.id
-                m.author.id = member!.user.id
-                command_commons.isCmd(pingresponse, globals.PREFIX)
-                    ? await handleSending(m,
-                        (await command_commons.cmd({
-                            msg: m,
-                            command_excluding_prefix: pingresponse.slice(globals.PREFIX.length),
-                            disable: command_commons.generateDefaultRecurseBans()
-                        })).rv
-                    )
-                    : m.channel.send(pingresponse)
-                m.author.id = old_id
-            }
-        }
+        handlePingResponse(m)
     }
 
     if (!HEADLESS && m.content === `<@${common.client.user?.id}>`) {
@@ -184,47 +229,9 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
     }
 
+
     if (timer.has_x_s_passed(m.author.id, "%can-earn", 60) && !m.author.bot) {
-        let deaths = pet.damageUserPetsRandomly(m.author.id)
-        if (deaths.length)
-            await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
-
-        let ap = pet.getActivePet(m.author.id)
-
-        let percent = 1.001
-        let pcount = Number(hasItem(m.author.id, "puffle chat"))
-
-        percent += .0001 * pcount
-
-        if (hasItem(m.author.id, "capitalism hat")) {
-            percent += .002
-        }
-        if (ap === 'cat') {
-            percent += pets.PETACTIONS['cat']()
-        }
-
-        if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
-            economy.createPlayer(m.author.id, 100)
-        }
-
-        economy.earnMoney(m.author.id, percent)
-
-        if (ap == 'puffle') {
-            let stuff = await pet.PETACTIONS['puffle'](m)
-            if (!HEADLESS && stuff) {
-                let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
-                await command_commons.handleSending(m, {
-                    content: format(findMessage, {
-                        user: `<@${m.author.id}>`,
-                        name: pet.hasPet(m.author.id, ap)?.name,
-                        stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ")
-                    }),
-                    status: command_commons.StatusCode.INFO,
-                    recurse: command_commons.generateDefaultRecurseBans()
-                })
-            }
-        }
-
+        handleEarnings(m)
     }
 
     if (!HEADLESS) {
