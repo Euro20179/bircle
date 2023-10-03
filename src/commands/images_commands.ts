@@ -1,5 +1,4 @@
 import fs from 'fs'
-import canvas from 'canvas'
 import https from 'https'
 
 import fetch = require("node-fetch")
@@ -9,9 +8,12 @@ import { Stream } from 'stream'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
-import common from '../common'
-import { Message } from 'discord.js'
-import sharp = require('sharp')
+import sharp from 'sharp'
+let canvas: typeof import("canvas")
+(async() => {
+    if(!process.argv0.includes("bun"))
+        canvas = await import("canvas")
+})()
 
 import { PREFIX } from '../globals'
 
@@ -1020,7 +1022,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "scale", ccmdV2(async function({}) {
+        "scale", ccmdV2(async function({ }) {
             /*
                 let opts;
                 [opts, args] = getOpts(args)
@@ -1156,7 +1158,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "text", ccmdV2(async function( { msg, rawArgs: args}) {
+        "text", ccmdV2(async function({ msg, rawArgs: args }) {
             let opts: Opts;
             [opts, args] = getOpts(args)
 
@@ -1382,7 +1384,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "color", ccmdV2(async function({ msg, rawArgs: args}) {
+        "color", ccmdV2(async function({ msg, rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
             let stringArgs = args.join(" ")

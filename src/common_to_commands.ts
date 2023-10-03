@@ -619,7 +619,7 @@ export async function cmd({
     programArgs,
     env,
     context
-}: CmdArguments) {
+}: CmdArguments): Promise<{interpreter?: Interpreter | undefined, rv: CommandReturn}> {
 
     let int, rv: CommandReturn | false | null = null;
 
