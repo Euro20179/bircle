@@ -71,4 +71,8 @@ describe("Commands", () => {
     cmdTest("echo -D hi >pipe> rev", "ih")
     cmdTest("echo -D hi $(echo -D yes) >pipe> rev", "sey ih")
     cmdTest("argc yes\\sno\\s{yes no}", "1")
+    cmdTest("stackl %start 5 5 +", "10")
+    cmdTest("calc mulStr('yes', 3) + 'ok'", "\"yesyesyesok\"")
+    cmdTest("calc -s mulStr('yes', 3) + 'ok'", "yesyesyesok")
+    cmdTest("echo -D yes\nalphabet\nok >pipe> sort", "alphabet\nok\nyes")
 })
