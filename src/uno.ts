@@ -265,7 +265,7 @@ class Stack {
         this.shuffle()
     }
     shuffle() {
-        this.cards = this.cards.sort(() => Math.random() - .5)
+        this.cards = this.cards.shuffleArray()
     }
     top() {
         return this.cards[this.cards.length - 1]

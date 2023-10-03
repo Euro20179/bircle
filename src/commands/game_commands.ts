@@ -1291,7 +1291,7 @@ until you put a 0 in the box`)
                             stats.locationsVisited[current_location] = {}
                         }
                         stats.adventureOrder.push([current_location, stage])
-                        let shuffledPlayers = globals.HEIST_PLAYERS.sort(() => Math.random() - .5)
+                        let shuffledPlayers = globals.HEIST_PLAYERS.shuffleArray()
                         let amount = Math.random() * 0.5
                         let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                         let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]

@@ -616,7 +616,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     if (user === msg.author.id) {
                         continue;
                     }
-                    let randItem = Object.keys(inv[user]).sort(() => Math.random() - 0.5)[0]
+                    let randItem = Object.keys(inv[user]).shuffleArray()[0]
                     if (!randItem || achievements.ACHIVEMENT_ITEMS.includes(randItem)) continue
                     useItem(user, randItem, 1)
                     giveItem(msg.author.id, randItem, 1)
