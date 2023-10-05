@@ -596,7 +596,49 @@ type CmdArguments = {
     context?: InterpreterContext
 }
 
-/*
+export async function handleUserMatchCommands(msg: Message, content: string) {
+    let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
+    for (let [name, [regex, run]] of userMatchCmds) {
+        let m = content.match(regex);
+        if (!m) continue;
+
+        const argsRegex = /^(match\d+)$/
+        let innerPairs = getInnerPairsAndDeafultBasedOnRegex(run, ["match"], argsRegex)
+
+        let tempExec = run
+
+        for (let [match, or] of innerPairs) {
+            let innerText = `{${match}${or}}`
+            or = or.stripStart("|")
+            let n = Number(match.slice("match".length))
+            tempExec = tempExec.replace(innerText, m[n] ?? or)
+        }
+
+        try {
+            await handleSending(msg, (await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })).rv)
+        }
+        catch (err) {
+            console.error(err)
+            if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as Error)}\`\`\`` })
+        }
+    }
+}
+
+export async function handleMatchCommands(msg: Message, command_excluding_prefix: string, enableUserMatch: boolean) {
+    let matchCommands = getMatchCommands()
+    for (let obj of valuesOf(matchCommands)) {
+        let match = command_excluding_prefix.match(obj.match)
+        if (match?.[0]) {
+            return handleSending(msg, await obj.run({ msg, match }))
+        }
+    }
+    if (enableUserMatch) {
+        return handleUserMatchCommands(msg, command_excluding_prefix)
+    }
+    return false
+}
+
+/**
     Quick summary of how cmd() works
 
     Give the command to the Interpeter which sends it to the Parser to get a list of tokens
@@ -619,11 +661,11 @@ export async function cmd({
     programArgs,
     env,
     context
-}: CmdArguments): Promise<{interpreter?: Interpreter | undefined, rv: CommandReturn}> {
+}: CmdArguments): Promise<{ interpreter?: Interpreter | undefined, rv: CommandReturn }> {
 
     let int, rv: CommandReturn | false | null = null;
 
-    if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch)) {
+    if (await handleMatchCommands(msg, command_excluding_prefix, enableUserMatch || false)) {
         return { rv: rv || { noSend: true, status: StatusCode.RETURN }, interpreter: int }
     }
 
@@ -1043,7 +1085,7 @@ export class Interpreter {
             //this is for the !! command
             lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
         }
-        if(rv.silent == undefined && this.context.options.silent == 1){
+        if (rv.silent == undefined && this.context.options.silent == 1) {
             rv.silent = true
         }
         return rv
@@ -1082,7 +1124,7 @@ export class Interpreter {
         }
         if (argShapePass)
             return await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
-        return crv("Something horrible went wrong", {status: StatusCode.ERR})
+        return crv("Something horrible went wrong", { status: StatusCode.ERR })
     }
 
     async run(): Promise<CommandReturn | undefined> {
@@ -1281,48 +1323,6 @@ export class Interpreter {
         }
         return this.args
     }
-
-    static async handleUserMatchCommands(msg: Message, content: string) {
-        let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
-        for (let [name, [regex, run]] of userMatchCmds) {
-            let m = content.match(regex);
-            if (!m) continue;
-
-            const argsRegex = /^(match\d+)$/
-            let innerPairs = getInnerPairsAndDeafultBasedOnRegex(run, ["match"], argsRegex)
-
-            let tempExec = run
-
-            for (let [match, or] of innerPairs) {
-                let innerText = `{${match}${or}}`
-                or = or.stripStart("|")
-                let n = Number(match.slice("match".length))
-                tempExec = tempExec.replace(innerText, m[n] ?? or)
-            }
-
-            try {
-                await handleSending(msg, (await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })).rv)
-            }
-            catch (err) {
-                console.error(err)
-                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as Error)}\`\`\`` })
-            }
-        }
-    }
-
-    static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean) {
-        let matchCommands = getMatchCommands()
-        for (let obj of valuesOf(matchCommands)) {
-            let match = content.match(obj.match)
-            if (match?.[0]) {
-                return handleSending(msg, await obj.run({ msg, match }))
-            }
-        }
-        if (enableUserMatch) {
-            return this.handleUserMatchCommands(msg, content)
-        }
-        return false
-    }
 }
 
 function censor_error(err: Error) {
@@ -1342,7 +1342,7 @@ function defileCommandReturn(rv: CommandReturn) {
 }
 
 function cmdUserExpansion(msg: Message, rv: CommandReturn) {
-    let optionToGet:UserOption = ({
+    let optionToGet: UserOption = ({
         [StatusCode.ERR]: "change-cmd-error",
         [StatusCode.INFO]: "change-cmd-info",
         [StatusCode.PROMPT]: "change-cmd-prompt",
@@ -1430,13 +1430,13 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     let newMsg = msg
     try {
-        if(rv.silent !== true)
+        if (rv.silent !== true)
             newMsg = await sendCallback(rv as MessageCreateOptions)
     }
     catch (err) {
         //usually happens when there is nothing to send
         console.log(err)
-        if(rv.silent !== true)
+        if (rv.silent !== true)
             newMsg = await sendCallback({ content: `${err}` })
     }
     return newMsg
@@ -1659,5 +1659,7 @@ export default {
     censor_error,
     PagedEmbed,
     createFakeMessage,
-    clearSnipes
+    clearSnipes,
+    handleUserMatchCommands,
+    handleMatchCommands
 }

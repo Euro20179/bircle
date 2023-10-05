@@ -251,7 +251,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             await command_commons.handleSending(m, (await execCommand(m, c)).rv)
         }
         else {
-            await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
+            await command_commons.handleMatchCommands(m, m.content, true)
         }
     }
 })
