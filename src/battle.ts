@@ -370,7 +370,25 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
     let start = Date.now() / 1000
 
     let items: { [key: string]: Item } = {// {{{
-
+        split: new Item({
+            numberCost: 5,
+            async onUse(m, embed) {
+                let alive = gameState.alivePlayers()
+                for(let p in alive){
+                    if(alive[p].hp < 200){
+                        await m.channel.send("Everyone must be above 200")
+                        return false;
+                    }
+                }
+                for(let p in alive){
+                    alive[p].damageThroughShield(alive[p].hp / 2)
+                }
+                embed.setTitle("Split")
+                embed.setDescription("🍌 T̷h̷e̷ B̷A̷N̷A̷N̷A̷ h̷a̷s̷ S̷P̷L̷I̷T̷! 🍌")
+                embed.setColor("DarkGold")
+                return true
+            },
+        }),
         rheal: new Item({
             percentCost: 0.001,
             numberCost: 0.1,
@@ -483,6 +501,21 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 e.setColor("#ffff00")
                 allPlayers[m.author.id].hp = otherPlayerHealth
                 allPlayers[p].hp = thisPlayerHealth
+                return true
+            }
+        }),
+        half: new Item({
+            percentCost: 0.01,
+            allowedUses: 1,
+            async onUse(m, e){
+                if(allPlayers[m.author.id].shielded){
+                    await m.channel.send(`Half cannot be used with an active shield`)
+                    return false
+                }
+                gameState.damageMultiplier *= 0.5
+                e.setTitle("HALF")
+                e.setColor("Orange")
+                e.setDescription(`<@${m.author.id}> has halved the multiplier\n**multiplier: ${gameState.damageMultiplier}**`)
                 return true
             }
         }),
@@ -709,7 +742,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             "huge": Math.floor(Math.random() * (75 - 50) + 50)
         }[amount] * gameState.damageMultiplier
 
-        if (gameState.damageMultiplier > 1) {
+        if (gameState.damageMultiplier != 1) {
             gameState.damageMultiplier = 1
         }
 
@@ -869,7 +902,8 @@ async function battle(msg: Message, args: ArgumentList) {
         }
 
         if (!Object.keys(players).includes(m.author.id)) {
-            let p = new Player(m.author.id, nBet, pet.getActivePet(m.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
+            // let p = new Player(m.author.id, nBet, pet.getActivePet(m.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
+            let p = new Player(m.author.id, nBet, 10000)
             cooldowns[m.author.id] = 0
             players[m.author.id] = p
         }
