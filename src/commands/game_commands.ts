@@ -2464,7 +2464,7 @@ until you put a 0 in the box`)
             }
         })
     ]
-
+    
     yield [
         "hangman", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }

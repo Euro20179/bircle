@@ -1,5 +1,5 @@
 import { User } from "discord.js"
-import fs = require("fs")
+import fs from 'fs'
 
 export const BOT_CONFIG = JSON.parse(fs.readFileSync("./CONFIG.json", "utf-8"))
 export const CLIENT_ID = BOT_CONFIG.secrets['client-id']

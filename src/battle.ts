@@ -641,6 +641,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         let playerUsingItem = allPlayers[m.author.id]
         if (!playerUsingItem.canUseItemAgain(itemName, item)) {
             await msg.channel.send(`<@${m.author.id}> have reached the limit on ${itemName}`)
+            return
         }
         else if (!playerUsingItem.canUseItem(item)) {
             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${playerUsingItem.cooldownRemaining(Date.now(), item) / 1000}**`)

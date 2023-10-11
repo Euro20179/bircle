@@ -1531,7 +1531,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "sport",
-        ccmdV2(async function({ msg, args, interpreter }) {
+        ccmdV2(async function({ args, interpreter }) {
             let resp = await fetch.default(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
             let html = await resp.text()
             let embed = new EmbedBuilder()
@@ -1794,7 +1794,7 @@ Valid formats:
                 })
                 return crv(str)
             }
-            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg, weather, wind_gust, pressure, uvi, clouds } = json.data.current
+            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg: _, weather, wind_gust, pressure, uvi, clouds } = json.data.current
 
             let tempF = temp * (9 / 5) + 32
             let feelsLikeF = feels_like * (9 / 5) + 32
