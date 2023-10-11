@@ -582,6 +582,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         "axe": new Item({
             numberCost: 1,
             percentCost: 0.001,
+            allowedAfter: 3500,
             async onUse(m, e) {
                 let damage = Math.floor(Math.random() * Object.keys(allPlayers).length * 5)
                 let playerNames = Object.keys(gameState.alivePlayers())
