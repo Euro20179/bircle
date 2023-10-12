@@ -636,6 +636,10 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             allowedAfter: 0,
             async onUse(m, e) {
                 let players = gameState.alivePlayers()
+                if(Object.keys(players).length < 3){
+                    await m.channel.send("There must be 3 or more players alive to use this")
+                    return false
+                }
                 let sumHealths = Object.values(players).reduce((a, b) => a + b.hp, 0)
                 let average = sumHealths / Object.keys(players).length
                 e.setTitle("EARTHQUAKE")
