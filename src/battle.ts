@@ -906,8 +906,7 @@ async function battle(msg: Message, args: ArgumentList) {
         }
 
         if (!Object.keys(players).includes(m.author.id)) {
-            // let p = new Player(m.author.id, nBet, pet.getActivePet(m.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
-            let p = new Player(m.author.id, nBet, 10000)
+            let p = new Player(m.author.id, nBet, pet.getActivePet(m.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
             cooldowns[m.author.id] = 0
             players[m.author.id] = p
         }
