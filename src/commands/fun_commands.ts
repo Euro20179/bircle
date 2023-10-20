@@ -1275,17 +1275,14 @@ export default function*(): Generator<[string, CommandV2]> {
                 rv.recurse = true
             }
             if (opts['status']) {
-                let status = {
+                rv.status = {
                     "return": StatusCode.RETURN,
                     "err": StatusCode.ERR,
                     "error": StatusCode.ERR,
                     "prompt": StatusCode.PROMPT,
                     "info": StatusCode.INFO,
                     "warning": StatusCode.WARNING
-                }[String(opts['status']).toString()]
-                if (status) {
-                    rv.status = status
-                }
+                }[String(opts['status']).toString()] || StatusCode.RETURN
             }
             if (wait) {
                 await new Promise(res => setTimeout(res, wait * 1000))
