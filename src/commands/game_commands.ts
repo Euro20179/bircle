@@ -1,17 +1,17 @@
 import fs from 'fs'
 
-import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel, GuildMember, NonThreadGuildBasedChannel, ChannelType } from "discord.js"
-import { handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
+import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
+import { handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
 
-import globals = require("../globals")
+import globals = require('../globals')
 import economy from '../economy'
-import user_options = require("../user-options")
-import battle = require("../battle")
-import pet from "../pets"
+import user_options = require('../user-options')
+import battle = require('../battle')
+import pet from '../pets'
 
-import uno = require("../uno")
+import uno = require('../uno')
 
-import { choice, cycle, efd, fetchUser, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from "../util"
+import { choice, cycle, efd, fetchUser, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from '../util'
 
 import { format, getOpts } from '../parsing'
 

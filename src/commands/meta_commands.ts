@@ -3,17 +3,17 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, clearSnipes, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, helpArg, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from "../common_to_commands"
-import globals = require("../globals")
-import user_options = require("../user-options")
-import API = require("../api")
-import { Parser, parseBracketPair, formatPercentStr, format } from "../parsing"
+import { aliasesV2, AliasV2, ccmdV2, clearSnipes, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, helpArg, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from '../common_to_commands'
+import globals = require('../globals')
+import user_options = require('../user-options')
+import API = require('../api')
+import { Parser, parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, databaseFileToArray } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, databaseFileToArray } from '../util'
 
 
-import { Guild, Message, EmbedBuilder, User } from "discord.js"
+import { Guild, Message, EmbedBuilder, User } from 'discord.js'
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
@@ -456,7 +456,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             l: createHelpOption("List the options and values, if a value is given, get the value of that option"),
             h: createHelpOption("List the options, and give help for them<br>if args are given, give help for those opts"),
             e: createHelpOption("Export options", ['export']),
-            i: createHelpOption("Import options", ['import'])
+            i: createHelpOption('Import options', ['import'])
         }),
     ]
 

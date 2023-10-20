@@ -1,7 +1,7 @@
 import fs from 'fs'
 import https from 'https'
 
-import fetch = require("node-fetch")
+import fetch = require('node-fetch')
 
 import { Stream } from 'stream'
 
@@ -9,10 +9,10 @@ import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHel
 import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import sharp from 'sharp'
-let canvas: typeof import("canvas")
+let canvas: typeof import('canvas')
 (async() => {
     if(!process.argv0.includes("bun"))
-        canvas = await import("canvas")
+        canvas = await import('canvas')
 })()
 
 import { PREFIX } from '../globals'

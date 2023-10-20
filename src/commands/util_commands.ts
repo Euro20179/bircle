@@ -7,9 +7,9 @@ import fetch = require('node-fetch')
 
 import { Stream } from 'stream'
 
-import globals = require("../globals")
+import globals = require('../globals')
 import economy from '../economy'
-import pet from "../pets"
+import pet from '../pets'
 import timer from '../timer'
 
 import htmlRenderer from '../html-renderer'
@@ -2543,8 +2543,8 @@ The order these are given does not matter, excpet for field, which will be added
                     vm.runInNewContext(code, context, {})
                 }
                 else {
-                    code = `math = __import__("math")
-random = __import__("random")
+                    code = `math = __import__('math')
+random = __import__('random')
 if(hasattr(random, "_os")):
     del random._os
 if(hasattr(random, "os")):
@@ -2591,8 +2591,8 @@ print(json.dumps({k: v for k, v in filter(lambda x: isinstance(x[1], str | int |
                 stringifyFn = String
             }
             if (opts['python']) {
-                let codeStr = `math = __import__("math")
-random = __import__("random")
+                let codeStr = `math = __import__('math')
+random = __import__('random')
 if(hasattr(random, "_os")):
     del random._os
 if(hasattr(random, "os")):

@@ -7,24 +7,24 @@ import { cloneDeep } from 'lodash'
 
 import lemmy from 'lemmy-js-client'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction } from "discord.js";
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction } from 'discord.js';
 
-import fetch = require("node-fetch")
+import fetch = require('node-fetch')
 
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from '../util'
 
 import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
 
 import { format, getOpts, parseRangeString } from '../parsing'
-import user_options = require("../user-options")
-import pet from "../pets"
-import globals = require("../globals")
+import user_options = require('../user-options')
+import pet from '../pets'
+import globals = require('../globals')
 import timer from '../timer'
-import common_to_commands, { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, PagedEmbed, promptUser, purgeSnipe, snipes, StatusCode } from "../common_to_commands";
+import common_to_commands, { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, PagedEmbed, promptUser, purgeSnipe, snipes, StatusCode } from '../common_to_commands';
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 

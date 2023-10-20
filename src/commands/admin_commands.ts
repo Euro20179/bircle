@@ -3,8 +3,8 @@ import vars from '../vars'
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
-import user_options = require("../user-options")
-import pet from "../pets"
+import user_options = require('../user-options')
+import pet from '../pets'
 import timer from '../timer'
 import { getItems, giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'

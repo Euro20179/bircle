@@ -1,7 +1,7 @@
 
 import fs from 'fs'
-import ytdl = require("ytdl-core")
-import fetch = require("node-fetch")
+import ytdl = require('ytdl-core')
+import fetch = require('node-fetch')
 
 
 

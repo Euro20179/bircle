@@ -1,11 +1,11 @@
-import common from "../common"
-import { cmd, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
-import { Parser } from "../parsing"
-import { fetchUserFromClient, getContentFromResult, isMsgChannel } from "../util"
+import common from '../common'
+import { cmd, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from '../common_to_commands'
+import { Parser } from '../parsing'
+import { fetchUserFromClient, getContentFromResult, isMsgChannel } from '../util'
 
-import user_options = require("../user-options")
-import vars from "../vars"
-import { DMChannel, Message } from "discord.js"
+import user_options = require('../user-options')
+import vars from '../vars'
+import { DMChannel, Message } from 'discord.js'
 
 import {PREFIX} from '../globals'
 

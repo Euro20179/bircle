@@ -1,7 +1,7 @@
 import fs from 'fs'
-import fetch = require("node-fetch")
+import fetch = require('node-fetch')
 import economy, { EconomyData } from '../economy'
-import pet from "../pets"
+import pet from '../pets'
 import user_options from '../user-options'
 import timer from '../timer'
 
