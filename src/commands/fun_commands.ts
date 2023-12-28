@@ -17,8 +17,8 @@ import vars from '../vars';
 import common from '../common';
 import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from '../util'
 
-import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
-
+// import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
+//
 import { format, getOpts, parseRangeString } from '../parsing'
 import user_options = require('../user-options')
 import pet from '../pets'
@@ -38,12 +38,6 @@ import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
-
-let CHAT_LL: undefined | LLModel
-if (globals.getConfigValue("general.enable-chat")) {
-    if (globals.DEVBOT)
-        loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll).catch(console.error)
-}
 
 export default function*(): Generator<[string, CommandV2]> {
 
@@ -269,6 +263,7 @@ export default function*(): Generator<[string, CommandV2]> {
         return { content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Give a user another scallywag token")]
 
+
     yield ["scallywag-token-count", createCommandV2(async ({ msg, args, opts }) => {
         let user: User | undefined = msg.author
 
@@ -292,31 +287,71 @@ export default function*(): Generator<[string, CommandV2]> {
         f: createHelpOption("Fetch user based on your current guild instead of the bot's known users (only works in servers)")
     })]
 
-    yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
+    yield ["chat", createCommandV2(async ({ msg, opts, args, sendCallback }) => {
         if (!globals.getConfigValue("general.enable-chat")) {
             return crv("This command is not enabled", { status: StatusCode.ERR })
         }
-        if (!CHAT_LL) {
-            return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
+        const sys_msg = opts.getString("sys", "You are a helpful ai.")
+        const baseurl = globals.getConfigValue("general.chat-url")
+        let context: number[] = []
+        if (opts.getBool("c", false)) {
+            do {
+                let resp = await promptUser(msg, "Input message:", sendCallback, {
+                    filter: m => m.author.id === msg.author.id,
+                    timeout: 30000
+                })
+                if(!resp || ["/q", "/quit", "/exit"].includes(resp.content)){
+                    break
+                }
+                await msg.channel.sendTyping()
+                const result = await fetch.default(`${baseurl}:11434/api/generate`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        model: "llama2",
+                        prompt: resp.content,
+                        system: sys_msg,
+                        stream: false,
+                        context
+                    })
+                })
+                const json = await result.json()
+                console.log(json)
+                context = json['context']
+                await handleSending(msg, crv(json["response"]), sendCallback)
+            } while(true)
+            return crv("Chat session ended")
         }
-        let messages: PromptMessage[] = []
-
-        let sysMsg = opts.getString("sys-msg", null)
-        if (sysMsg) messages.push({ role: "system", content: sysMsg })
-
-        let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
-
-        messages.push({ role: "user", content: content })
-
-        createCompletion(CHAT_LL, messages, {
-            hasDefaultHeader: false,
-        }).then(response => {
-            handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
-        }).catch(error => {
-            handleSending(msg, crv(error.toString())).catch(console.error)
+        const result = await fetch.default(`${baseurl}:11434/api/generate`, {
+            method: "POST",
+            body: JSON.stringify({
+                model: "llama2",
+                prompt: args.join(" "),
+                system: sys_msg,
+                stream: false
+            })
         })
-
-        return { noSend: true, status: StatusCode.RETURN }
+        return crv((await result.json())["response"])
+        // if (!CHAT_LL) {
+        //     return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
+        // }
+        // let messages: PromptMessage[] = []
+        //
+        // let sysMsg = opts.getString("sys-msg", null)
+        // if (sysMsg) messages.push({ role: "system", content: sysMsg })
+        //
+        // let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
+        //
+        // messages.push({ role: "user", content: content })
+        //
+        // createCompletion(CHAT_LL, messages, {
+        //     hasDefaultHeader: false,
+        // }).then(response => {
+        //     handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
+        // }).catch(error => {
+        //     handleSending(msg, crv(error.toString())).catch(console.error)
+        // })
+        //
+        // return { noSend: true, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
@@ -694,19 +729,19 @@ export default function*(): Generator<[string, CommandV2]> {
                 let less_than = opts.getNumber("total-lt", 100000000000)
                 let greater_than = opts.getNumber("total-gt", -1)
 
-                if (score_range !== null){
+                if (score_range !== null) {
                     let [minS, maxS] = opts.getRange("total", [0, 0])
                     greater_than = minS
                     less_than = maxS
                 }
 
-                if(less_than <= 0){
+                if (less_than <= 0) {
                     less_than = 1
                 }
 
                 let [minCount, maxCount] = parseRangeString(count)
 
-                if(minCount <= 0){
+                if (minCount <= 0) {
                     minCount = 1
                 }
 

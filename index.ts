@@ -112,12 +112,16 @@ common.client.on(Events.MessageDelete, async (m) => {
     }
 })
 
-setInterval(() => {
+function saveDb() {
     economy.saveEconomy()
     saveItems()
     pet.savePetData()
     vars.saveVars()
     timer.saveTimers()
+}
+
+setInterval(() => {
+    saveDb();
 }, 30000)
 
 async function handlePingResponse(m: Message) {
@@ -128,11 +132,12 @@ async function handlePingResponse(m: Message) {
             pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
             let old_id = m.author.id
             m.author.id = member!.user.id
-            command_commons.isCmd(pingresponse, globals.PREFIX)
+            const gPrefix = globals.PREFIX;
+            command_commons.isCmd(pingresponse, gPrefix)
                 ? await handleSending(m,
                     (await command_commons.cmd({
                         msg: m,
-                        command_excluding_prefix: pingresponse.slice(globals.PREFIX.length),
+                        command_excluding_prefix: pingresponse.slice(gPrefix.length),
                         disable: command_commons.generateDefaultRecurseBans()
                     })).rv
                 )
@@ -303,9 +308,9 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
                 }
                 else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` }).catch(console.error)
             }
-            for (let b in globals.BUTTONS) {
-                if (b.match(/button\.(rock|paper|scissors)/)) {
-                    delete globals.BUTTONS[b]
+            for (let button in globals.BUTTONS) {
+                if (button.match(/button\.(rock|paper|scissors)/)) {
+                    delete globals.BUTTONS[button]
                 }
             }
         }
