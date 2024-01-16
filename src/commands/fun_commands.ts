@@ -293,44 +293,92 @@ export default function*(): Generator<[string, CommandV2]> {
         }
         const sys_msg = opts.getString("sys", "You are a helpful ai.")
         const baseurl = globals.getConfigValue("general.chat-url")
-        let context: number[] = []
+        let messages: any[] = []
+        let temp = opts.getNumber("t", 0.8)
+        let ctx = opts.getNumber("ctx", 2048)
+        let model = opts.getString("m", "dolphin-mistral")
+        let approved_models = {
+            "llama2-uncensored": `{{ .System }}\n\n### HUMAN:\n{{ .Prompt }}\n\n### RESPONSE:\n\n`,
+            "mistral": `[INST] {{ .System }} {{ .Prompt }} [/INST]`,
+            "dolphin-mistral": `<|im_start|>system
+{{ .System }}<|im_end|>
+<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+
+`,
+            "wizard-math": `{{ .System }}
+
+### Instruction:
+{{ .Prompt }}
+
+### Response:
+
+`
+        }
+        if (!(model in approved_models))
+            return crv(`${model} is not one of ${Object.keys(approved_models).join(", ")}`, { status: StatusCode.ERR })
+        let prompt = (approved_models[model as keyof typeof approved_models] as string).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", args.join(" "))
         if (opts.getBool("c", false)) {
+            messages.push({
+                role: "system",
+                content: sys_msg
+            })
             do {
                 let resp = await promptUser(msg, "Input message:", sendCallback, {
                     filter: m => m.author.id === msg.author.id,
                     timeout: 30000
                 })
-                if(!resp || ["/q", "/quit", "/exit"].includes(resp.content)){
+                if (!resp || ["/q", "/quit", "/exit"].includes(resp.content)) {
                     break
                 }
+                if (resp.content === "/clear") {
+                    messages = [{
+                        role: "system",
+                        content: sys_msg
+                    }]
+                    await handleSending(msg, crv("Chat history cleared"))
+                    continue;
+                }
+                messages.push({
+                    role: "user",
+                    content: resp.content
+                })
                 await msg.channel.sendTyping()
-                const result = await fetch.default(`${baseurl}:11434/api/generate`, {
+                let prompt = (approved_models[model as keyof typeof approved_models] as string).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", resp.content)
+                const result = await fetch.default(`${baseurl}:11434/api/chat`, {
                     method: "POST",
                     body: JSON.stringify({
-                        model: "llama2",
-                        prompt: resp.content,
-                        system: sys_msg,
+                        model,
+                        prompt,
                         stream: false,
-                        context
+                        raw: true,
+                        messages,
+                        options: {
+                            temperature: temp,
+                            num_ctx: ctx
+                        }
                     })
                 })
                 const json = await result.json()
-                console.log(json)
-                context = json['context']
-                await handleSending(msg, crv(json["response"]), sendCallback)
-            } while(true)
+                await handleSending(msg, {content: json["message"]["content"], status: StatusCode.RETURN, reply: true}, sendCallback)
+            } while (true)
             return crv("Chat session ended")
         }
         const result = await fetch.default(`${baseurl}:11434/api/generate`, {
             method: "POST",
             body: JSON.stringify({
-                model: "llama2",
-                prompt: args.join(" "),
-                system: sys_msg,
-                stream: false
+                model,
+                prompt: prompt,
+                stream: false,
+                raw: true,
+                options: {
+                    temperature: temp,
+                    num_ctx: ctx
+                }
             })
         })
-        return crv((await result.json())["response"])
+        return {content: (await result.json())["response"], status: StatusCode.RETURN, reply: true}
         // if (!CHAT_LL) {
         //     return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
         // }
