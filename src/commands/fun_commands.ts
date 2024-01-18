@@ -2222,9 +2222,9 @@ Valid formats:
             if (json.list?.length === 0) {
                 return crv(`No results`, { status: StatusCode.ERR })
             }
-            if (interpreter.altClient) {
-                return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
-            }
+            // if (interpreter.altClient) {
+            //     return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
+            // }
             let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")
 
             paged.addButton("random", { label: "🔀", customId: `udict.random:${msg.author.id}`, style: ButtonStyle.Success }, function(_int, m) {

@@ -33,7 +33,6 @@ class TTPrefix extends TT<string> { }
 class TTVariable extends TT<string> {}
 
 class TTSemi extends TT<string> {}
-class TTSemiRun extends TT<string> {}
 
 
 class Modifier {
@@ -193,11 +192,7 @@ class Lexer {
                 case pipe_sign[0]: {
                     let string = this.parsePipeSign()
                     if (string === pipe_sign) {
-                        token = new TTPipe(string, this.i - string.length, this.i)
-                        //once theres a pipe, stop parsing, and make a special token for the rest as to not expand in TokenEvaulator
-                        let pipe_run = new TTPipeRun(this.command.slice(this.i + 1), this.i + 1, this.command.length)
-                        this.tokens.push(pipe_run)
-                        break outer_while
+                        this.tokens.push( new TTPipe(string, this.i - string.length, this.i))
                     }
                     else {
                         if(token)
@@ -226,9 +221,6 @@ class Lexer {
                             token = null
                         }
                         this.tokens.push(new TTSemi(";;", this.i - 1, this.i))
-                        let semi_run = new TTSemiRun(this.command.slice(this.i + 1), this.i + 1, this.command.length)
-                        this.tokens.push(semi_run)
-                        break outer_while
                     }
                     else {
                         this.back()

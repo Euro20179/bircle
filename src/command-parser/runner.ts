@@ -4,7 +4,7 @@ import { getOpts } from "../parsing";
 import { TT } from './lexer'
 import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
 
-async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts) {
+async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, stdin?: CommandReturn) {
 
     let argShapeResults: Record<string, any> = {}
     let obj: CommandV2RunArg = {
@@ -17,7 +17,7 @@ async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, a
         opts: new Options(opts),
         rawOpts: opts,
         argList: args,
-        stdin: undefined,
+        stdin,
         pipeTo: undefined,
         //@ts-ignore
         interpreter: this,
@@ -37,7 +37,7 @@ async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, a
     return await cmdObject.run.bind([cmd, cmdObject])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
 }
 
-async function command_runner(tokens: TT<any>[], msg: Message) {
+async function command_runner(tokens: TT<any>[], msg: Message, stdin?: CommandReturn) {
     let cmd = tokens[0].data as string
     //item 1 is a command, skip it
     let raw_args = tokens.slice(1).map(t => t.data) as string[]
@@ -49,7 +49,7 @@ async function command_runner(tokens: TT<any>[], msg: Message) {
     let cmdObject: CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
     if (cmdObject.cmd_std_version === 2) {
-        return await run_command_v2(msg, cmd, cmdObject, args, raw_args, opts)
+        return await run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, stdin)
     }
     return crv("NOTHING")
 }
