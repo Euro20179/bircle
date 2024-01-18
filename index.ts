@@ -1,6 +1,8 @@
 ///<reference path="src/types.d.ts" />
 import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js'
 
+import cmds from './src/command-parser/cmds'
+
 import { REST } from '@discordjs/rest'
 
 import { Routes } from 'discord-api-types/v9'
@@ -252,8 +254,15 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
 
         if (command_commons.isCmd(content, local_prefix)) {
-            let c = m.content.slice(local_prefix.length)
-            await command_commons.handleSending(m, (await execCommand(m, c)).rv)
+            let result = await cmds.runcmd(content, local_prefix, m)
+            await cmds.handleSending(m, result)
+            // let lexer = new Lexer(content, {
+            //     prefix: local_prefix
+            // })
+            // lexer.lex()
+            // console.log(lexer.tokens)
+            // let c = m.content.slice(local_prefix.length)
+            // await command_commons.handleSending(m, (await execCommand(m, c)).rv)
         }
         else {
             await command_commons.handleMatchCommands(m, m.content, true)
