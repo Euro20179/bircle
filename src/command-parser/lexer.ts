@@ -158,12 +158,14 @@ class Lexer {
                 return new TTJSExpr(inside, start, end)
             }
             case "(": {
+                this.advance()
                 let inside = parseBracketPair(this.command, "()", this.i)
                 this.advance(inside.length)
                 end = this.i
                 return new TTDoFirst(inside, start, end)
             }
             case "{": {
+                this.advance()
                 const inside = parseBracketPair(this.command, "{}", this.i)
                 this.advance(inside.length)
                 return new TTVariable(inside, start, this.i)

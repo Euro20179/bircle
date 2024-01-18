@@ -1,5 +1,5 @@
 import { Message } from 'discord.js'
-import { safeEval } from '../util'
+import { getContentFromResult, safeEval } from '../util'
 import cmds from './cmds'
 import { SymbolTable } from './cmds'
 import lexer, { TT } from './lexer'
@@ -40,8 +40,8 @@ class TokenEvaluator {
             }
             else if (token instanceof lexer.TTDoFirst) {
                 //(PREFIX) could be really anything, it just has to be something
-                let tokens = cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg)
-                let data = JSON.stringify(tokens)
+                let rv = await cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg)
+                let data = getContentFromResult(rv)
                 cur_tok.data += data
                 char_pos += data.length
                 // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
