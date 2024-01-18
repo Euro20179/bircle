@@ -34,6 +34,7 @@ class TTVariable extends TT<string> { }
 class TTSemi extends TT<string> { }
 class TTFormat extends TT<string> { }
 class TTIFS extends TT<string> { }
+class TTEsc extends TT<[string, string]>{}
 
 
 class Modifier {
@@ -102,6 +103,7 @@ class Lexer {
     private i = -1
     private curChar = ""
     private IFS = " "
+    private special_chars = `{$\\${this.IFS}`
     private options: LexerOptions
     public tokens: TT<any>[] = []
     constructor(public command: string, options: LexerOptions) {
@@ -172,7 +174,7 @@ class Lexer {
 
     parseContinuousChars() {
         let builtString = this.curChar
-        while (this.advance() && !this.IFS.includes(this.curChar)) {
+        while (this.advance() && !this.special_chars.includes(this.curChar)) {
             builtString += this.curChar
         }
         this.back()
@@ -215,6 +217,17 @@ class Lexer {
         }
         while (this.advance()) {
             switch (this.curChar) {
+                case "\\": {
+                    let start = this.i
+                    let data = this.parseEscape()
+                    if(typeof data === 'string'){
+                        this.tokens.push(new TTString(`${data}`, start, this.i))
+                    }
+                    else {
+                        this.tokens.push(new TTEsc(data as [string, string], start, this.i))
+                    }
+                    break
+                }
                 case pipe_sign[0]: {
                     let string = this.parsePipeSign()
                     if (string === pipe_sign) {
@@ -317,5 +330,6 @@ export default {
     TTSemi,
     TTFormat,
     TTIFS,
+    TTEsc,
     getModifiers
 }

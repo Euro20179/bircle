@@ -3,6 +3,7 @@ import { safeEval } from '../util'
 import cmds from './cmds'
 import { SymbolTable } from './cmds'
 import lexer, { TT } from './lexer'
+import { escape } from 'querystring'
 
 
 /**
@@ -64,6 +65,15 @@ class TokenEvaluator {
                 this.new_tokens.push(cur_tok)
                 cur_tok = new lexer.TTString("", char_pos, char_pos)
             }
+            else if(token instanceof lexer.TTEsc){
+                let char = token.data[0]
+                let str = ""
+                if(esc_parsers[char]){
+                    str = await esc_parsers[char](token, this.symbols)
+                }
+                cur_tok.data += str
+                char_pos += str.length
+            }
         }
         if (cur_tok.data) {
             cur_tok.end = char_pos
@@ -80,6 +90,12 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, msg:
     ["%"]: async (_token, symbols) => {
         return symbols.get("stdin:%") ?? "{%}"
     },
+}
+
+const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolTable) => Promise<string>> = {
+    "n": async(token, _) => {
+        return "\n"
+    }
 }
 
 export default {
