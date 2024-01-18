@@ -17,6 +17,11 @@ export class SymbolTable {
     get(name: string) {
         return this.symbols[name] || `(${name}:UNDEFINED)`
     }
+
+    delete(name: string){
+        if(this.symbols[name] !== undefined)
+            delete this.symbols[name]
+    }
 }
 
 async function runcmd(command: string, prefix: string, msg: Message) {
@@ -60,8 +65,16 @@ async function runcmd(command: string, prefix: string, msg: Message) {
 
             let pipe_working_tokens = working_tokens.slice(pipe_start_idx, pipe_idx)
 
+            if(rv){
+                symbols.set("stdin:%", rv.content ?? "")
+            }
+            else {
+                symbols.delete("stdin:%")
+            }
+
+
             let evalulator = new tokenEvaluator.TokenEvaluator(pipe_working_tokens, symbols, msg)
-            let new_tokens = evalulator.evaluate()
+            let new_tokens = await evalulator.evaluate()
             rv = await runner.command_runner(new_tokens, msg, rv)
             pipe_start_idx = pipe_idx + 1
         }

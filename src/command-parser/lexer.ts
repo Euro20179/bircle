@@ -30,9 +30,10 @@ class TTJSExpr extends TT<string> { }
 class TTDoFirst extends TT<string> { }
 class TTVarExpand extends TT<string> { }
 class TTPrefix extends TT<string> { }
-class TTVariable extends TT<string> {}
-
-class TTSemi extends TT<string> {}
+class TTVariable extends TT<string> { }
+class TTSemi extends TT<string> { }
+class TTFormat extends TT<string> { }
+class TTIFS extends TT<string> {}
 
 
 class Modifier {
@@ -186,16 +187,15 @@ class Lexer {
             this.tokens.push(new TTPrefix(prefix, 0, this.i))
         }
         let token: undefined | null | TT<any>;
-        outer_while:
         while (this.advance()) {
             switch (this.curChar) {
                 case pipe_sign[0]: {
                     let string = this.parsePipeSign()
                     if (string === pipe_sign) {
-                        this.tokens.push( new TTPipe(string, this.i - string.length, this.i))
+                        this.tokens.push(new TTPipe(string, this.i - string.length, this.i))
                     }
                     else {
-                        if(token)
+                        if (token)
                             token.data += string
                         else token = new TTString(string, this.i - string.length, this.i)
                     }
@@ -203,20 +203,20 @@ class Lexer {
                 }
                 case "$": {
                     let token_or_str = this.parseDollar()
-                    if(typeof token_or_str == "undefined"){
-                        if(token) token.data += "$"
+                    if (typeof token_or_str == "undefined") {
+                        if (token) token.data += "$"
                         else token = new TTString("$", this.i, this.i)
                     }
                     else {
-                        if(token) this.tokens.push(token)
+                        if (token) this.tokens.push(token)
                         this.tokens.push(token_or_str)
                     }
                     break
                 }
                 case ";": {
                     this.advance()
-                    if(this.curChar == ";"){
-                        if(token){
+                    if (this.curChar == ";") {
+                        if (token) {
                             this.tokens.push(token)
                             token = null
                         }
@@ -224,16 +224,32 @@ class Lexer {
                     }
                     else {
                         this.back()
-                        if(token) token.data += ";"
+                        if (token) token.data += ";"
                         else token = new TTString(";", this.i, this.i)
                     }
                     break
                 }
+                case "{": {
+                    this.advance()
+                    let start = this.i
+                    let inner = parseBracketPair(this.command, "{}", this.i)
+                    this.advance(inner.length)
+                    //@ts-ignore
+                    if (this.curChar === '}') {
+                        this.tokens.push(new TTFormat(inner, start, this.i - 1))
+                    }
+                    else {
+                        if (token) token.data += `{${inner}`
+                        else token = new TTString(`{${inner}`, start, this.i - 1)
+                    }
+                    break
+                }
                 case this.IFS: {
+                    this.tokens.push(new TTIFS(this.IFS, this.i, this.i))
                     continue;
                 }
                 default: {
-                    if(!token){
+                    if (!token) {
                         token = new TTString("", 0, 0)
                     }
                     token.start = this.i
@@ -241,7 +257,7 @@ class Lexer {
                     token.end = this.i
                 }
             }
-            if(token){
+            if (token) {
                 this.tokens.push(token)
                 token = null
             }
@@ -287,5 +303,7 @@ export default {
     TTVarExpand,
     TTPrefix,
     TTSemi,
+    TTFormat,
+    TTIFS,
     getModifiers
 }
