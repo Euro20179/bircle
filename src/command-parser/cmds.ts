@@ -36,33 +36,30 @@ async function runcmd(command: string, prefix: string, msg: Message) {
     })
     let tokens = lex.lex()
     let semi_indexes = []
-    let pipe_indexes = []
     for (let i = 0; i < tokens.length; i++) {
         if (tokens[i] instanceof lexer.TTSemi) {
             semi_indexes.push(i)
         }
-        else if (tokens[i] instanceof lexer.TTPipe) {
-            pipe_indexes.push(i)
-        }
     }
 
     semi_indexes.push(tokens.length)
-    pipe_indexes.push(tokens.length)
 
     let start_idx = 0
     for (let semi_index of semi_indexes) {
         rv = undefined
+
         let working_tokens = tokens.slice(start_idx, semi_index)
 
-        let pipe_start_idx = start_idx
-        for (let pipe_idx of pipe_indexes) {
-            if (pipe_idx < start_idx) {
-                continue
+        let pipe_start_idx = 0
+        let pipe_indexes = []
+        for(let i = 0; i < working_tokens.length; i++){
+            if(working_tokens[i] instanceof lexer.TTPipe){
+                pipe_indexes.push(i)
             }
-            else if (pipe_idx > semi_index) {
-                break
-            }
+        }
+        pipe_indexes.push(working_tokens.length)
 
+        for (let pipe_idx of pipe_indexes) {
             let pipe_working_tokens = working_tokens.slice(pipe_start_idx, pipe_idx)
 
             if(rv){
@@ -71,7 +68,6 @@ async function runcmd(command: string, prefix: string, msg: Message) {
             else {
                 symbols.delete("stdin:%")
             }
-
 
             let evalulator = new tokenEvaluator.TokenEvaluator(pipe_working_tokens, symbols, msg)
             let new_tokens = await evalulator.evaluate()

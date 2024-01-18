@@ -53,7 +53,7 @@ class TokenEvaluator {
             else if (token instanceof lexer.TTFormat) {
                 let str = token.data
                 if (format_parsers[token.data]) {
-                    str = await format_parsers[token.data](token, this.symbols)
+                    str = await format_parsers[token.data](token, this.symbols, this.msg)
                 }
                 cur_tok.data += str
                 char_pos += str.length
@@ -76,10 +76,10 @@ class TokenEvaluator {
     }
 }
 
-const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable) => Promise<string>> = {
+const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, msg: Message) => Promise<string>> = {
     ["%"]: async (_token, symbols) => {
         return symbols.get("stdin:%") ?? "{%}"
-    }
+    },
 }
 
 export default {

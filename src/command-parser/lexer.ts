@@ -33,7 +33,7 @@ class TTPrefix extends TT<string> { }
 class TTVariable extends TT<string> { }
 class TTSemi extends TT<string> { }
 class TTFormat extends TT<string> { }
-class TTIFS extends TT<string> {}
+class TTIFS extends TT<string> { }
 
 
 class Modifier {
@@ -179,6 +179,33 @@ class Lexer {
         return builtString
     }
 
+    parseEscape() {
+        const escChars = "ntUusyYAbiSdDTVv\\ a"
+        if(!this.advance()){
+            return ""
+        }
+        let char = this.curChar
+        if(!escChars.includes(char)) {
+            return char
+        }
+        let sequence = ""
+        if(char !== ' ' && this.advance()) {
+            if(this.curChar === '{') {
+                if(this.advance()){
+                    sequence = parseBracketPair(this.command, "{}", this.i)
+                    this.advance(sequence.length)
+                }
+                else {
+                    this.back()
+                }
+            }
+            else {
+                this.back()
+            }
+        }
+        return [char, sequence]
+    }
+
     lex() {
         let pipe_sign = this.pipe_sign()
         if (this.options.is_command !== false) {
@@ -186,7 +213,6 @@ class Lexer {
             this.advance(prefix.length)
             this.tokens.push(new TTPrefix(prefix, 0, this.i))
         }
-        let token: undefined | null | TT<any>;
         while (this.advance()) {
             switch (this.curChar) {
                 case pipe_sign[0]: {
@@ -195,20 +221,16 @@ class Lexer {
                         this.tokens.push(new TTPipe(string, this.i - string.length, this.i))
                     }
                     else {
-                        if (token)
-                            token.data += string
-                        else token = new TTString(string, this.i - string.length, this.i)
+                        this.tokens.push(new TTString(string, this.i - string.length, this.i))
                     }
                     break;
                 }
                 case "$": {
                     let token_or_str = this.parseDollar()
                     if (typeof token_or_str == "undefined") {
-                        if (token) token.data += "$"
-                        else token = new TTString("$", this.i, this.i)
+                        this.tokens.push(new TTString("$", this.i, this.i))
                     }
                     else {
-                        if (token) this.tokens.push(token)
                         this.tokens.push(token_or_str)
                     }
                     break
@@ -216,16 +238,10 @@ class Lexer {
                 case ";": {
                     this.advance()
                     if (this.curChar == ";") {
-                        if (token) {
-                            this.tokens.push(token)
-                            token = null
-                        }
                         this.tokens.push(new TTSemi(";;", this.i - 1, this.i))
                     }
                     else {
-                        this.back()
-                        if (token) token.data += ";"
-                        else token = new TTString(";", this.i, this.i)
+                        this.tokens.push(new TTString(";", this.i, this.i))
                     }
                     break
                 }
@@ -239,27 +255,23 @@ class Lexer {
                         this.tokens.push(new TTFormat(inner, start, this.i - 1))
                     }
                     else {
-                        if (token) token.data += `{${inner}`
-                        else token = new TTString(`{${inner}`, start, this.i - 1)
+                        this.tokens.push(new TTString(`{${inner}`, start, this.i - 1))
                     }
                     break
                 }
                 case this.IFS: {
+                    while(this.curChar === this.IFS){
+                        this.advance()
+                    }
+                    this.back()
                     this.tokens.push(new TTIFS(this.IFS, this.i, this.i))
                     continue;
                 }
                 default: {
-                    if (!token) {
-                        token = new TTString("", 0, 0)
-                    }
-                    token.start = this.i
-                    token.data = this.parseContinuousChars()
-                    token.end = this.i
+                    let start = this.i
+                    let data = this.parseContinuousChars()
+                    this.tokens.push(new TTString(data, start, this.i))
                 }
-            }
-            if (token) {
-                this.tokens.push(token)
-                token = null
             }
         }
         return this.tokens
