@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
-import lexer, { Modifier } from './lexer'
+import lexer, { Modifier, TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
@@ -26,7 +26,7 @@ export class SymbolTable {
     }
 }
 
-type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion"
+type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args"
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -37,7 +37,8 @@ type RuntimeOptionValue = {
     alias: boolean,
     legacy: boolean
     recursion_limit: number
-    recursion: number
+    recursion: number,
+    ["program-args"]: string[]
 }
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
@@ -57,11 +58,59 @@ export class RuntimeOptions {
     }
 }
 
+async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], pipeChain: TT<any>[][], msg: Message, symbols: SymbolTable, runtime_opts: RuntimeOptions, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)): AsyncGenerator<CommandReturn> {
+    if (stdin) {
+        symbols.set("stdin:%", stdin.content ?? "")
+    }
+    else {
+        symbols.delete("stdin:%")
+    }
+
+    let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg)
+
+    let new_tokens = await evaulator.evaluate()
+
+    let modifier_dat = lexer.getModifiers(new_tokens[0].data)
+
+    new_tokens[0].data = modifier_dat[0]
+
+    for (let mod of modifier_dat[1]) {
+        mod.set_runtime_opt(runtime_opts)
+    }
+
+    if (runtime_opts.get("typing", false)) {
+        await msg.channel.sendTyping()
+    }
+
+    if (runtime_opts.get("delete", false) && msg.deletable) {
+        msg.delete().catch(console.error)
+    }
+
+    for await (let item of runner.command_runner(new_tokens, msg, symbols, runtime_opts, stdin, sendCallback)) {
+        //there will always be at least one item in the pipe chain (if there is 1, that is the one we are on)
+        if (pipeChain.length == 0) {
+            yield item ?? { noSend: true, status: StatusCode.RETURN }
+        }
+        else {
+            for (let modifier of modifier_dat[1]) {
+                modifier.unset_runtime_opt(runtime_opts)
+            }
+            for await (let piped_item of handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback)) {
+                yield piped_item
+            }
+            for (let mod of modifier_dat[1]) {
+                mod.set_runtime_opt(runtime_opts)
+            }
+        }
+    }
+
+}
+
 //TODO:
 //missing support for:
 //recursion_count
 //banned_commands
-async function runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), runtime_opts?: RuntimeOptions) {
+async function* runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), runtime_opts?: RuntimeOptions) {
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)
@@ -99,15 +148,11 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
 
     semi_indexes.push(tokens.length)
 
-    let modifiers: Modifier[] = []
-
     let start_idx = 0
     for (let semi_index of semi_indexes) {
-        rv = undefined
-
         let working_tokens = tokens.slice(start_idx, semi_index)
 
-        let pipe_start_idx = 0
+
         let pipe_indexes = []
         for (let i = 0; i < working_tokens.length; i++) {
             if (working_tokens[i] instanceof lexer.TTPipe) {
@@ -116,57 +161,24 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
         }
         pipe_indexes.push(working_tokens.length)
 
-        for (let pipe_idx of pipe_indexes) {
+        let pipe_token_chains = []
+        let pipe_start_idx = 0
+        for (let idx of pipe_indexes) {
+            pipe_token_chains.push(working_tokens.slice(pipe_start_idx, idx))
+            pipe_start_idx = idx + 1
+        }
 
-            let pipe_working_tokens = working_tokens.slice(pipe_start_idx, pipe_idx)
-
-            if (rv) {
-                symbols.set("stdin:%", rv.content ?? "")
+        for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback)) {
+            if (!runtime_opts.get("silent", false) && result) {
+                yield result
             }
             else {
-                symbols.delete("stdin:%")
+                yield { noSend: true, status: StatusCode.RETURN }
             }
-
-            let evalulator = new tokenEvaluator.TokenEvaluator(pipe_working_tokens, symbols, msg)
-            let new_tokens = await evalulator.evaluate()
-
-            //get the modifiers here that way it applies per command
-            let modifier_dat = lexer.getModifiers(new_tokens[0].data)
-
-            new_tokens[0].data = modifier_dat[0]
-
-            //unset any previously set modifiers
-            for (let modifier of modifiers) {
-                modifier.unset_runtime_opt(runtime_opts)
-            }
-
-            modifiers = modifier_dat[1]
-
-            //set the new modifiers
-            for (let mod of modifier_dat[1]) {
-                mod.set_runtime_opt(runtime_opts)
-            }
-
-            if (runtime_opts.get("typing", false)) {
-                await msg.channel.sendTyping()
-            }
-
-            if (runtime_opts.get("delete", false) && msg.deletable) {
-                msg.delete().catch(console.error)
-            }
-
-            rv = await runner.command_runner(new_tokens, msg, symbols, runtime_opts, rv, sendCallback) as CommandReturn
-            pipe_start_idx = pipe_idx + 1
-        }
-        if (!runtime_opts.get("silent", false) && rv && semi_index != semi_indexes[semi_indexes.length - 1]) {
-            await handleSending(msg, rv)
         }
         start_idx = semi_index + 1
     }
-    if (runtime_opts.get("silent", false)) {
-        return { noSend: true, status: StatusCode.RETURN }
-    }
-    return rv ?? { content: `\\${command}(NO MESSAGE)`, status: StatusCode.RETURN }
+    // return rv ?? { content: `\\${command}(NO MESSAGE)`, status: StatusCode.RETURN }
 }
 
 async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {

@@ -8,7 +8,7 @@ import user_options from "../user-options"
 import { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
 
-async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
 
     let argShapeResults: Record<string, any> = {}
     let obj: CommandV2RunArg = {
@@ -34,23 +34,31 @@ async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, a
         args.beginIter()
         for await (const [result, type, optional, default_] of cmdObject.argShape(args, msg)) {
             if (result === BADVALUE && !optional) {
-                return { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdObject)}`, status: StatusCode.ERR }
+                yield { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdObject)}`, status: StatusCode.ERR }
             }
             else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
             else argShapeResults[type] = result
         }
     }
-    return await cmdObject.run.bind([cmd, cmdObject])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+    let runObj = cmdObject.run.bind([cmd, cmdObject])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+    try{
+        for await(let item of runObj){
+            yield item
+        }
+    } catch(err){
+        yield await runObj
+    }
 }
 
 //TODO: aliases
-async function command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
     let opts;
 
     let cmd = tokens[0].data as string
 
     if (common.BLACKLIST[msg.author.id]?.includes(cmd)) {
-        return { content: "You are blacklisted from this command", status: StatusCode.ERR }
+        yield { content: "You are blacklisted from this command", status: StatusCode.ERR }
+        return
     }
 
     //item 1 is a command, skip it
@@ -68,7 +76,8 @@ async function command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTa
     }
 
     if (!cmdObject) {
-        return { content: `\\${cmd} is not a valid command`, status: StatusCode.ERR }
+        yield { content: `\\${cmd} is not a valid command`, status: StatusCode.ERR }
+        return
     }
 
     let opts_parser = ({
@@ -82,19 +91,23 @@ async function command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTa
     let args = new ArgList(raw_args)
 
     if (cmdObject instanceof AliasV2) {
-        return await cmdObject.run({
+        yield await cmdObject.run({
             msg,
             rawArgs: raw_args,
             args,
             opts: opts,
             recursionCount: 19,
         })
+        return
     }
 
     else if (cmdObject.cmd_std_version === 2) {
-        return await run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback)
+        for await(let item of run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback)){
+            yield item
+        }
+        return
     }
-    return crv("NOTHING")
+    yield crv("NOTHING")
 }
 
 

@@ -254,8 +254,11 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
 
         if (command_commons.isCmd(content, local_prefix)) {
-            let result = await cmds.runcmd(content, local_prefix, m)
-            await cmds.handleSending(m, result)
+            for await(let result of cmds.runcmd(content, local_prefix, m)){
+                await cmds.handleSending(m, result)
+            }
+            // let result = await cmds.runcmd(content, local_prefix, m)
+            // await cmds.handleSending(m, result)
         }
         else if (content.startsWith(`L${local_prefix}`)) {
             let c = m.content.slice(local_prefix.length + 1)

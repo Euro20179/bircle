@@ -1568,8 +1568,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         })
     ]
 
+
     yield [
-        "do", ccmdV2(async function({ msg, rawArgs: args, sendCallback, recursionCount: recursion, commandBans: bans, interpreter }) {
+        "do", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, commandBans: bans, interpreter, runtime_opts }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -1584,17 +1585,20 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 cmdArgs = String(times)
             }
             let totalTimes = times
-            await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
+            await handleSending(msg, { content: `starting ${3}`, status: StatusCode.INFO }, sendCallback)
             let cmdToDo = cmdArgs.split(" ")[0]
             if (['run', 'do', 'spam'].includes(cmdToDo)) {
-                return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
+                yield { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
+                return
             }
-            while (!interpreter.killed && times--) {
-                let rv = await cmd({ msg, command_excluding_prefix: format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), recursion: globals.RECURSION_LIMIT, disable: bans, sendCallback })
-                await handleSending(msg, rv.rv, sendCallback)
-                await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
+            while (times--) {
+                runtime_opts.set("recursion", runtime_opts.get("recursion_limit", globals.RECURSION_LIMIT) - 1)
+                for await(let result of cmds.runcmd("(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), "(PREFIX)", msg, sendCallback, runtime_opts)){
+                    yield result
+                    await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
+                }
             }
-            return {
+            yield {
                 content: "done",
                 status: StatusCode.INFO
             }

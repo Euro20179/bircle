@@ -503,7 +503,9 @@ export class AliasV2 {
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
         let rv;
         if (legacy !== true) {
-            rv = await cmds.runcmd(`(PREFIX)${tempExec}`, "(PREFIX)", msg, sendCallback)
+            for await(let result of cmds.runcmd(`(PREFIX)${tempExec}`, "(PREFIX)", msg, sendCallback)){
+                rv = result
+            }
         }
         else {
             let res = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, pipeData: stdin, sendCallback: sendCallback, context })

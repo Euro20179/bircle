@@ -141,7 +141,7 @@ declare global {
         symbols: SymbolTable
     }
 
-    type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn | void>;
+    type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn | void> | AyncGenerator<CommandReturn>;
 
     interface CommandV2 {
         run: CommandV2Run
