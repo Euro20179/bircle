@@ -58,6 +58,11 @@ class TokenEvaluator {
                 if (doFirstResultNo === "") {
                     text = doFirst
                 }
+                else if(doFirstResultNo === ".."){
+                    let strings = doFirst.split(" ")
+                    this.add_list_of_strings(strings)
+                    return true
+                }
                 else {
                     text = doFirst.split(" ")[Number(doFirstResultNo)] ?? ""
                 }
@@ -133,11 +138,15 @@ class TokenEvaluator {
             let [start, end] = token.data
             let pre_data = this.cur_tok.data ?? ""
             let post_data = ""
-            if (this.advance()) {
+            if (this.advance() && !(this.cur_parsing_tok instanceof lexer.TTIFS)) {
                 let ev = new TokenEvaluator([this.cur_parsing_tok as TT<any>], this.symbols, this.msg, this.runtime_opts)
                 post_data = (await ev.evaluate())[0].data
             }
+            else {
+                this.back()
+            }
             let strings = []
+            end = end > 10000 ? 10000 : end
             for (let i = start; i <= end; i++) {
                 strings.push(`${pre_data}${i}${post_data}`)
             }
@@ -158,29 +167,6 @@ class TokenEvaluator {
             else {
                 this.add_list_of_strings(resp)
             }
-            // else if (resp.length === 0) {
-            //     return true
-            // }
-            // else if (resp.length === 1) {
-            //     this.add_to_cur_tok(resp[0])
-            // }
-            // //if it's a list
-            // else {
-            //     //append the first item in the list to the current arg
-            //     this.add_to_cur_tok(resp[0])
-            //     this.complete_cur_tok()
-            //     resp.splice(0, 1)
-            //     let end = resp.splice(resp.length - 1)
-            //     //append the middle elements as their own args
-            //     for (let str of resp) {
-            //         this.add_to_cur_tok(str)
-            //         this.complete_cur_tok()
-            //     }
-            //     //prepend the last item in the list to the next arg (this also creates the next arg)
-            //     if (end) {
-            //         this.add_to_cur_tok(end[0])
-            //     }
-            // }
         }
         return true
     }
@@ -219,6 +205,14 @@ class TokenEvaluator {
 
     advance() {
         this.i++
+        this.cur_parsing_tok = this.tokens[this.i]
+        if (this.cur_parsing_tok) {
+            return true
+        }
+        return false
+    }
+    back() {
+        this.i--
         this.cur_parsing_tok = this.tokens[this.i]
         if (this.cur_parsing_tok) {
             return true
