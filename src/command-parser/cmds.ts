@@ -154,7 +154,9 @@ async function* runcmd(command: string, prefix: string, msg: Message, sendCallba
     semi_indexes.push(tokens.length)
 
     let start_idx = 0
-    for (let semi_index of semi_indexes) {
+    for (let i = 0; i < semi_indexes.length; i++) {
+        let semi_index = semi_indexes[i]
+        symbols.set("LINENO", String(i + 1))
         let working_tokens = tokens.slice(start_idx, semi_index)
 
         //first token (presumably command) should be trimmed

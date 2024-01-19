@@ -837,7 +837,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "for", createCommandV2(async ({ msg, args, recursionCount, commandBans, sendCallback, interpreter }) => {
+        "for", createCommandV2(async function*({ msg, args, recursionCount, commandBans, sendCallback, interpreter }) {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
@@ -854,9 +854,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             outer: for (let i = start; i < end; i++) {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    let rv = await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
-                    await handleSending(msg, rv.rv, sendCallback)
-                    await new Promise(res => setTimeout(res, 1000))
+                    for await (let result of cmds.runcmd("(PREFIX)" + line, "(PREFIX)", msg, sendCallback)) {
+                        yield result
+                        await new Promise(res => setTimeout(res, 1000))
+                    }
                 }
             }
             return { noSend: true, status: StatusCode.RETURN }
@@ -1587,7 +1588,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             while (times--) {
                 runtime_opts.set("recursion", runtime_opts.get("recursion_limit", globals.RECURSION_LIMIT) - 1)
-                for await(let result of cmds.runcmd("(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), "(PREFIX)", msg, sendCallback, runtime_opts)){
+                for await (let result of cmds.runcmd("(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), "(PREFIX)", msg, sendCallback, runtime_opts)) {
                     yield result
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
@@ -1851,7 +1852,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                for await(let result of cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback, runtime_opts)){
+                for await (let result of cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback, runtime_opts)) {
                     yield result
                 }
             }
@@ -2412,8 +2413,8 @@ ${styles}
         let effectList: BattleResponse['effects'] = []
         for (let effect of effects) {
             let [t, players] = effect.split("|").map(v => v.trim())
-            if(!["heal", "damage"].includes(t)){
-                return crv(`${t} must be heal or damage`, {status: StatusCode.ERR})
+            if (!["heal", "damage"].includes(t)) {
+                return crv(`${t} must be heal or damage`, { status: StatusCode.ERR })
             }
             let playerNumbers: ["all"] | number[] = []
             for (let p of players.split(" ")) {
