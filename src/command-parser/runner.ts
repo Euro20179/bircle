@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
-import { AliasV2, StatusCode, commands, crv, getAliasesV2 } from "../common_to_commands";
+import { AliasV2, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
 import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import { TT } from './lexer'
 import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
@@ -88,6 +88,17 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }
     else {
         cmdObject = commands.get(cmd) || getAliasesV2()[cmd]
+    }
+
+    let warn_cmds = user_options.getOpt(msg.author.id, "warn-cmds", "").split(" ")
+
+    if(warn_cmds.includes(cmd)) {
+        let m = await promptUser(msg,  `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+
+        if(!m || m.content.toLowerCase() !== 'y'){
+            yield { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
+            return
+        }
     }
 
     if (!cmdObject) {

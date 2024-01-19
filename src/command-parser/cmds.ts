@@ -26,7 +26,7 @@ export class SymbolTable {
     }
 }
 
-type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args" | "verbose"
+type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args" | "verbose" | "no-run"
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -40,6 +40,7 @@ type RuntimeOptionValue = {
     recursion: number,
     verbose: boolean,
     ["program-args"]: string[]
+    ["no-run"]: boolean
 }
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
@@ -186,12 +187,14 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts }: Run
             pipe_start_idx = idx + 1
         }
 
-        if(runtime_opts.get("verbose", false)){
+        if (runtime_opts.get("verbose", false)) {
             yield { content: command.slice(working_tokens[0].start, working_tokens[working_tokens.length - 1].end + 1), status: StatusCode.INFO }
         }
 
-        for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback)) {
-            yield result
+        if (!runtime_opts.get("no-run", false)) {
+            for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback)) {
+                yield result
+            }
         }
         start_idx = semi_index + 1
     }
@@ -250,7 +253,7 @@ async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (da
     return newMsg
 }
 
-async function expandSyntax(bircle_string: string, msg: Message){
+async function expandSyntax(bircle_string: string, msg: Message) {
     let tokens = new lexer.Lexer(bircle_string, {
         is_command: false
     }).lex()
@@ -261,8 +264,8 @@ async function expandSyntax(bircle_string: string, msg: Message){
     let ev = new tokenEvaluator.TokenEvaluator(tokens, symbolTable, msg, runtimeOpts)
     let new_toks = await ev.evaluate()
     let strs: string[] = []
-    for(let tok of new_toks){
-        if(tok instanceof lexer.TTIFS)
+    for (let tok of new_toks) {
+        if (tok instanceof lexer.TTIFS)
             continue
         strs.push(tok.data)
     }

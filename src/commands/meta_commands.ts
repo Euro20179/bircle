@@ -154,6 +154,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         if (quiet !== null) {
             runtime_opts.set("silent", quiet)
         }
+        let no_run = opts.getBool("d", null)
+        if(no_run !== null){
+            runtime_opts.set("no-run", no_run)
+        }
         if (args.length) {
             runtime_opts.set("program-args", args)
         }
