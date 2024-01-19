@@ -113,11 +113,19 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
 
 }
 
+
+export type RunCmdOptions = {
+    command: string,
+    prefix: string,
+    msg: Message,
+    sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
+    runtime_opts?: RuntimeOptions
+}
 //TODO:
 //missing support for:
 //recursion_count
 //banned_commands
-async function* runcmd(command: string, prefix: string, msg: Message, sendCallback?: (((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)), runtime_opts?: RuntimeOptions) {
+async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts }: RunCmdOptions) {
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)

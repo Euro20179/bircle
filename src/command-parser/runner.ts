@@ -8,6 +8,7 @@ import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
 import user_options from "../user-options"
 import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
+import { PROCESS_MANAGER } from '../globals';
 
 async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
 
@@ -54,10 +55,12 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
 async function* run_file(msg: Message, name: string, args: string[]): AsyncGenerator<CommandReturn> {
     let data = `(PREFIX)${fs.readFileSync(`./src/bircle-bin/${name}.bircle`, 'utf-8')}`
 
-    let runtime_options = new cmds.RuntimeOptions()
-    runtime_options.set("program-args", args)
+    let runtime_opts = new cmds.RuntimeOptions()
+    runtime_opts.set("program-args", args)
 
-    for await (let result of cmds.runcmd(data, "(PREFIX)", msg, undefined, runtime_options)) {
+    for await (let result of PROCESS_MANAGER.spawn(`${name}.bircle`,
+        cmds.runcmd({ command: data, prefix: "(PREFIX)", msg, runtime_opts })
+    )){
         yield result
     }
 }

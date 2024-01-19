@@ -77,7 +77,7 @@ class TokenEvaluator {
             else if (token instanceof lexer.TTDoFirst) {
                 //(PREFIX) could be really anything, it just has to be something
                 let text = ""
-                for await(let result of cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg, undefined, this.runtime_opts)){
+                for await(let result of cmds.runcmd({command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: this.runtime_opts})){
                     text += getContentFromResult(result)
                 }
                 this.add_to_cur_tok(text)

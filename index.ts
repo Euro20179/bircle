@@ -254,7 +254,9 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
 
         if (command_commons.isCmd(content, local_prefix)) {
-            for await(let result of cmds.runcmd(content, local_prefix, m)){
+            for await(let result of globals.PROCESS_MANAGER.spawn(content,
+                cmds.runcmd({ command: content, prefix: local_prefix, msg: m })
+            )) {
                 await cmds.handleSending(m, result)
             }
             // let result = await cmds.runcmd(content, local_prefix, m)

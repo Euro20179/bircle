@@ -1,6 +1,10 @@
 import { User } from "discord.js"
 import fs from 'fs'
 
+import { ProcessManager } from "./command-parser/process-manager"
+
+export const PROCESS_MANAGER = new ProcessManager()
+
 export const BOT_CONFIG = JSON.parse(fs.readFileSync("./CONFIG.json", "utf-8"))
 export const CLIENT_ID = BOT_CONFIG.secrets['client-id']
 export const GUILD_ID = BOT_CONFIG.secrets['guild']
@@ -214,4 +218,5 @@ export default {
     saveConfig,
     CMDUSE,
     EMOTEUSE,
+    PROCESS_MANAGER
 }

@@ -147,10 +147,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield ["set", ccmdV2(async ({ opts, args, interpreter, runtime_opts }) => {
         let explicit = opts.getBool("x", null)
-        if(explicit !== null){
+        if (explicit !== null) {
             runtime_opts.set("verbose", explicit)
         }
-        if(args.length){
+        if (args.length) {
             runtime_opts.set("program-args", args)
         }
         return crv(runtime_opts.get("program-args", []).join(" "))
@@ -191,7 +191,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     }, "Gets the interpreter env")]
 
     yield ['ps', ccmdV2(async function() {
-        return crv(Array.from({ length: PIDS.length }, (_, i) => `${PIDS.keyAt(i)}: ${PIDS.valueAt(i).args.join(" ")}`).join("\n"))
+        let procs = globals.PROCESS_MANAGER.getprocids()
+        return crv(Array.from(procs, (v) => `${v}: ${globals.PROCESS_MANAGER.getproclabel(v)}`).join("\n"))
     }, "Gets all running processes")]
 
     yield ['kill', ccmdV2(async function({ argShapeResults }) {
@@ -861,7 +862,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             outer: for (let i = start; i < end; i++) {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    for await (let result of cmds.runcmd("(PREFIX)" + line, "(PREFIX)", msg, sendCallback)) {
+                    for await (let result of globals.PROCESS_MANAGER.spawn("FOR",
+                        cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback })
+                    )) {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
                     }
@@ -1547,16 +1550,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts }) {
+        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts, runtime_opts }) {
             let start = performance.now()
-            let rv = await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
-            let end = performance.now()
-            if (!opts.getBool("n", false)) {
-                await handleSending(msg, rv.rv, sendCallback)
-                if (!opts.getBool("no-chat", false)) {
-                    end = performance.now()
-                }
+            for await(let result of globals.PROCESS_MANAGER.spawn("TIMEIT",
+                cmds.runcmd({command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts})
+            )){
+                if(!opts.getBool("n", false))
+                    await cmds.handleSending(msg, result)
             }
+            // let rv = await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
+            let end = performance.now()
             return { content: `${end - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
@@ -1595,7 +1598,15 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             while (times--) {
                 runtime_opts.set("recursion", runtime_opts.get("recursion_limit", globals.RECURSION_LIMIT) - 1)
-                for await (let result of cmds.runcmd("(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), "(PREFIX)", msg, sendCallback, runtime_opts)) {
+                for await (let result of globals.PROCESS_MANAGER.spawn("DO",
+                    cmds.runcmd({
+                        command: "(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }),
+                        prefix: "(PREFIX)",
+                        msg,
+                        sendCallback,
+                        runtime_opts
+                    })
+                )) {
                     yield result
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
@@ -1630,7 +1641,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (delay < 700 || delay > 0x7FFFFFFF) {
                 delay = null
             }
-            while (!interpreter.killed && times--) {
+            while (times--) {
                 yield { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
             }
@@ -1648,15 +1659,17 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "stop", ccmdV2(async function() {
-            if (!PIDS.values.length) {
-                return { content: "no spams to stop", status: StatusCode.ERR }
+        "stop", ccmdV2(async function*({ args }) {
+            if(args.length){
+                for(let pid of args){
+                    if(globals.PROCESS_MANAGER.killproc(pid))
+                        yield crv(`Stopped: ${pid}`)
+                }
             }
-
-            for (let pid of PIDS.values) {
-                pid.kill()
+            for (let pid of globals.PROCESS_MANAGER.getprocids()){
+                globals.PROCESS_MANAGER.killproc(pid)
             }
-            return crv("stopping all")
+            yield crv("stopping all")
         }, "Stop all spams, and running commands")
     ]
 
@@ -1859,7 +1872,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                for await (let result of cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback, runtime_opts)) {
+                for await (let result of globals.PROCESS_MANAGER.spawn("RUN",
+                    cmds.runcmd({command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts})
+                )) {
                     yield result
                 }
             }
