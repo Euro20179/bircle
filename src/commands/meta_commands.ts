@@ -150,10 +150,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         if (explicit !== null) {
             runtime_opts.set("verbose", explicit)
         }
+        let quiet = opts.getBool("q", null)
+        if (quiet !== null) {
+            runtime_opts.set("silent", quiet)
+        }
         if (args.length) {
             runtime_opts.set("program-args", args)
         }
-        return crv(runtime_opts.get("program-args", []).join(" "))
+        if (!opts.getBool("n", false)) {
+            return crv(runtime_opts.get("program-args", []).join(" "))
+        }
         // let newIfs = opts.getString("IFS", "")
         // if (newIfs) {
         //     interpreter.context.export("IFS", newIfs)
@@ -182,7 +188,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         helpOptions: {
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}"),
             x: createHelpOption("Say what is being run for each command"),
-            d: createHelpOption("Dont actually run the command")
+            d: createHelpOption("Dont actually run the command"),
+            n: createHelpOption("Dont say the program arguments")
         }
     })]
 

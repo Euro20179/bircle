@@ -159,7 +159,7 @@ class Lexer {
     private i = -1
     private curChar = ""
     private IFS = " "
-    private special_chars = `{$\\${this.IFS}`
+    private special_chars = `{$\\${this.IFS};`
     private options: LexerOptions
     public tokens: TT<any>[] = []
     constructor(public command: string, options: LexerOptions) {
