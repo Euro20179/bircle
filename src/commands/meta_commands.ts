@@ -218,9 +218,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
         symbols.set(name, value)
 
-        //
-        // interpreter.context.export(name, value)
-
         return crv(`${name} = ${value}`)
     }, "Sets a variable for the current runtime")]
 

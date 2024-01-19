@@ -165,7 +165,6 @@ export default {
             return [new Token(T.str, sequence, token.argNo)]
         }
         return [new Token(T.str, " ", token.argNo)]
-
     }
 
 } as { [key: string]: (token: Token, char: string, seq: string, interpreter: Interpreter) => Promise<Token[]> }

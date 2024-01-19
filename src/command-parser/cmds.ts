@@ -17,7 +17,7 @@ export class SymbolTable {
         this.symbols[name] = value
     }
     get(name: string) {
-        return this.symbols[name] || `(${name}:UNDEFINED)`
+        return this.symbols[name]
     }
 
     delete(name: string) {
@@ -62,8 +62,6 @@ export class RuntimeOptions {
 //recursion_count
 //banned_commands
 async function runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), runtime_opts?: RuntimeOptions) {
-
-
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)
