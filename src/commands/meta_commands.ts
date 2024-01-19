@@ -1341,6 +1341,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     rv = result
                 }
                 let content = getContentFromResult(rv)
+                // let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, disable: command_bans })).rv as CommandReturn).trim()
                 expected = expected.trim()
                 switch (check.trim().toLowerCase()) {
                     case "==": {
@@ -1410,6 +1411,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     }
                 }
             }
+            let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                 for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
                     cmds.runcmd({ command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg })
@@ -1417,8 +1419,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     yield result
                 }
             }
-            let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
-            if (elseCmd) {
+            else if (elseCmd) {
                 for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
                     cmds.runcmd({ command: "(PREFIX)" + elseCmd.trim(), prefix: "(PREFIX)", runtime_opts, msg })
                 )) {
