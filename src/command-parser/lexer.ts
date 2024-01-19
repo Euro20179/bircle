@@ -1,4 +1,5 @@
 import { PREFIX } from "../globals"
+import { RuntimeOptions } from "./cmds"
 
 /*
     The way I'm planning this to work is first it goes through the lexer which creates a list of tokens
@@ -34,45 +35,69 @@ class TTVariable extends TT<string> { }
 class TTSemi extends TT<string> { }
 class TTFormat extends TT<string> { }
 class TTIFS extends TT<string> { }
-class TTEsc extends TT<[string, string]>{}
+class TTEsc extends TT<[string, string]>{ }
 
 
-class Modifier {
+abstract class Modifier {
     repr = "X"
+
+    abstract set_runtime_opt(options: RuntimeOptions): any
 }
 
 class WebModifier extends Modifier {
     static repr = "W"
+
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("remote", true)
+        console.error("remote option not implemented")
+    }
 }
 
 class SkipModifier extends Modifier {
     static repr = "n"
+
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("skip", true)
+    }
 }
 
 class SilentModifier extends Modifier {
     static repr = "s"
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("silent", true)
+    }
 }
 
 class TypingModifier extends Modifier {
     static repr = "t"
-
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("typing", true)
+    }
 }
 
 class DeleteModifier extends Modifier {
     static repr = "d"
-
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("delete", true)
+    }
 }
 
 class CommandModifier extends Modifier {
-    static repr = "c:"
+    static repr = "c"
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("command", true)
+    }
 }
 
 class AliasModifier extends Modifier {
-    static repr = "a:"
+    static repr = "a"
+    set_runtime_opt(options: RuntimeOptions) {
+        options.set("alias", true)
+    }
 }
 
 
-function getModifiers(command: string) {
+function getModifiers(command: string): [string, Modifier[]] {
     const modifiers = [WebModifier, SkipModifier, SilentModifier, TypingModifier, DeleteModifier, CommandModifier, AliasModifier]
 
     let used_modifiers = []
@@ -80,23 +105,25 @@ function getModifiers(command: string) {
     outer_while:
     while (true) {
         for (let mod of modifiers) {
-            if (!command.startsWith(mod.repr)) {
+            let repr = `${mod.repr}:`
+            if (!command.startsWith(repr)) {
                 continue
             }
-            used_modifiers.push(mod)
-            command = command.slice(0, mod.repr.length)
+            used_modifiers.push(new mod())
+            command = command.slice(repr.length)
             continue outer_while;
         }
         break
     }
 
-    return used_modifiers
+    return [command, used_modifiers]
 }
 
 type LexerOptions = {
     pipe_sign?: string
     prefix?: string
     is_command?: boolean
+    skip_parsing?: boolean
 }
 
 class Lexer {
@@ -185,17 +212,17 @@ class Lexer {
 
     parseEscape() {
         const escChars = "ntUusyYAbiSdDTVv\\ a"
-        if(!this.advance()){
+        if (!this.advance()) {
             return ""
         }
         let char = this.curChar
-        if(!escChars.includes(char)) {
+        if (!escChars.includes(char)) {
             return char
         }
         let sequence = ""
-        if(char !== ' ' && this.advance()) {
-            if(this.curChar === '{') {
-                if(this.advance()){
+        if (char !== ' ' && this.advance()) {
+            if (this.curChar === '{') {
+                if (this.advance()) {
                     sequence = parseBracketPair(this.command, "{}", this.i)
                     this.advance(sequence.length)
                 }
@@ -210,6 +237,27 @@ class Lexer {
         return [char, sequence]
     }
 
+    parse_simple() {
+        while (this.advance()) {
+            switch (this.curChar) {
+                case this.IFS: {
+                    while (this.curChar === this.IFS) {
+                        this.advance()
+                    }
+                    this.back()
+                    this.tokens.push(new TTIFS(this.IFS, this.i, this.i))
+                    continue;
+                }
+                default: {
+                    let start = this.i
+                    let str = this.parseContinuousChars()
+                    this.tokens.push(new TTString(str, start, this.i))
+                }
+            }
+        }
+        return this.tokens
+    }
+
     lex() {
         let pipe_sign = this.pipe_sign()
         if (this.options.is_command !== false) {
@@ -217,12 +265,15 @@ class Lexer {
             this.advance(prefix.length)
             this.tokens.push(new TTPrefix(prefix, 0, this.i))
         }
+        if (this.options.skip_parsing) {
+            return this.parse_simple()
+        }
         while (this.advance()) {
             switch (this.curChar) {
                 case "\\": {
                     let start = this.i
                     let data = this.parseEscape()
-                    if(typeof data === 'string'){
+                    if (typeof data === 'string') {
                         this.tokens.push(new TTString(`${data}`, start, this.i))
                     }
                     else {
@@ -275,7 +326,7 @@ class Lexer {
                     break
                 }
                 case this.IFS: {
-                    while(this.curChar === this.IFS){
+                    while (this.curChar === this.IFS) {
                         this.advance()
                     }
                     this.back()

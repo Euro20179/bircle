@@ -1769,7 +1769,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "run", ccmdV2(async function({ msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter }) {
+        "run", ccmdV2(async function({ msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter, runtime_opts }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -1853,7 +1853,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                let result = await cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback)
+                let result = await cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback, runtime_opts)
                 await handleSending(msg, result)
                 // await handleSending(msg, (await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })).rv)
             }

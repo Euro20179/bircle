@@ -4,6 +4,7 @@ import { ArgList, BADVALUE, Options } from './util'
 import { EconomyData } from "./economy"
 import { Interpreter } from "./common_to_commands"
 import { UserOption } from "./user-options"
+import { RuntimeOptions } from "./command-parser/cmds"
 
 declare module "discord.js" {
     export interface User {
@@ -134,6 +135,7 @@ declare global {
             * @deprecated always undefined, impossible in the new system
         */
         pipeTo?: Token[],
+        runtime_opts: RuntimeOptions,
         interpreter: Interpreter,
         argShapeResults: Record<string, unknown>
     }

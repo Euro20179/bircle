@@ -6,6 +6,8 @@ import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
 import { StatusCode } from '../common_to_commands'
 
+import { RECURSION_LIMIT } from '../globals'
+
 export class SymbolTable {
     symbols: Record<string, string>
     constructor() {
@@ -18,9 +20,35 @@ export class SymbolTable {
         return this.symbols[name] || `(${name}:UNDEFINED)`
     }
 
-    delete(name: string){
-        if(this.symbols[name] !== undefined)
+    delete(name: string) {
+        if (this.symbols[name] !== undefined)
             delete this.symbols[name]
+    }
+}
+
+type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion"
+type RuntimeOptionValue = {
+    silent: boolean,
+    remote: boolean,
+    skip: boolean,
+    typing: boolean,
+    delete: boolean,
+    command: boolean,
+    alias: boolean,
+    legacy: boolean
+    recursion_limit: number
+    recursion: number
+}
+export class RuntimeOptions {
+    public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
+    constructor(options?: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>) {
+        this.options = options ?? {} as Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
+    }
+    get<T extends RuntimeOption>(option: T, default_: RuntimeOptionValue[T]): RuntimeOptionValue[T] {
+        return this.options[option] as RuntimeOptionValue[T] ?? default_
+    }
+    set<T extends RuntimeOption>(option: T, value: RuntimeOptionValue[T]) {
+        this.options[option] = value
     }
 }
 
@@ -28,15 +56,42 @@ export class SymbolTable {
 //missing support for:
 //recursion_count
 //banned_commands
-async function runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
-    let modifiers = lexer.getModifiers(command)
+async function runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), runtime_opts?: RuntimeOptions) {
+
+    let modifiers;
+    [command, modifiers] = lexer.getModifiers(command.slice(prefix.length))
+
+    if (!runtime_opts) {
+        runtime_opts = new RuntimeOptions()
+        runtime_opts.set("recursion_limit", RECURSION_LIMIT)
+        runtime_opts.set("recursion", 0)
+    }
+
+    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
+
+    if(runtime_opts.get("recursion", 0) > runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
+        return { content: "Recursion limit reached", status: StatusCode.ERR }
+    }
+
+
+    for (let modifier of modifiers) {
+        modifier.set_runtime_opt(runtime_opts)
+    }
+
+    if (runtime_opts.get("delete", false)) {
+        if (msg.deletable) {
+            msg.delete().catch(console.error)
+        }
+    }
 
     let symbols = new SymbolTable()
 
     let rv: CommandReturn | undefined;
 
     let lex = new lexer.Lexer(command, {
-        prefix
+        prefix,
+        is_command: false,
+        skip_parsing: runtime_opts.get("skip", false)
     })
     let tokens = lex.lex()
     let semi_indexes = []
@@ -56,17 +111,22 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
 
         let pipe_start_idx = 0
         let pipe_indexes = []
-        for(let i = 0; i < working_tokens.length; i++){
-            if(working_tokens[i] instanceof lexer.TTPipe){
+        for (let i = 0; i < working_tokens.length; i++) {
+            if (working_tokens[i] instanceof lexer.TTPipe) {
                 pipe_indexes.push(i)
             }
         }
         pipe_indexes.push(working_tokens.length)
 
+        if (runtime_opts.get("typing", false)) {
+            await msg.channel.sendTyping()
+        }
+
         for (let pipe_idx of pipe_indexes) {
+
             let pipe_working_tokens = working_tokens.slice(pipe_start_idx, pipe_idx)
 
-            if(rv){
+            if (rv) {
                 symbols.set("stdin:%", rv.content ?? "")
             }
             else {
@@ -75,13 +135,16 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
 
             let evalulator = new tokenEvaluator.TokenEvaluator(pipe_working_tokens, symbols, msg)
             let new_tokens = await evalulator.evaluate()
-            rv = await runner.command_runner(new_tokens, msg, rv, sendCallback)
+            rv = await runner.command_runner(new_tokens, msg, runtime_opts, rv, sendCallback) as CommandReturn
             pipe_start_idx = pipe_idx + 1
         }
-        if (rv && semi_index != semi_indexes[semi_indexes.length - 1]) {
+        if (!runtime_opts.get("silent", false) && rv && semi_index != semi_indexes[semi_indexes.length - 1]) {
             await handleSending(msg, rv)
         }
         start_idx = semi_index + 1
+    }
+    if (runtime_opts.get("silent", false)) {
+        return { noSend: true, status: StatusCode.RETURN }
     }
     return rv ?? { content: `\\${command}(NO MESSAGE)`, status: StatusCode.RETURN }
 }
