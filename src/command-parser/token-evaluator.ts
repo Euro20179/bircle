@@ -18,6 +18,12 @@ class TokenEvaluator {
     public new_tokens: TT<any>[]
     private cur_tok = new lexer.TTString("", 0, 0)
     private char_pos = 0
+    private cur_arg = 0
+    //goes from arg to do first number
+    private doFirstNoFromArgNo: Record<number, number> = {}
+    //goes from do first number to the actual text of the dofirst
+    private doFirstFromDoFirstNo: Record<number, string> = {}
+    private do_first_count = 0
     constructor(public tokens: TT<any>[], private symbols: SymbolTable, private msg: Message, private runtime_opts: RuntimeOptions) {
         this.new_tokens = []
     }
@@ -28,6 +34,7 @@ class TokenEvaluator {
     }
 
     complete_cur_tok() {
+        this.cur_arg++
         this.cur_tok.end = this.char_pos
         this.new_tokens.push(this.cur_tok)
         this.cur_tok = new lexer.TTString("", this.char_pos, this.char_pos)
@@ -37,6 +44,24 @@ class TokenEvaluator {
         for (let token of this.tokens) {
             if (token instanceof lexer.TTPipe || token instanceof lexer.TTSemi) {
                 break
+            }
+            else if(token instanceof lexer.TTDoFirstRepl){
+                let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
+                if(doFirstResultNo === undefined){
+                    doFirstResultNo = doFirstArgNo
+                    doFirstArgNo = String(this.doFirstNoFromArgNo[this.cur_arg])
+                }
+                let doFirst = this.doFirstFromDoFirstNo[Number(doFirstArgNo)]
+                if(doFirst !== undefined){
+                    let text = ""
+                    if(doFirstResultNo === ""){
+                        text = doFirst
+                    }
+                    else {
+                        text = doFirst.split(" ")[Number(doFirstResultNo)] ?? ""
+                    }
+                    this.add_to_cur_tok(text)
+                }
             }
             else if (token instanceof lexer.TTVariable) {
                 let [varName, ...ifNull] = token.data.split("||")
@@ -80,6 +105,10 @@ class TokenEvaluator {
                 for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: this.runtime_opts })) {
                     text += getContentFromResult(result)
                 }
+                //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
+                this.doFirstNoFromArgNo[this.cur_arg] = this.do_first_count
+                this.doFirstFromDoFirstNo[this.do_first_count] = text
+                this.do_first_count++
                 this.add_to_cur_tok(text)
                 // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
             }

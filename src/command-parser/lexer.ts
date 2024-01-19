@@ -29,6 +29,7 @@ class TTPipe extends TT<string> { }
 class TTPipeRun extends TT<string> { }
 class TTJSExpr extends TT<string> { }
 class TTDoFirst extends TT<string> { }
+class TTDoFirstRepl extends TT<string> {}
 class TTPrefix extends TT<string> { }
 class TTVariable extends TT<string> { }
 class TTSemi extends TT<string> { }
@@ -285,6 +286,18 @@ class Lexer {
         return this.tokens
     }
 
+    parse_percent(){
+        this.advance()
+        if(this.curChar !== "{"){
+            this.back()
+            return "%"
+        }
+        this.advance()
+        let inner = parseBracketPair(this.command, "{}", this.i)
+        this.advance(inner.length)
+        return inner
+    }
+
     lex() {
         let pipe_sign = this.pipe_sign()
         if (this.options.is_command !== false) {
@@ -297,6 +310,16 @@ class Lexer {
         }
         while (this.advance()) {
             switch (this.curChar) {
+                case "%": {
+                    let start = this.i
+                    let data = this.parse_percent()
+                    if(data == "%"){
+                        this.tokens.push(new TTString(data, this.i, this.i))
+                    }
+                    else {
+                        this.tokens.push(new TTDoFirstRepl(data, start, this.i))
+                    }
+                }
                 case "\\": {
                     let start = this.i
                     let data = this.parseEscape()
@@ -411,5 +434,6 @@ export default {
     TTIFS,
     TTEsc,
     TTVariable,
+    TTDoFirstRepl,
     getModifiers
 }
