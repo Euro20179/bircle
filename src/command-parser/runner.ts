@@ -60,7 +60,7 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
 
     for await (let result of PROCESS_MANAGER.spawn(`${name}.bircle`,
         cmds.runcmd({ command: data, prefix: "(PREFIX)", msg, runtime_opts })
-    )){
+    )) {
         yield result
     }
 }
@@ -112,13 +112,16 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     let args = new ArgList(raw_args)
 
     if (cmdObject instanceof AliasV2) {
-        yield await cmdObject.run({
-            msg,
-            rawArgs: raw_args,
-            args,
-            opts: opts,
-            recursionCount: 19,
-        })
+        for await (let result of
+            cmdObject.run({
+                msg,
+                rawArgs: raw_args,
+                args,
+                opts: opts,
+                recursionCount: 19,
+            })) {
+            yield result
+        }
         return
     }
 

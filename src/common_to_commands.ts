@@ -451,7 +451,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, legacy, context }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], legacy?: boolean, context?: InterpreterContext }) {
+    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, legacy, context }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], legacy?: boolean, context?: InterpreterContext }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -501,15 +501,17 @@ export class AliasV2 {
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
-        let rv;
         if (legacy !== true) {
-            for await(let result of cmds.runcmd({command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback})){
-                rv = result
+            for await(
+                let result of
+             globals.PROCESS_MANAGER.spawn(`${this.name}(SUB)`, cmds.runcmd({command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback}))
+                     ){
+                yield result
             }
         }
         else {
             let res = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, pipeData: stdin, sendCallback: sendCallback, context })
-            rv = res.rv
+            yield res.rv
         }
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
@@ -527,8 +529,6 @@ export class AliasV2 {
                 user_options.setOpt(msg.author.id, name, val)
             }
         }
-
-        return rv
     }
     toJsonString() {
         return JSON.stringify({ name: this.name, exec: this.exec, help: this.help, creator: this.creator, appendOpts: this.appendOpts, appendArgs: this.appendArgs })

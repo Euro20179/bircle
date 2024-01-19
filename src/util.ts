@@ -348,6 +348,10 @@ function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
     }
 }
 
+function randomColor(){
+    return randomHexColorCode()
+}
+
 function randomHexColorCode() {
     let code = '#'
     for (let i = 0; i < 6; i++) {
@@ -563,6 +567,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         rgbToHex,
         escapeRegex,
         escapeShell,
+        randomColor,
         randomHexColorCode,
         mulStr,
         choice,

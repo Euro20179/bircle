@@ -77,7 +77,7 @@ class TokenEvaluator {
             else if (token instanceof lexer.TTDoFirst) {
                 //(PREFIX) could be really anything, it just has to be something
                 let text = ""
-                for await(let result of cmds.runcmd({command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: this.runtime_opts})){
+                for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: this.runtime_opts })) {
                     text += getContentFromResult(result)
                 }
                 this.add_to_cur_tok(text)
@@ -92,8 +92,11 @@ class TokenEvaluator {
                 let str = token.data
                 if (format_parsers[seq]) {
                     str = await format_parsers[seq](token, this.symbols, seq, args, this.msg, this.runtime_opts)
+                    this.add_to_cur_tok(`${str}`)
                 }
-                this.add_to_cur_tok(`{${str}}`)
+                else {
+                    this.add_to_cur_tok(`{${str}}`)
+                }
                 // this.new_tokens.push(new lexer.TTString(str, token.start, token.end))
             }
             else if (token instanceof lexer.TTIFS) {
@@ -108,7 +111,7 @@ class TokenEvaluator {
                 if (typeof resp === 'string') {
                     this.add_to_cur_tok(resp)
                 }
-                else if(resp.length === 0){
+                else if (resp.length === 0) {
                     continue
                 }
                 else if (resp.length === 1) {
@@ -363,20 +366,20 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
         }
         return " "
     },
-    a: async(token, _symbols, _msg, runtime_opts) => {
+    a: async (token, _symbols, _msg, runtime_opts) => {
         let args = runtime_opts.get("program-args", [])
-        if(token.data[1] === "*"){
+        if (token.data[1] === "*") {
             return args.join(" ")
         }
-        else if(token.data[1] === "@"){
+        else if (token.data[1] === "@") {
             //create a copy because TTEsc uses splice
             return args.slice(0)
         }
-        else if(token.data[1] === "#") {
+        else if (token.data[1] === "#") {
             return String(args.length)
         }
         let n = Number(token.data[1])
-        if(!isNaN(n)){
+        if (!isNaN(n)) {
             return args[n] ?? ""
         }
         return ""
