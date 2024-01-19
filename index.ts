@@ -256,13 +256,10 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         if (command_commons.isCmd(content, local_prefix)) {
             let result = await cmds.runcmd(content, local_prefix, m)
             await cmds.handleSending(m, result)
-            // let lexer = new Lexer(content, {
-            //     prefix: local_prefix
-            // })
-            // lexer.lex()
-            // console.log(lexer.tokens)
-            // let c = m.content.slice(local_prefix.length)
-            // await command_commons.handleSending(m, (await execCommand(m, c)).rv)
+        }
+        else if (content.startsWith(`L${local_prefix}`)) {
+            let c = m.content.slice(local_prefix.length + 1)
+            await command_commons.handleSending(m, (await execCommand(m, c)).rv)
         }
         else {
             await command_commons.handleMatchCommands(m, m.content, true)
