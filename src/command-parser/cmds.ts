@@ -40,7 +40,7 @@ type RuntimeOptionValue = {
     recursion: number,
     verbose: boolean,
     ["program-args"]: string[]
-    ["no-run"]: boolean
+    ["no-run"]: boolean,
 }
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>

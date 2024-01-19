@@ -2138,7 +2138,7 @@ Valid formats:
     ]
 
     yield [
-        "spasm", ccmdV2(async function({ msg, args, sendCallback, interpreter }) {
+        "spasm", ccmdV2(async function*({ msg, args, sendCallback }) {
             let [times, ...text] = args
             let sendText = text.join(" ")
             let timesToGo = 10
@@ -2148,9 +2148,10 @@ Valid formats:
             else {
                 sendText = [times, ...text].join(" ")
             }
-            await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
             let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
-            while (!interpreter.killed && timesToGo--) {
+            while (timesToGo--) {
+                //this way it can be killed if need be
+                yield { noSend: true, status: 0 }
                 if (message.deletable) await message.delete()
                 message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))

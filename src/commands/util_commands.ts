@@ -2521,7 +2521,7 @@ The order these are given does not matter, excpet for field, which will be added
     }, CommandCategory.UTIL, "Fancy calculator")]
 
     yield [
-        "pyjs", ccmdV2(async function({  args }) {
+        "pyjs", ccmdV2(async function({ args }) {
             let text = args.join(" ")
             let context: { [key: string]: any } = {}
             while (text) {
@@ -2888,7 +2888,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "most-roles", ccmdV2(async function({ msg, rawArgs: args  }) {
+        "most-roles", ccmdV2(async function({ msg, rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
             let times = parseInt(args[0]) || 10
@@ -3556,7 +3556,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         "archive-channel",
-        ccmdV2(async function({ msg, args, interpreter, sendCallback }) {
+        ccmdV2(async function*({ msg, args }) {
             if (!msg.guild) {
                 return crv("Must be in a guild", { status: StatusCode.ERR })
             }
@@ -3571,7 +3571,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let fn = generateFileName("archive-channel", msg.author.id, "txt")
             let stream = fs.createWriteStream(fn, "utf8")
             let mesageCount = 0
-            while (!interpreter.killed) {
+            while (true) {
                 let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
                 mesageCount += messages.size
                 if (!messages.size)
@@ -3583,12 +3583,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 stream.write(text)
 
-                await handleSending(msg, crv(`${mesageCount} messages have been archived`), sendCallback)
+                yield crv(`${mesageCount} messages have been archived`)
 
                 await sleep(Math.random() * 3000)
 
                 curMsg = msgList[msgList.length - 1].id
             }
+
             stream.end()
 
             return {
