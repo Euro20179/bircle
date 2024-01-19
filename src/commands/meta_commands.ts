@@ -1612,7 +1612,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "spam", createCommandV2(async function({ msg, args, opts, sendCallback, interpreter }) {
+        "spam", createCommandV2(async function*({ msg, args, opts, sendCallback, interpreter }) {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -1623,16 +1623,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 times = 10
             }
             let totalTimes = times
-            await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
+            // await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
             let delay: number | null = (opts.getNumber("delay", null) ?? 1) * 1000
             if (delay < 700 || delay > 0x7FFFFFFF) {
                 delay = null
             }
             while (!interpreter.killed && times--) {
-                await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
+                yield { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
             }
-            return {
+            yield {
                 content: "done",
                 status: StatusCode.INFO
             }
@@ -1773,7 +1773,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "run", ccmdV2(async function({ msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter, runtime_opts }) {
+        "run", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter, runtime_opts }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -1857,12 +1857,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                let result = await cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback, runtime_opts)
-                await handleSending(msg, result)
-                // await handleSending(msg, (await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })).rv)
+                for await(let result of cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback, runtime_opts)){
+                    yield result
+                }
             }
-            return { noSend: true, status: StatusCode.INFO }
-
         }, "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%")
     ]
 
