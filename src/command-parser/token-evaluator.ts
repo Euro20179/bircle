@@ -77,7 +77,7 @@ class TokenEvaluator {
             else if (token instanceof lexer.TTDoFirst) {
                 //(PREFIX) could be really anything, it just has to be something
                 let text = ""
-                for await(let result of cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg)){
+                for await(let result of cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg, undefined, this.runtime_opts)){
                     text += getContentFromResult(result)
                 }
                 this.add_to_cur_tok(text)
@@ -107,6 +107,9 @@ class TokenEvaluator {
                 }
                 if (typeof resp === 'string') {
                     this.add_to_cur_tok(resp)
+                }
+                else if(resp.length === 0){
+                    continue
                 }
                 else if (resp.length === 1) {
                     this.add_to_cur_tok(resp[0])
@@ -366,7 +369,8 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
             return args.join(" ")
         }
         else if(token.data[1] === "@"){
-            return args
+            //create a copy because TTEsc uses splice
+            return args.slice(0)
         }
         else if(token.data[1] === "#") {
             return String(args.length)

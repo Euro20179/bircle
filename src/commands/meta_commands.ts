@@ -150,7 +150,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         if(explicit !== null){
             runtime_opts.set("verbose", explicit)
         }
-        return crv("")
+        if(args.length){
+            runtime_opts.set("program-args", args)
+        }
+        return crv(runtime_opts.get("program-args", []).join(" "))
         // let newIfs = opts.getString("IFS", "")
         // if (newIfs) {
         //     interpreter.context.export("IFS", newIfs)
