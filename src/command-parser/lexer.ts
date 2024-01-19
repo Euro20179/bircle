@@ -29,11 +29,12 @@ class TTPipe extends TT<string> { }
 class TTPipeRun extends TT<string> { }
 class TTJSExpr extends TT<string> { }
 class TTDoFirst extends TT<string> { }
-class TTDoFirstRepl extends TT<string> {}
+class TTDoFirstRepl extends TT<string> { }
 class TTPrefix extends TT<string> { }
 class TTVariable extends TT<string> { }
 class TTSemi extends TT<string> { }
 class TTFormat extends TT<string> { }
+class TTRange extends TT<[number, number]> { }
 class TTIFS extends TT<string> { }
 class TTEsc extends TT<[string, string]>{ }
 
@@ -286,9 +287,9 @@ class Lexer {
         return this.tokens
     }
 
-    parse_percent(){
+    parse_percent() {
         this.advance()
-        if(this.curChar !== "{"){
+        if (this.curChar !== "{") {
             this.back()
             return "%"
         }
@@ -313,12 +314,13 @@ class Lexer {
                 case "%": {
                     let start = this.i
                     let data = this.parse_percent()
-                    if(data == "%"){
+                    if (data == "%") {
                         this.tokens.push(new TTString(data, this.i, this.i))
                     }
                     else {
                         this.tokens.push(new TTDoFirstRepl(data, start, this.i))
                     }
+                    break;
                 }
                 case "\\": {
                     let start = this.i
@@ -368,7 +370,13 @@ class Lexer {
                     this.advance(inner.length)
                     //@ts-ignore
                     if (this.curChar === '}') {
-                        this.tokens.push(new TTFormat(inner, start, this.i - 1))
+                        let match = inner.match(/(\d+)\.\.(\d+)/)
+                        if (match) {
+                            this.tokens.push(new TTRange([Number(match[1]), Number(match[2])], start, this.i - 1))
+                        }
+                        else {
+                            this.tokens.push(new TTFormat(inner, start, this.i - 1))
+                        }
                     }
                     else {
                         this.tokens.push(new TTString(`{${inner}`, start, this.i - 1))
@@ -435,5 +443,6 @@ export default {
     TTEsc,
     TTVariable,
     TTDoFirstRepl,
+    TTRange,
     getModifiers
 }
