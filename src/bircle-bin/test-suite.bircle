@@ -1,10 +1,10 @@
-s:set -c ;;
 s:export wait-time = -wait=0.5 ;;
 s:export old-parser = $(options opts-parser >pipe> tial -count=1) ;;
 s:option opts-parser normal ;;
+s:set -x ;;
 echo -D ${LINENO} Testing echo ;;
 echo -D ${wait-time} ${LINENO} program args \a{*} ;;
-echo -D ${wait-time} ${LINENO} testing var-or (`\${fejwafjewafjewa||string}`) ${fejwafjewafjewa||string} ;;
+echo -D ${wait-time} ${LINENO} testing var-or ${fejwafjewafjewa||string} ;;
 s:export old-parser = $(options opts-parser >pipe> tail -count=1) ;;
 s:option opts-parser with-negate ;;
 echo -D ${wait-time} ${LINENO} testing with-negate parser, and dofirst syntax\n$(opts -x -z=true +y) ;;

@@ -26,7 +26,7 @@ export class SymbolTable {
     }
 }
 
-type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args"
+type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args" | "verbose"
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -38,6 +38,7 @@ type RuntimeOptionValue = {
     legacy: boolean
     recursion_limit: number
     recursion: number,
+    verbose: boolean,
     ["program-args"]: string[]
 }
 export class RuntimeOptions {
@@ -175,6 +176,10 @@ async function* runcmd(command: string, prefix: string, msg: Message, sendCallba
         for (let idx of pipe_indexes) {
             pipe_token_chains.push(working_tokens.slice(pipe_start_idx, idx))
             pipe_start_idx = idx + 1
+        }
+
+        if(runtime_opts.get("verbose", false)){
+            yield { content: command.slice(working_tokens[0].start, working_tokens[working_tokens.length - 1].end + 1), status: StatusCode.INFO }
         }
 
         for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback)) {

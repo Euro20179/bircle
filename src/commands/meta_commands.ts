@@ -145,7 +145,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     }, CAT, "get specific data from stdin/pipe")]
 
-    yield ["set", ccmdV2(async ({ opts, args, interpreter }) => {
+    yield ["set", ccmdV2(async ({ opts, args, interpreter, runtime_opts }) => {
+        let explicit = opts.getBool("x", null)
+        if(explicit !== null){
+            runtime_opts.set("verbose", explicit)
+        }
         return crv("")
         // let newIfs = opts.getString("IFS", "")
         // if (newIfs) {
