@@ -203,7 +203,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
     })]
 
-    yield ["export", ccmdV2(async ({ interpreter, args }) => {
+    yield ["export", ccmdV2(async ({ interpreter, args, symbols }) => {
         let [name, ...val] = args
         let value = val.join(" ")
         if (value[0] === "=") {
@@ -216,7 +216,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             return crv("Name must be alphanumeric + _- only", { status: StatusCode.ERR })
         }
 
-        interpreter.context.export(name, value)
+        symbols.set(name, value)
+
+        //
+        // interpreter.context.export(name, value)
 
         return crv(`${name} = ${value}`)
     }, "Sets a variable for the current runtime")]

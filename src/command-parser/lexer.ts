@@ -29,7 +29,6 @@ class TTPipe extends TT<string> { }
 class TTPipeRun extends TT<string> { }
 class TTJSExpr extends TT<string> { }
 class TTDoFirst extends TT<string> { }
-class TTVarExpand extends TT<string> { }
 class TTPrefix extends TT<string> { }
 class TTVariable extends TT<string> { }
 class TTSemi extends TT<string> { }
@@ -38,10 +37,11 @@ class TTIFS extends TT<string> { }
 class TTEsc extends TT<[string, string]>{ }
 
 
-abstract class Modifier {
+export abstract class Modifier {
     repr = "X"
 
     abstract set_runtime_opt(options: RuntimeOptions): any
+    abstract unset_runtime_opt(options: RuntimeOptions): any
 }
 
 class WebModifier extends Modifier {
@@ -51,6 +51,10 @@ class WebModifier extends Modifier {
         options.set("remote", true)
         console.error("remote option not implemented")
     }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("remote")
+    }
 }
 
 class SkipModifier extends Modifier {
@@ -59,12 +63,20 @@ class SkipModifier extends Modifier {
     set_runtime_opt(options: RuntimeOptions) {
         options.set("skip", true)
     }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("skip")
+    }
 }
 
 class SilentModifier extends Modifier {
     static repr = "s"
     set_runtime_opt(options: RuntimeOptions) {
         options.set("silent", true)
+    }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("silent")
     }
 }
 
@@ -73,12 +85,20 @@ class TypingModifier extends Modifier {
     set_runtime_opt(options: RuntimeOptions) {
         options.set("typing", true)
     }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("typing")
+    }
 }
 
 class DeleteModifier extends Modifier {
     static repr = "d"
     set_runtime_opt(options: RuntimeOptions) {
         options.set("delete", true)
+    }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("delete")
     }
 }
 
@@ -87,12 +107,20 @@ class CommandModifier extends Modifier {
     set_runtime_opt(options: RuntimeOptions) {
         options.set("command", true)
     }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("command")
+    }
 }
 
 class AliasModifier extends Modifier {
     static repr = "a"
     set_runtime_opt(options: RuntimeOptions) {
         options.set("alias", true)
+    }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("alias")
     }
 }
 
@@ -378,11 +406,11 @@ export default {
     TTPipeRun,
     TTJSExpr,
     TTDoFirst,
-    TTVarExpand,
     TTPrefix,
     TTSemi,
     TTFormat,
     TTIFS,
     TTEsc,
+    TTVariable,
     getModifiers
 }

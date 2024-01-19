@@ -4,6 +4,7 @@ import cmds from './cmds'
 import { SymbolTable } from './cmds'
 import lexer, { TT } from './lexer'
 import { escape } from 'querystring'
+import vars from '../vars'
 
 
 /**
@@ -21,6 +22,31 @@ class TokenEvaluator {
         for (let token of this.tokens) {
             if (token instanceof lexer.TTPipe || token instanceof lexer.TTSemi) {
                 break
+            }
+            else if(token instanceof lexer.TTVariable){
+                let [varName, ...ifNull] = token.data.split("||")
+                let value = this.symbols.get(varName)
+                if(value !== undefined){
+                    cur_tok.data += value
+                    char_pos += value.length
+                }
+                else {
+                    let _var = vars.getVar(this.msg, varName)
+                    if(_var === false){
+                        if(ifNull){
+                            cur_tok.data += ifNull
+                            char_pos += ifNull.length
+                        }
+                        else {
+                            cur_tok.data += `\${${varName}}`
+                            char_pos += `\${${varName}}`.length
+                        }
+                    }
+                    else {
+                        cur_tok.data += _var
+                        char_pos += _var.length
+                    }
+                }
             }
             else if (token instanceof lexer.TTJSExpr) {
                 let lex = new lexer.Lexer(token.data, {

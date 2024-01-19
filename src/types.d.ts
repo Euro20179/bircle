@@ -4,7 +4,7 @@ import { ArgList, BADVALUE, Options } from './util'
 import { EconomyData } from "./economy"
 import { Interpreter } from "./common_to_commands"
 import { UserOption } from "./user-options"
-import { RuntimeOptions } from "./command-parser/cmds"
+import { RuntimeOptions, SymbolTable } from "./command-parser/cmds"
 
 declare module "discord.js" {
     export interface User {
@@ -137,7 +137,8 @@ declare global {
         pipeTo?: Token[],
         runtime_opts: RuntimeOptions,
         interpreter: Interpreter,
-        argShapeResults: Record<string, unknown>
+        argShapeResults: Record<string, unknown>,
+        symbols: SymbolTable
     }
 
     type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn | void>;

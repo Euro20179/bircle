@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
-import lexer from './lexer'
+import lexer, { Modifier } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
@@ -50,6 +50,11 @@ export class RuntimeOptions {
     set<T extends RuntimeOption>(option: T, value: RuntimeOptionValue[T]) {
         this.options[option] = value
     }
+
+    delete(option: RuntimeOption) {
+        if (option in this.options)
+            delete this.options[option]
+    }
 }
 
 //TODO:
@@ -58,8 +63,6 @@ export class RuntimeOptions {
 //banned_commands
 async function runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), runtime_opts?: RuntimeOptions) {
 
-    let modifiers;
-    [command, modifiers] = lexer.getModifiers(command.slice(prefix.length))
 
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
@@ -67,22 +70,18 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
         runtime_opts.set("recursion", 0)
     }
 
+    //this is a special case modifier that basically has to happen here
+    if (command.startsWith("n:")) {
+        runtime_opts.set("skip", true)
+        command = command.slice(2)
+    }
+
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
 
-    if(runtime_opts.get("recursion", 0) > runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
+    if (runtime_opts.get("recursion", 0) > runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
         return { content: "Recursion limit reached", status: StatusCode.ERR }
     }
 
-
-    for (let modifier of modifiers) {
-        modifier.set_runtime_opt(runtime_opts)
-    }
-
-    if (runtime_opts.get("delete", false)) {
-        if (msg.deletable) {
-            msg.delete().catch(console.error)
-        }
-    }
 
     let symbols = new SymbolTable()
 
@@ -90,7 +89,6 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
 
     let lex = new lexer.Lexer(command, {
         prefix,
-        is_command: false,
         skip_parsing: runtime_opts.get("skip", false)
     })
     let tokens = lex.lex()
@@ -102,6 +100,8 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
     }
 
     semi_indexes.push(tokens.length)
+
+    let modifiers: Modifier[] = []
 
     let start_idx = 0
     for (let semi_index of semi_indexes) {
@@ -118,10 +118,6 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
         }
         pipe_indexes.push(working_tokens.length)
 
-        if (runtime_opts.get("typing", false)) {
-            await msg.channel.sendTyping()
-        }
-
         for (let pipe_idx of pipe_indexes) {
 
             let pipe_working_tokens = working_tokens.slice(pipe_start_idx, pipe_idx)
@@ -135,7 +131,33 @@ async function runcmd(command: string, prefix: string, msg: Message, sendCallbac
 
             let evalulator = new tokenEvaluator.TokenEvaluator(pipe_working_tokens, symbols, msg)
             let new_tokens = await evalulator.evaluate()
-            rv = await runner.command_runner(new_tokens, msg, runtime_opts, rv, sendCallback) as CommandReturn
+
+            //get the modifiers here that way it applies per command
+            let modifier_dat = lexer.getModifiers(new_tokens[0].data)
+
+            new_tokens[0].data = modifier_dat[0]
+
+            //unset any previously set modifiers
+            for (let modifier of modifiers) {
+                modifier.unset_runtime_opt(runtime_opts)
+            }
+
+            modifiers = modifier_dat[1]
+
+            //set the new modifiers
+            for (let mod of modifier_dat[1]) {
+                mod.set_runtime_opt(runtime_opts)
+            }
+
+            if (runtime_opts.get("typing", false)) {
+                await msg.channel.sendTyping()
+            }
+
+            if (runtime_opts.get("delete", false) && msg.deletable) {
+                msg.delete().catch(console.error)
+            }
+
+            rv = await runner.command_runner(new_tokens, msg, symbols, runtime_opts, rv, sendCallback) as CommandReturn
             pipe_start_idx = pipe_idx + 1
         }
         if (!runtime_opts.get("silent", false) && rv && semi_index != semi_indexes[semi_indexes.length - 1]) {

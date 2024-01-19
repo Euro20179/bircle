@@ -5,10 +5,10 @@ import { TT } from './lexer'
 import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
 
 import user_options from "../user-options"
-import { RuntimeOptions } from "./cmds";
+import { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
 
-async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
 
     let argShapeResults: Record<string, any> = {}
     let obj: CommandV2RunArg = {
@@ -26,7 +26,8 @@ async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, a
         //@ts-ignore
         interpreter: this,
         argShapeResults,
-        runtime_opts: runtime_options
+        runtime_opts: runtime_options,
+        symbols
     }
 
     if (cmdObject.argShape) {
@@ -43,7 +44,7 @@ async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, a
 }
 
 //TODO: aliases
-async function command_runner(tokens: TT<any>[], msg: Message, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+async function command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
     let opts;
 
     let cmd = tokens[0].data as string
@@ -91,7 +92,7 @@ async function command_runner(tokens: TT<any>[], msg: Message, runtime_options: 
     }
 
     else if (cmdObject.cmd_std_version === 2) {
-        return await run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, stdin, sendCallback)
+        return await run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback)
     }
     return crv("NOTHING")
 }
