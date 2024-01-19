@@ -112,7 +112,7 @@ function getPathFromPrefix(prefix: string, id?: string){
     if(prefix === '__global__'){
         return vars[prefix]
     }
-    else if(prefix.match(/^\d{18}$/)){
+    else if(prefix.match(/^\d{18,19}$/)){
         if(!vars[prefix]){
             return (vars[prefix] = {})
         }

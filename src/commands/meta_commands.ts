@@ -1990,7 +1990,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (prefix !== '__global__') {
                     return crv("Invalid prefix", { status: StatusCode.ERR })
                 }
-                vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
+                let res = vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
                 if (!opts['silent'])
                     return {
                         content: vars.getVar(msg, `${msg.author.id}:${name}`),
