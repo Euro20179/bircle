@@ -879,7 +879,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "switch", ccmdV2(async function({ args, msg, commandBans, recursionCount, sendCallback }) {
+        "switch", ccmdV2(async function*({ args, msg, commandBans, recursionCount, sendCallback, runtime_opts }) {
             args.beginIter()
             let switchOn = args.expectString(1)
             if (switchOn === BADVALUE) {
@@ -918,7 +918,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     regex = new RegExp(caseBlock[0])
                 }
                 catch (err) {
-                    await handleSending(msg, { content: `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING })
+                    yield { content:   `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING }
                 }
                 let shouldContinueTesting = true;
                 if ((regex as RegExp).test(switchOn)) {
@@ -932,7 +932,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         else {
                             shouldContinueTesting = false;
                         }
-                        await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
+                        for await(let result of globals.PROCESS_MANAGER.spawn(
+                            "switch(SUB)",
+                            cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                        )) {
+                            yield result
+                        }
                     }
                 }
                 if (!shouldContinueTesting) {
