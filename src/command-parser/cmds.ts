@@ -118,6 +118,7 @@ export type RunCmdOptions = {
     command: string,
     prefix: string,
     msg: Message,
+    program_args: string[],
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     runtime_opts?: RuntimeOptions
 }
@@ -125,7 +126,7 @@ export type RunCmdOptions = {
 //missing support for:
 //recursion_count
 //banned_commands
-async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts }: RunCmdOptions) {
+async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, program_args }: RunCmdOptions) {
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)
@@ -250,9 +251,29 @@ async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (da
     return newMsg
 }
 
+async function expandSyntax(bircle_string: string, msg: Message){
+    let tokens = new lexer.Lexer(bircle_string, {
+        is_command: false
+    }).lex()
+
+    let symbolTable = new SymbolTable()
+    let runtimeOpts = new RuntimeOptions()
+
+    let ev = new tokenEvaluator.TokenEvaluator(tokens, symbolTable, msg, runtimeOpts)
+    let new_toks = await ev.evaluate()
+    let strs: string[] = []
+    for(let tok of new_toks){
+        if(tok instanceof lexer.TTIFS)
+            continue
+        strs.push(tok.data)
+    }
+    return strs
+}
+
 export default {
     runcmd,
     handleSending,
     SymbolTable,
-    RuntimeOptions
+    RuntimeOptions,
+    expandSyntax
 }

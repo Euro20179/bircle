@@ -35,6 +35,8 @@ import pets from './src/pets'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
+import lexer from './src/command-parser/lexer'
+import tokenEvaluator from './src/command-parser/token-evaluator'
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
@@ -242,15 +244,21 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             let res = await fetch(att.url)
             m.attachments.delete(m.attachments.keyAt(0) as string)
 
-            let p = new Parser(m, m.content)
-            await p.parse()
-            let int = new Interpreter(m, p.tokens, {
-                modifiers: p.modifiers,
-                recursion: 0
-            })
-            await int.interprate()
+            let args = await cmds.expandSyntax(m.content, m)
 
-            await command_commons.handleSending(m, (await execCommand(m, await res.text(), int.args)).rv)
+            let runtime_opts = new cmds.RuntimeOptions()
+            runtime_opts.set("program-args", args)
+
+            let cmd = await res.text()
+            cmd = "(PREFIX)" + cmd
+
+            for await(let result of globals.PROCESS_MANAGER.spawn(
+                att.name,
+                cmds.runcmd({ command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts})
+            )) {
+
+                await cmds.handleSending(m, result)
+            }
         }
 
         if (command_commons.isCmd(content, local_prefix)) {
@@ -259,8 +267,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             )) {
                 await cmds.handleSending(m, result)
             }
-            // let result = await cmds.runcmd(content, local_prefix, m)
-            // await cmds.handleSending(m, result)
         }
         else if (content.startsWith(`L${local_prefix}`)) {
             let c = m.content.slice(local_prefix.length + 1)
