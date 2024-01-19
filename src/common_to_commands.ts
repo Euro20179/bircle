@@ -451,7 +451,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[] }) {
+    async run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, legacy, context }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], legacy?: boolean, context?: InterpreterContext }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -501,8 +501,14 @@ export class AliasV2 {
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
-        let rv = await cmds.runcmd(`(PREFIX)${tempExec}`, "(PREFIX)", msg, sendCallback)
-        // let { rv } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, pipeData: stdin, sendCallback: sendCallback, context })
+        let rv;
+        if (legacy !== true) {
+            rv = await cmds.runcmd(`(PREFIX)${tempExec}`, "(PREFIX)", msg, sendCallback)
+        }
+        else {
+            let res = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, pipeData: stdin, sendCallback: sendCallback, context })
+            rv = res.rv
+        }
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -1226,7 +1232,7 @@ export class Interpreter {
         }
         else if (cmdObject instanceof AliasV2) {
             //dont need to apply finality as it's already been applied
-            rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
+            rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, legacy: true }) as CommandReturn
             this.aliasV2 = cmdObject
         }
         else {

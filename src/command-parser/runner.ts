@@ -1,8 +1,10 @@
 import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
 import { AliasV2, StatusCode, commands, crv, getAliasesV2 } from "../common_to_commands";
-import { getOpts } from "../parsing";
+import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import { TT } from './lexer'
 import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
+
+import user_options from "../user-options"
 
 async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
 
@@ -39,21 +41,29 @@ async function run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, a
 
 //TODO: aliases
 async function command_runner(tokens: TT<any>[], msg: Message, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+    let opts;
+
     let cmd = tokens[0].data as string
     //item 1 is a command, skip it
     let raw_args = tokens.slice(1).map(t => t.data) as string[]
-    let opts;
-    [opts, raw_args] = getOpts(raw_args)
-    //@ts-ignore
-    let args = new ArgList(raw_args)
 
     let cmdObject: CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
-    if(!cmdObject){
+    let opts_parser = ({
+        "with-negate": getOptsWithNegate,
+        unix: getOptsUnix,
+        normal: getOpts
+    }[user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
+    [opts, raw_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
+    
+    //@ts-ignore
+    let args = new ArgList(raw_args)
+
+    if (!cmdObject) {
         return { content: `\\${cmd} is not a valid command`, status: StatusCode.ERR }
     }
 
-    if (cmdObject instanceof AliasV2){
+    if (cmdObject instanceof AliasV2) {
         return await cmdObject.run({
             msg,
             rawArgs: raw_args,
