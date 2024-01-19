@@ -1,9 +1,8 @@
 import { ChannelType, Message } from 'discord.js'
 import { getContentFromResult, safeEval } from '../util'
-import cmds from './cmds'
+import cmds, { RuntimeOptions } from './cmds'
 import { SymbolTable } from './cmds'
 import lexer, { TT } from './lexer'
-import { escape } from 'querystring'
 import vars from '../vars'
 import economy from '../economy'
 import timer from '../timer'
@@ -19,7 +18,7 @@ class TokenEvaluator {
     public new_tokens: TT<any>[]
     private cur_tok = new lexer.TTString("", 0, 0)
     private char_pos = 0
-    constructor(public tokens: TT<any>[], private symbols: SymbolTable, private msg: Message) {
+    constructor(public tokens: TT<any>[], private symbols: SymbolTable, private msg: Message, private runtime_opts: RuntimeOptions) {
         this.new_tokens = []
     }
 
@@ -65,7 +64,7 @@ class TokenEvaluator {
                     is_command: false
                 })
                 let tokens = lex.lex()
-                let evaulator = new TokenEvaluator(tokens, this.symbols, this.msg)
+                let evaulator = new TokenEvaluator(tokens, this.symbols, this.msg, this.runtime_opts)
                 let evauluated_tokens = await evaulator.evaluate()
                 let text = ""
                 for (let t of evauluated_tokens) {
@@ -77,9 +76,11 @@ class TokenEvaluator {
             }
             else if (token instanceof lexer.TTDoFirst) {
                 //(PREFIX) could be really anything, it just has to be something
-                let rv = await cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg)
-                let data = getContentFromResult(rv)
-                this.add_to_cur_tok(data)
+                let text = ""
+                for await(let result of cmds.runcmd(`(PREFIX)${token.data}`, "(PREFIX)", this.msg)){
+                    text += getContentFromResult(result)
+                }
+                this.add_to_cur_tok(text)
                 // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
             }
             else if (token instanceof lexer.TTString) {
@@ -90,7 +91,7 @@ class TokenEvaluator {
                 let [seq, ...args] = token.data.split("|")
                 let str = token.data
                 if (format_parsers[seq]) {
-                    str = await format_parsers[seq](token, this.symbols, seq, args, this.msg)
+                    str = await format_parsers[seq](token, this.symbols, seq, args, this.msg, this.runtime_opts)
                 }
                 this.add_to_cur_tok(str)
                 // this.new_tokens.push(new lexer.TTString(str, token.start, token.end))
@@ -102,7 +103,7 @@ class TokenEvaluator {
                 let char = token.data[0]
                 let resp: string | string[] = ""
                 if (esc_parsers[char]) {
-                    resp = await esc_parsers[char](token, this.symbols, this.msg)
+                    resp = await esc_parsers[char](token, this.symbols, this.msg, this.runtime_opts)
                 }
                 if (typeof resp === 'string') {
                     this.add_to_cur_tok(resp)
@@ -139,7 +140,7 @@ class TokenEvaluator {
     }
 }
 
-const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq: string, args: string[], msg: Message) => Promise<string>> = {
+const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq: string, args: string[], msg: Message, runtime_opts: RuntimeOptions) => Promise<string>> = {
     ["%"]: async (_token, symbols) => {
         return symbols.get("stdin:%") ?? "{%}"
     },
@@ -149,7 +150,7 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
         return String(parseInt(num, parseInt(base) || 16))
     },
     fbase: async (...args) => await format_parsers["fhex"](...args),
-    token: async (token, symbols, _seq, args, msg) => {
+    token: async (token, symbols, _seq, args, msg, runtime_opts) => {
         let [tt, ...data] = args
         let text = data.join("|")
         let lexer_token_type = lexer[`TT${tt}` as keyof typeof lexer]
@@ -159,7 +160,7 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
         try {
             //@ts-ignore
             let t = new lexer_token_type(text, token.start, token.end)
-            let evalulator = new TokenEvaluator([t], symbols, msg)
+            let evalulator = new TokenEvaluator([t], symbols, msg, runtime_opts)
             let new_tok = await evalulator.evaluate()
             return new_tok[0].data
         }
@@ -300,8 +301,8 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
     }
 }
 
-const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolTable, msg: Message) => Promise<string | string[]>> = {
-    "n": async (token, _) => {
+const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolTable, msg: Message, runtime_opts: RuntimeOptions) => Promise<string | string[]>> = {
+    "n": async (_token, _) => {
         return "\n"
     },
     t: async () => "\t",
@@ -325,14 +326,14 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
         }
         return " "
     },
-    y: async (token, symbols, msg) => {
+    y: async (token, symbols, msg, runtime_opts) => {
         let [_, seq] = token.data
         if (seq) {
             let lex = new lexer.Lexer(seq, {
                 is_command: false
             })
             let tokens = lex.lex()
-            let ev = new TokenEvaluator(tokens, symbols, msg)
+            let ev = new TokenEvaluator(tokens, symbols, msg, runtime_opts)
             let new_tokens = await ev.evaluate()
             let text = ""
             for (let tok of new_tokens) {
@@ -342,14 +343,14 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
         }
         return " "
     },
-    Y: async (token, symbols, msg) => {
+    Y: async (token, symbols, msg, runtime_opts) => {
         let [_, seq] = token.data
         if (seq) {
             let lex = new lexer.Lexer(seq, {
                 is_command: false
             })
             let tokens = lex.lex()
-            let ev = new TokenEvaluator(tokens, symbols, msg)
+            let ev = new TokenEvaluator(tokens, symbols, msg, runtime_opts)
             let new_tokens = await ev.evaluate()
             let strs: string[] = []
             for (let tok of new_tokens) {
@@ -358,6 +359,23 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
             return strs
         }
         return " "
+    },
+    a: async(token, _symbols, _msg, runtime_opts) => {
+        let args = runtime_opts.get("program-args", [])
+        if(token.data[1] === "*"){
+            return args.join(" ")
+        }
+        else if(token.data[1] === "@"){
+            return args
+        }
+        else if(token.data[1] === "#") {
+            return String(args.length)
+        }
+        let n = Number(token.data[1])
+        if(!isNaN(n)){
+            return args[n] ?? ""
+        }
+        return ""
     },
     //TODO: a: should return the programArgs, * returns as 1 arg, @ seperates the args, # returns the number of args, eg: \a{*}, \a{@}, \a{#}, \a{1}: would return the 1st argument (0 indexed)
     b: async (token) => `**${token.data[1]}**`,

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
-import lexer, { Modifier, TT } from './lexer'
+import lexer, { TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
@@ -66,7 +66,7 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
         symbols.delete("stdin:%")
     }
 
-    let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg)
+    let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg, runtime_opts)
 
     let new_tokens = await evaulator.evaluate()
 
@@ -87,8 +87,11 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
     }
 
     for await (let item of runner.command_runner(new_tokens, msg, symbols, runtime_opts, stdin, sendCallback)) {
+        if (runtime_opts.get("silent", false)) {
+            yield { noSend: true, status: StatusCode.RETURN }
+        }
         //there will always be at least one item in the pipe chain (if there is 1, that is the one we are on)
-        if (pipeChain.length == 0) {
+        else if (pipeChain.length == 0) {
             yield item ?? { noSend: true, status: StatusCode.RETURN }
         }
         else {
@@ -102,6 +105,9 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
                 mod.set_runtime_opt(runtime_opts)
             }
         }
+    }
+    for (let modifier of modifier_dat[1]) {
+        modifier.unset_runtime_opt(runtime_opts)
     }
 
 }
@@ -131,8 +137,6 @@ async function* runcmd(command: string, prefix: string, msg: Message, sendCallba
 
 
     let symbols = new SymbolTable()
-
-    let rv: CommandReturn | undefined;
 
     let lex = new lexer.Lexer(command, {
         prefix,
@@ -169,12 +173,7 @@ async function* runcmd(command: string, prefix: string, msg: Message, sendCallba
         }
 
         for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback)) {
-            if (!runtime_opts.get("silent", false) && result) {
-                yield result
-            }
-            else {
-                yield { noSend: true, status: StatusCode.RETURN }
-            }
+            yield result
         }
         start_idx = semi_index + 1
     }
