@@ -3,7 +3,7 @@ import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
 import { AliasV2, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
 import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import { TT } from './lexer'
-import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
+import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary } from "../util";
 
 import user_options from "../user-options"
 import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
@@ -91,8 +91,9 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }
 
     let warn_cmds = user_options.getOpt(msg.author.id, "warn-cmds", "").split(" ")
+    let warn_categories = user_options.getOpt(msg.author.id, "warn-categories", "").split(" ")
 
-    if(warn_cmds.includes(cmd)) {
+    if(warn_cmds.includes(cmd) || warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true)) {
         let m = await promptUser(msg,  `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
 
         if(!m || m.content.toLowerCase() !== 'y'){
