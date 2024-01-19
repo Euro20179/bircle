@@ -8,7 +8,7 @@ import { efd, isMsgChannel, sleep } from './util'
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder | CommandReturn
 type errType = { content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?: boolean }
 
-async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc: number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: stackTypes }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, int: Interpreter): Promise<stackTypes | errType> {
+async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc: number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: stackTypes }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }): Promise<stackTypes | errType> {
     switch (arg) {
         //vars
         case "$stacksize": {
@@ -476,7 +476,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             ram[name] = async (...args: any[]) => {
                 let stack = args
                 for (let i = 0; i < code.length; i++) {
-                    let rv = await parseArg(code[i], i, code.length, code, argc, stack, initialArgs, ram, currScopes, msg, recursionC, stacks, int)
+                    let rv = await parseArg(code[i], i, code.length, code, argc, stack, initialArgs, ram, currScopes, msg, recursionC, stacks)
                     if (typeof rv === 'object') {
                         if ("end" in rv && rv.end) return { end: true }
                         if ("chgI" in rv && rv?.chgI) i += rv.chgI
@@ -1182,11 +1182,9 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             let loopCount = 0
             let id = Math.floor(Math.random() * 100000000)
             forever: while (true) {
-                if (int.killed)
-                    break
                 loopCount++
                 for (let i = 0; i < code.length; i++) {
-                    let rv = await parseArg(code[i], i, code.length, code, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, int)
+                    let rv = await parseArg(code[i], i, code.length, code, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks)
                     if (typeof rv === 'object') {
                         if ("end" in rv && rv.end) break forever
                         if ("chgI" in rv && rv.chgI) i += rv.chgI
@@ -1237,7 +1235,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
 
                 if (ifArgs[i] === '%ifend') break;
 
-                let rv = await parseArg(ifArgs[i], i + argNo + 1, argCount, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, int)
+                let rv = await parseArg(ifArgs[i], i + argNo + 1, argCount, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks)
                 if (typeof rv === 'object') {
                     if ("end" in rv && rv.end)
                         return { end: true }
@@ -1322,7 +1320,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
     return { stack: stack }
 }
 
-async function parse(args: ArgumentList, useStart: boolean, msg: Message, int: Interpreter): Promise<stackTypes[] | errType | stackTypes> {
+async function parse(args: ArgumentList, useStart: boolean, msg: Message): Promise<stackTypes[] | errType | stackTypes> {
     let stacks: { [key: string]: stackTypes[] } = { __main__: [] }
     let currScopes = ["__main__"]
     let stack = stacks["__main__"]
@@ -1414,7 +1412,7 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, int: I
     for (let i = 0; i < args.length; i++) {
         let arg = args[i]
         arg = arg.trim()
-        let rv = await parseArg(arg, i, args.length, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, int)
+        let rv = await parseArg(arg, i, args.length, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks)
         if (typeof rv === 'object') {
             if ("end" in rv && rv.end) break
             if ("chgI" in rv && rv.chgI) i += rv.chgI

@@ -3,8 +3,6 @@ import cheerio from 'cheerio'
 
 import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
-import { cloneDeep } from 'lodash'
-
 import lemmy from 'lemmy-js-client'
 
 import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction } from 'discord.js';
@@ -1611,7 +1609,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "sport",
-        ccmdV2(async function({ args, interpreter, runtime_opts }) {
+        ccmdV2(async function({ args, runtime_opts }) {
 
             let remote = runtime_opts.get("remote", false)
 
@@ -1837,7 +1835,7 @@ Valid formats:
 
     yield [
         "weather",
-        ccmdV2(async function({ msg, args, opts, interpreter, runtime_opts }) {
+        ccmdV2(async function({ msg, args, opts, runtime_opts }) {
             let [city, ...fmt] = args.resplit("|")
             if (!city) {
                 city = userOptions.getOpt(msg.author.id, "location", "Tokyo")
@@ -2161,7 +2159,7 @@ Valid formats:
     ]
 
     yield [
-        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts, interpreter, runtime_opts }) {
+        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts, runtime_opts }) {
             let req;
             if (opts.getBool("r", opts.getBool("rand", false))) {
                 req = await fetch.default(`https://api.urbandictionary.com/v0/random`)

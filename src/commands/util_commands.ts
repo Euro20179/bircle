@@ -675,7 +675,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "help", createCommandV2(async ({ rawOpts: opts, args, interpreter, runtime_opts }) => {
+        "help", createCommandV2(async ({ rawOpts: opts, args, runtime_opts }) => {
 
             let baseCommands = { ...Object.fromEntries(getCommands().entries()) }
 
@@ -1914,7 +1914,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "yt", ccmdV2(async function({ msg, rawOpts: opts, args, interpreter, runtime_opts }) {
+        "yt", ccmdV2(async function({ msg, rawOpts: opts, args, runtime_opts }) {
             let instance = 'https://vid.puffyan.us'
 
             let pageNo = Number(opts['page'] as string) || 1
@@ -2665,20 +2665,15 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "read-lines", ccmdV2(async function({ msg, args, sendCallback, stdin, pipeTo, opts, interpreter }) {
+        "read-lines", ccmdV2(async function*({ args, stdin, opts }) {
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
             let lines = text.split("\n")
-            if (!pipeTo) {
-                await handleSending(msg, { content: `Warning: you are not piping the result to anything`, status: StatusCode.WARNING }, sendCallback)
-            }
             let waitTime = opts.getNumber("w", 1000)
             if (waitTime < 700) {
                 waitTime = 1000
             }
             for (let line of lines) {
-                if (interpreter.killed)
-                    break;
-                await handleSending(msg, { content: line, status: StatusCode.INFO, do_change_cmd_user_expansion: false }, sendCallback)
+                yield crv(line)
                 await sleep(waitTime)
             }
             return { noSend: true, status: StatusCode.RETURN }
@@ -3268,7 +3263,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        'stackl', ccmdV2(async function({ msg, rawArgs: args, interpreter }) {
+        'stackl', ccmdV2(async function({ msg, rawArgs: args }) {
             const stackl = require("../stackl")
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -3290,7 +3285,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
 
-            let stack = await stackl.parse(args, useStart, msg, interpreter)
+            let stack = await stackl.parse(args, useStart, msg)
             if (stack?.err) {
                 return { content: stack.content, status: StatusCode.RETURN }
             }

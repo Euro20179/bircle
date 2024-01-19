@@ -10,7 +10,7 @@ import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
 import { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
 
-async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
 
     let argShapeResults: Record<string, any> = {}
     let obj: CommandV2RunArg = {
@@ -29,7 +29,8 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
         interpreter: this,
         argShapeResults,
         runtime_opts: runtime_options,
-        symbols
+        symbols,
+        pid_label: pid_label as string
     }
 
     if (cmdObject.argShape) {
@@ -58,15 +59,16 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
     let runtime_opts = new cmds.RuntimeOptions()
     runtime_opts.set("program-args", args)
 
-    for await (let result of PROCESS_MANAGER.spawn(`${name}.bircle`,
-        cmds.runcmd({ command: data, prefix: "(PREFIX)", msg, runtime_opts })
+    for await (let result of PROCESS_MANAGER.spawn_cmd(
+        { command: data, prefix: "(PREFIX)", msg, runtime_opts },
+        `${name}.bircle`,
     )) {
         yield result
     }
 }
 
 //TODO: aliases
-async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
+async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
     let opts;
 
     let cmd = tokens[0].data as string
@@ -93,10 +95,10 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     let warn_cmds = user_options.getOpt(msg.author.id, "warn-cmds", "").split(" ")
     let warn_categories = user_options.getOpt(msg.author.id, "warn-categories", "").split(" ")
 
-    if(warn_cmds.includes(cmd) || warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true)) {
-        let m = await promptUser(msg,  `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+    if (warn_cmds.includes(cmd) || warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true)) {
+        let m = await promptUser(msg, `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
 
-        if(!m || m.content.toLowerCase() !== 'y'){
+        if (!m || m.content.toLowerCase() !== 'y') {
             yield { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
             return
         }
@@ -138,7 +140,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }
 
     else if (cmdObject.cmd_std_version === 2) {
-        for await (let item of run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback)) {
+        for await (let item of run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback, pid_label)) {
             yield item
         }
         return

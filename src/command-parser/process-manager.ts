@@ -1,4 +1,4 @@
-import cmds from "./cmds"
+import cmds, { RunCmdOptions } from "./cmds"
 
 export class ProcessManager {
     private PIDS: Map<number, ReturnType<typeof cmds.runcmd>> = new Map()
@@ -25,10 +25,13 @@ export class ProcessManager {
         return this.PIDS.keys()
     }
 
-    async* spawn(label: string, result_generator: ReturnType<typeof cmds.runcmd>) {
+    async* spawn_cmd(args: RunCmdOptions, label?: string){
+        label ??= args.command
+        args.pid_label = label
+        let result_generator = cmds.runcmd(args)
         let pid = this.PIDS.size + 1
         this.PIDS.set(pid, result_generator)
-        this.PIDLabels.set(pid, label)
+        this.PIDLabels.set(pid, label || args.command)
         for await(let result of result_generator){
             if(!this.running(pid)){
                 break

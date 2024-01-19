@@ -14,11 +14,11 @@ commands()
 
 import { slashCmds } from './src/slashCommands'
 
-import command_commons, { Interpreter, StatusCode, handleSending } from './src/common_to_commands'
+import command_commons, { StatusCode, handleSending } from './src/common_to_commands'
 
 import globals from './src/globals'
 import { defer, isMsgChannel } from './src/util'
-import { Parser, format, getOptsUnix } from './src/parsing'
+import { format, getOptsUnix } from './src/parsing'
 import { getOpt } from './src/user-options'
 import common from './src/common'
 import timer from './src/timer'
@@ -35,8 +35,6 @@ import pets from './src/pets'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
-import lexer from './src/command-parser/lexer'
-import tokenEvaluator from './src/command-parser/token-evaluator'
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
@@ -252,9 +250,10 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             let cmd = await res.text()
             cmd = "(PREFIX)" + cmd
 
-            for await(let result of globals.PROCESS_MANAGER.spawn(
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                { command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts },
                 att.name,
-                cmds.runcmd({ command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts})
+
             )) {
 
                 await cmds.handleSending(m, result)
@@ -262,8 +261,9 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
 
         if (command_commons.isCmd(content, local_prefix)) {
-            for await(let result of globals.PROCESS_MANAGER.spawn(content,
-                cmds.runcmd({ command: content, prefix: local_prefix, msg: m })
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                { command: content, prefix: local_prefix, msg: m },
+                content,
             )) {
                 await cmds.handleSending(m, result)
             }

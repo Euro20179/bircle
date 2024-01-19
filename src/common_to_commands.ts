@@ -504,7 +504,7 @@ export class AliasV2 {
         if (legacy !== true) {
             for await(
                 let result of
-             globals.PROCESS_MANAGER.spawn(`${this.name}(SUB)`, cmds.runcmd({command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback}))
+             globals.PROCESS_MANAGER.spawn_cmd({command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback}, `${this.name}(SUB)`, )
                      ){
                 yield result
             }

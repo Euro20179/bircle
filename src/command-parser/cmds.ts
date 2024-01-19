@@ -60,7 +60,7 @@ export class RuntimeOptions {
     }
 }
 
-async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], pipeChain: TT<any>[][], msg: Message, symbols: SymbolTable, runtime_opts: RuntimeOptions, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)): AsyncGenerator<CommandReturn> {
+async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], pipeChain: TT<any>[][], msg: Message, symbols: SymbolTable, runtime_opts: RuntimeOptions, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string): AsyncGenerator<CommandReturn> {
     if (stdin) {
         symbols.set("stdin:%", stdin.content ?? "")
     }
@@ -88,7 +88,7 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
         msg.delete().catch(console.error)
     }
 
-    for await (let item of runner.command_runner(new_tokens, msg, symbols, runtime_opts, stdin, sendCallback)) {
+    for await (let item of runner.command_runner(new_tokens, msg, symbols, runtime_opts, stdin, sendCallback, pid_label as string)) {
         if (runtime_opts.get("silent", false)) {
             yield { noSend: true, status: StatusCode.RETURN }
         }
@@ -100,7 +100,7 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
             for (let modifier of modifier_dat[1]) {
                 modifier.unset_runtime_opt(runtime_opts)
             }
-            for await (let piped_item of handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback)) {
+            for await (let piped_item of handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)) {
                 yield piped_item
             }
             for (let mod of modifier_dat[1]) {
@@ -120,13 +120,15 @@ export type RunCmdOptions = {
     prefix: string,
     msg: Message,
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
-    runtime_opts?: RuntimeOptions
+    runtime_opts?: RuntimeOptions,
+    pid_label?: string
 }
 //TODO:
 //missing support for:
 //recursion_count
 //banned_commands
-async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts }: RunCmdOptions) {
+async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_label }: RunCmdOptions) {
+    console.assert(pid_label !== undefined, "Pid label is undefined")
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)
@@ -192,7 +194,7 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts }: Run
         }
 
         if (!runtime_opts.get("no-run", false)) {
-            for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback)) {
+            for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
                 yield result
             }
         }

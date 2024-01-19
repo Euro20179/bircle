@@ -10,10 +10,10 @@ import API = require('../api')
 import { Parser, parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, databaseFileToArray } from '../util'
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from '../util'
 
 
-import { Guild, Message, EmbedBuilder, User } from 'discord.js'
+import { Guild, EmbedBuilder, User } from 'discord.js'
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
@@ -24,7 +24,7 @@ import cmds from '../command-parser/cmds'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
-    yield ['clear-snipes', ccmdV2(async function({ msg, args }) {
+    yield ['clear-snipes', ccmdV2(async function() {
         clearSnipes()
         return crv("Snipes cleared")
     }, "Clears all snipes")]
@@ -145,7 +145,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     }, CAT, "get specific data from stdin/pipe")]
 
-    yield ["set", ccmdV2(async ({ opts, args, interpreter, runtime_opts }) => {
+    yield ["set", ccmdV2(async ({ opts, args, runtime_opts }) => {
         let explicit = opts.getBool("x", null)
         if (explicit !== null) {
             runtime_opts.set("verbose", explicit)
@@ -155,7 +155,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             runtime_opts.set("silent", quiet)
         }
         let no_run = opts.getBool("d", null)
-        if(no_run !== null){
+        if (no_run !== null) {
             runtime_opts.set("no-run", no_run)
         }
         if (args.length) {
@@ -223,7 +223,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
     })]
 
-    yield ["export", ccmdV2(async ({ interpreter, args, symbols }) => {
+    yield ["export", ccmdV2(async ({ args, symbols }) => {
         let [name, ...val] = args
         let value = val.join(" ")
         if (value[0] === "=") {
@@ -401,7 +401,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "options", createCommandV2(async ({ msg, rawOpts: opts, args, interpreter, runtime_opts }) => {
+        "options", createCommandV2(async ({ msg, rawOpts: opts, args, runtime_opts }) => {
             let user: string = msg.author.id
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
@@ -561,7 +561,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
 
             return {
-                content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
+                content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_: any, rv: any) => {
                     rv.content = rv.content?.replace(/```(?:type|java)script\n/, "")?.replace(/```$/, "")
                     return rv
                 }
@@ -634,7 +634,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "del-var", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+        "del-var", ccmdV2(async function({ msg, args, rawOpts: opts }) {
             let prefix = String(opts['prefix'] || "__global__")
             if (opts['u']) {
                 prefix = msg.author.id
@@ -856,7 +856,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "for", createCommandV2(async function*({ msg, args, recursionCount, commandBans, sendCallback, interpreter, runtime_opts }) {
+        "for", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts, pid_label }) {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
@@ -870,11 +870,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 end = start + 1
             }
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
-            outer: for (let i = start; i < end; i++) {
+            for (let i = start; i < end; i++) {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    for await (let result of globals.PROCESS_MANAGER.spawn("FOR",
-                        cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                    for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts }, `${pid_label}:${i}`
                     )) {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
@@ -890,7 +890,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "switch", ccmdV2(async function*({ args, msg, commandBans, recursionCount, sendCallback, runtime_opts }) {
+        "switch", ccmdV2(async function*({ args, msg, sendCallback, runtime_opts }) {
             args.beginIter()
             let switchOn = args.expectString(1)
             if (switchOn === BADVALUE) {
@@ -943,9 +943,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         else {
                             shouldContinueTesting = false;
                         }
-                        for await (let result of globals.PROCESS_MANAGER.spawn(
-                            "switch(SUB)",
-                            cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                            { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                            "switch(SUB)"
                         )) {
                             yield result
                         }
@@ -988,8 +988,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             async function handleBranch(command: string, code: StatusCode) {
                 let lastrv;
                 if (command) {
-                    for await (let result of globals.PROCESS_MANAGER.spawn("[(SUB)",
-                        cmds.runcmd({ command: "(PREFIX)" + command, prefix: "(PREFIX)", sendCallback, runtime_opts, msg })
+                    for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                        { command: "(PREFIX)" + command, prefix: "(PREFIX)", sendCallback, runtime_opts, msg },
+                        "[(SUB)"
                     )
                     ) {
                         lastrv = result
@@ -1089,13 +1090,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if-cmd", createCommandV2(async function*({ msg, args, recursionCount: rec, commandBans: bans, sendCallback, runtime_opts }) {
+        "if-cmd", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts }) {
 
             async function runIf(c: string, operator: string, value: string) {
                 let rv
-                for await (let result of globals.PROCESS_MANAGER.spawn(
-                    "if-cmd(SUB)",
-                    cmds.runcmd({ command: "(PREFIX)" + c, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: "(PREFIX)" + c, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                    "if-cmd(SUB)"
                 )) {
                     //we only care about the last rv
                     rv = result
@@ -1223,9 +1224,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for (let line of trueBlock.split(";\n")) {
                     line = line.trim()
                     if (!line || line.startsWith("}")) continue
-                    for await (let result of globals.PROCESS_MANAGER.spawn(
-                        "if-cmd(SUB)",
-                        cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                    for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                        "if-cmd(SUB)"
                     )) {
                         //we only care about the last rv
                         yield result
@@ -1238,9 +1239,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for (let elif of elifBlocks) {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
                         if (!elif.block.trim() || elif.block.trim().startsWith("}")) continue
-                        for await (let result of globals.PROCESS_MANAGER.spawn(
-                            "if-cmd(SUB)",
-                            cmds.runcmd({ command: "(PREFIX)" + elif.block.trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                            { command: "(PREFIX)" + elif.block.trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                            "if-cmd(SUB)"
                         )) {
                             //we only care about the last rv
                             yield result
@@ -1253,9 +1254,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     for (let line of falseBlock.split(";\n")) {
                         line = line.trim()
                         if (!line || line.startsWith("}")) continue
-                        for await (let result of globals.PROCESS_MANAGER.spawn(
-                            "if-cmd(SUB)",
-                            cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                            { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                            "if-cmd(SUB)"
                         )) {
                             //we only care about the last rv
                             yield result
@@ -1293,7 +1294,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if", ccmdV2(async function*({ msg, rawArgs: args, recursionCount: recursion_count, commandBans: command_bans, runtime_opts }) {
+        "if", ccmdV2(async function*({ msg, rawArgs: args, runtime_opts }) {
             let [condition, cmdToCheck] = args.join(" ").split(";")
             if (!cmdToCheck) {
                 return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
@@ -1346,8 +1347,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     expected += ch;
                 }
                 let rv: CommandReturn = { status: 0, noSend: true }
-                for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
-                    cmds.runcmd({ command: command_to_run, prefix: globals.PREFIX, runtime_opts, msg })
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: command_to_run, prefix: globals.PREFIX, runtime_opts, msg },
+                    "if(SUB)"
                 )) {
                     rv = result
                 }
@@ -1424,15 +1426,17 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
-                    cmds.runcmd({ command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg })
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg },
+                    "if(SUB)"
                 )) {
                     yield result
                 }
             }
             else if (elseCmd) {
-                for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
-                    cmds.runcmd({ command: "(PREFIX)" + elseCmd.trim(), prefix: "(PREFIX)", runtime_opts, msg })
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: "(PREFIX)" + elseCmd.trim(), prefix: "(PREFIX)", runtime_opts, msg },
+                    "if(SUB)"
                 )) {
                     yield result
                 }
@@ -1445,7 +1449,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "getimg", ccmdV2(async ({ msg, opts, args, stdin }) => {
+        "getimg", ccmdV2(async ({ msg, opts, stdin }) => {
             let pop = opts.getBool("pop", false)
             let img = getImgFromMsgAndOpts(opts, msg, stdin, pop)
             return { content: String(img), status: StatusCode.RETURN }
@@ -1481,7 +1485,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "opts", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+        "opts", ccmdV2(async function({ rawOpts: opts }) {
             let disp = ""
             for (let key in opts) {
                 disp += `**${key}**: \`${opts[key]}\`\n`
@@ -1505,7 +1509,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "uptime", ccmdV2(async function({ msg, args }) {
+        "uptime", ccmdV2(async function({ args }) {
             let uptime = common.client.uptime
             if (!uptime) {
                 return {
@@ -1617,10 +1621,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts, runtime_opts }) {
+        "timeit", ccmdV2(async function({ msg, args, sendCallback, opts, runtime_opts }) {
             let start = performance.now()
-            for await (let result of globals.PROCESS_MANAGER.spawn("TIMEIT",
-                cmds.runcmd({ command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                { command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                "TIMEIT"
             )) {
                 if (!opts.getBool("n", false))
                     await cmds.handleSending(msg, result)
@@ -1642,7 +1647,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
 
     yield [
-        "do", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, commandBans: bans, interpreter, runtime_opts }) {
+        "do", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -1665,14 +1670,15 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             while (times--) {
                 runtime_opts.set("recursion", runtime_opts.get("recursion_limit", globals.RECURSION_LIMIT) - 1)
-                for await (let result of globals.PROCESS_MANAGER.spawn("DO",
-                    cmds.runcmd({
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    {
                         command: "(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }),
                         prefix: "(PREFIX)",
                         msg,
                         sendCallback,
                         runtime_opts
-                    })
+                    },
+                    "DO",
                 )) {
                     yield result
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
@@ -1692,7 +1698,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "spam", createCommandV2(async function*({ msg, args, opts, sendCallback, interpreter }) {
+        "spam", createCommandV2(async function*({ args, opts }) {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -1855,7 +1861,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "run", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter, runtime_opts }) {
+        "run", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -1877,9 +1883,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             if (!text) {
                 return { content: "No script", status: StatusCode.ERR }
-            }
-            if (opts['s']) {
-                await handleSending(msg, { content: `Starting id: ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
             }
             function handleRunFn(fn: string, contents: string) {
                 switch (fn) {
@@ -1939,8 +1942,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                for await (let result of globals.PROCESS_MANAGER.spawn("RUN",
-                    cmds.runcmd({ command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                    "RUN"
                 )) {
                     yield result
                 }
@@ -1956,7 +1960,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "var", ccmdV2(async function({ msg, sendCallback, rawOpts: opts, args }) {
+        "var", ccmdV2(async function({ msg, rawOpts: opts, args }) {
             let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
             if (!value.length) {
                 return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
@@ -2162,7 +2166,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 curObj = curObj?.[prop as keyof typeof curObj]
             }
             return {
-                content: `\`\`\`javascript\n${String(curObj)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
+                content: `\`\`\`javascript\n${String(curObj)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_: any, rv: any) => {
                     rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
                     return rv
                 }
@@ -2211,7 +2215,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         })
     ]
 
-    yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
+    yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, }) => {
         let v2 = getAliasesV2()[args[0]]
         let showArgs = true
         if (opts.getBool("n", false) || opts.getBool("no-args", false)) {
@@ -2269,7 +2273,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         i: createHelpOption("Get the ith expansion of the chain")
     })]
 
-    yield ["rccmd", createCommandV2(async ({ msg, args, rawArgs, sendCallback, recursionCount, commandBans }) => {
+    yield ["rccmd", createCommandV2(async ({ msg, args, }) => {
         let cmdName = args[0]
         let aliasesV2 = getAliasesV2()
         if (aliasesV2[cmdName] && aliasesV2[cmdName].creator === msg.author.id) {
@@ -2451,7 +2455,7 @@ ${styles}
                     status: StatusCode.RETURN
                 }
             }
-            return globals.ADMINS.includes(msg.author.id)
+            // return globals.ADMINS.includes(msg.author.id)
         }, "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd")
     ]
 
@@ -2482,7 +2486,7 @@ ${styles}
     })
     ]
 
-    yield ["abattle", ccmdV2(async function({ msg, args }) {
+    yield ["abattle", ccmdV2(async function({ args }) {
         let responses: BattleResponses = {}
         if (fs.existsSync("./database/battleV2")) {
             let d = fs.readFileSync("./database/battleV2", "utf-8")
@@ -2883,7 +2887,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "shell", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
+        "shell", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             if (globals.userUsingCommand(msg.author.id, "shell")) {
                 return { content: "You are already using this command", status: StatusCode.ERR }

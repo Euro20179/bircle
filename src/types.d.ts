@@ -139,6 +139,7 @@ declare global {
         interpreter: Interpreter,
         argShapeResults: Record<string, unknown>,
         symbols: SymbolTable
+        pid_label: string
     }
 
     type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn | void> | AyncGenerator<CommandReturn>;
