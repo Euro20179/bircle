@@ -918,7 +918,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     regex = new RegExp(caseBlock[0])
                 }
                 catch (err) {
-                    yield { content:   `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING }
+                    yield { content: `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING }
                 }
                 let shouldContinueTesting = true;
                 if ((regex as RegExp).test(switchOn)) {
@@ -932,7 +932,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         else {
                             shouldContinueTesting = false;
                         }
-                        for await(let result of globals.PROCESS_MANAGER.spawn(
+                        for await (let result of globals.PROCESS_MANAGER.spawn(
                             "switch(SUB)",
                             cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
                         )) {
@@ -958,11 +958,15 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "[", ccmdV2(async function({ args, opts, sendCallback, msg, runtime_opts }) {
-            if (args.indexOf("]") < 0) {
-                return { content: `You must end the check with ]`, status: StatusCode.ERR }
+            let end_of_check = args.indexOf("]")
+            if(end_of_check === -1){
+                end_of_check = args.indexOf("then")
+            }
+            if (end_of_check < 0) {
+                return { content: `You must end the check with ] or then`, status: StatusCode.ERR }
             }
 
-            let testText = args.slice(0, args.indexOf("]"))
+            let testText = args.slice(0, end_of_check)
 
             let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}").trim()
             let elseCommand = ""
@@ -972,7 +976,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             async function handleBranch(command: string, code: StatusCode) {
                 let lastrv;
-                if(command){
+                if (command) {
                     for await (let result of globals.PROCESS_MANAGER.spawn("[(SUB)",
                         cmds.runcmd({ command: "(PREFIX)" + command, prefix: "(PREFIX)", sendCallback, runtime_opts, msg })
                     )
@@ -1074,10 +1078,20 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if-cmd", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, sendCallback }) => {
+        "if-cmd", createCommandV2(async function*({ msg, args, recursionCount: rec, commandBans: bans, sendCallback, runtime_opts }) {
 
             async function runIf(c: string, operator: string, value: string) {
-                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, disable: bans })).rv as CommandReturn
+                let rv
+                for await (let result of globals.PROCESS_MANAGER.spawn(
+                    "if-cmd(SUB)",
+                    cmds.runcmd({ command: "(PREFIX)" + c, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                )) {
+                    //we only care about the last rv
+                    rv = result
+                }
+                if (rv === undefined) {
+                    rv = { noSend: true, status: 0 }
+                }
                 let isTrue = false
                 switch (operator) {
                     case "==": {
@@ -1198,8 +1212,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for (let line of trueBlock.split(";\n")) {
                     line = line.trim()
                     if (!line || line.startsWith("}")) continue
-                    let rv = await cmd({ msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans })
-                    await handleSending(msg, rv.rv, sendCallback)
+                    for await (let result of globals.PROCESS_MANAGER.spawn(
+                        "if-cmd(SUB)",
+                        cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                    )) {
+                        //we only care about the last rv
+                        yield result
+                    }
                 }
                 return { noSend: true, status: StatusCode.RETURN }
             }
@@ -1208,8 +1227,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for (let elif of elifBlocks) {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
                         if (!elif.block.trim() || elif.block.trim().startsWith("}")) continue
-                        let rv = await cmd({ msg, command_excluding_prefix: elif.block.trim(), recursion: rec + 1, disable: bans })
-                        await handleSending(msg, rv.rv, sendCallback)
+                        for await (let result of globals.PROCESS_MANAGER.spawn(
+                            "if-cmd(SUB)",
+                            cmds.runcmd({ command: "(PREFIX)" + elif.block.trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                        )) {
+                            //we only care about the last rv
+                            yield result
+                        }
                         foundElse = true
                         break;
                     }
@@ -1218,8 +1242,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     for (let line of falseBlock.split(";\n")) {
                         line = line.trim()
                         if (!line || line.startsWith("}")) continue
-                        let rv = await cmd({ msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans })
-                        await handleSending(msg, rv.rv, sendCallback)
+                        for await (let result of globals.PROCESS_MANAGER.spawn(
+                            "if-cmd(SUB)",
+                            cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+                        )) {
+                            //we only care about the last rv
+                            yield result
+                        }
                     }
                 }
                 return { noSend: true, status: StatusCode.RETURN }
