@@ -952,7 +952,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "[", ccmdV2(async function({ args, opts, sendCallback, commandBans, recursionCount, msg, interpreter }) {
+        "[", ccmdV2(async function({ args, opts, sendCallback, msg, runtime_opts }) {
             if (args.indexOf("]") < 0) {
                 return { content: `You must end the check with ]`, status: StatusCode.ERR }
             }
@@ -966,11 +966,18 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
 
             async function handleBranch(command: string, code: StatusCode) {
-                let context = opts.getBool("s", false) ? undefined : interpreter.context
-                if (command)
-                    return (await cmd({ msg, command_excluding_prefix: command, sendCallback, disable: commandBans, recursion: recursionCount + 1, context })).rv as CommandReturn
-                return { content: code === StatusCode.RETURN ? "true" : "false", status: code }
-
+                let lastrv;
+                if(command){
+                    for await (let result of globals.PROCESS_MANAGER.spawn("[(SUB)",
+                        cmds.runcmd({ command: "(PREFIX)" + command, prefix: "(PREFIX)", sendCallback, runtime_opts, msg })
+                    )
+                    ) {
+                        lastrv = result
+                    }
+                } else {
+                    lastrv = { content: code === StatusCode.RETURN ? "true" : "false", status: code }
+                }
+                return lastrv
             }
 
             const handleTruthiness = async () => await handleBranch(commandToRun, StatusCode.RETURN)
@@ -1552,10 +1559,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     yield [
         "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts, runtime_opts }) {
             let start = performance.now()
-            for await(let result of globals.PROCESS_MANAGER.spawn("TIMEIT",
-                cmds.runcmd({command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts})
-            )){
-                if(!opts.getBool("n", false))
+            for await (let result of globals.PROCESS_MANAGER.spawn("TIMEIT",
+                cmds.runcmd({ command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
+            )) {
+                if (!opts.getBool("n", false))
                     await cmds.handleSending(msg, result)
             }
             // let rv = await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
@@ -1660,13 +1667,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "stop", ccmdV2(async function*({ args }) {
-            if(args.length){
-                for(let pid of args){
-                    if(globals.PROCESS_MANAGER.killproc(pid))
+            if (args.length) {
+                for (let pid of args) {
+                    if (globals.PROCESS_MANAGER.killproc(pid))
                         yield crv(`Stopped: ${pid}`)
                 }
             }
-            for (let pid of globals.PROCESS_MANAGER.getprocids()){
+            for (let pid of globals.PROCESS_MANAGER.getprocids()) {
                 globals.PROCESS_MANAGER.killproc(pid)
             }
             yield crv("stopping all")
@@ -1873,7 +1880,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     line = line.slice(globals.PREFIX.length)
                 }
                 for await (let result of globals.PROCESS_MANAGER.spawn("RUN",
-                    cmds.runcmd({command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts})
+                    cmds.runcmd({ command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
                 )) {
                     yield result
                 }
