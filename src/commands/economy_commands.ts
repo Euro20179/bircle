@@ -368,7 +368,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "inventory", ccmdV2(async function({ msg, opts, args, interpreter }) {
+        "inventory", ccmdV2(async function({ msg, opts, args, interpreter, runtime_opts }) {
 
             let user = await fetchUserFromClient(common.client, args[0] ?? msg.author.id)
             if (!user)
@@ -404,7 +404,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 embedPages.push(e)
             }
 
-            if (interpreter.altClient) {
+            if (runtime_opts.get("remote", false)) {
                 return { embeds: embedPages, status: StatusCode.RETURN }
             }
 

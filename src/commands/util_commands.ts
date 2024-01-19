@@ -675,11 +675,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "help", createCommandV2(async ({ rawOpts: opts, args, interpreter }) => {
+        "help", createCommandV2(async ({ rawOpts: opts, args, interpreter, runtime_opts }) => {
 
             let baseCommands = { ...Object.fromEntries(getCommands().entries()) }
 
-            if (interpreter.altClient) {
+            if (runtime_opts.get("remote", false)) {
                 let commandsToUse = args.length ? {} : baseCommands
                 for (let arg of args) {
                     commandsToUse[arg] = baseCommands[arg]
@@ -1914,7 +1914,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "yt", ccmdV2(async function({ msg, rawOpts: opts, args, interpreter }) {
+        "yt", ccmdV2(async function({ msg, rawOpts: opts, args, interpreter, runtime_opts }) {
             let instance = 'https://vid.puffyan.us'
 
             let pageNo = Number(opts['page'] as string) || 1
@@ -1993,7 +1993,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }, i - 1)
             }
 
-            if (interpreter.altClient) {
+            if (runtime_opts.get("remote", false)) {
                 return { embeds: pagedEmbed.embeds, status: StatusCode.RETURN }
             }
 

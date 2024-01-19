@@ -1611,7 +1611,10 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "sport",
-        ccmdV2(async function({ args, interpreter }) {
+        ccmdV2(async function({ args, interpreter, runtime_opts }) {
+
+            let remote = runtime_opts.get("remote", false)
+
             let resp = await fetch.default(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
             let html = await resp.text()
             let embed = new EmbedBuilder()
@@ -1655,7 +1658,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 homeScore = `***${homeScore}***`
                 embed.setColor("#00ff00")
             }
-            embed.addFields(efd(["Time", inning, interpreter.altClient], [`${homeTeam}`, String(homeScore), interpreter.altClient], [`${awayTeam}`, String(awayScore), interpreter.altClient]))
+            embed.addFields(efd(["Time", inning, remote], [`${homeTeam}`, String(homeScore), remote], [`${awayTeam}`, String(awayScore), remote]))
             return {
                 embeds: [embed],
                 status: StatusCode.RETURN
@@ -1834,7 +1837,7 @@ Valid formats:
 
     yield [
         "weather",
-        ccmdV2(async function({ msg, args, opts, interpreter }) {
+        ccmdV2(async function({ msg, args, opts, interpreter, runtime_opts }) {
             let [city, ...fmt] = args.resplit("|")
             if (!city) {
                 city = userOptions.getOpt(msg.author.id, "location", "Tokyo")
@@ -2028,7 +2031,7 @@ Valid formats:
                     .setTitle(name)
             }
 
-            if (interpreter.altClient) {
+            if (runtime_opts.get("remote", false)) {
                 let embeds = opts.getBool("C", false) ? celciusEmbeds.concat(forecastCEmbeds) : fEmbeds.concat(forecastEmbeds)
                 return { embeds: embeds, status: StatusCode.RETURN }
             }
@@ -2157,7 +2160,7 @@ Valid formats:
     ]
 
     yield [
-        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts, interpreter }) {
+        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts, interpreter, runtime_opts }) {
             let req;
             if (opts.getBool("r", opts.getBool("rand", false))) {
                 req = await fetch.default(`https://api.urbandictionary.com/v0/random`)
@@ -2222,9 +2225,9 @@ Valid formats:
             if (json.list?.length === 0) {
                 return crv(`No results`, { status: StatusCode.ERR })
             }
-            // if (interpreter.altClient) {
-            //     return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
-            // }
+            if (runtime_opts.get("remote", false)) {
+                return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
+            }
             let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")
 
             paged.addButton("random", { label: "🔀", customId: `udict.random:${msg.author.id}`, style: ButtonStyle.Success }, function(_int, m) {

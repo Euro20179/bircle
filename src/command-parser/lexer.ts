@@ -49,7 +49,6 @@ class WebModifier extends Modifier {
 
     set_runtime_opt(options: RuntimeOptions) {
         options.set("remote", true)
-        console.error("remote option not implemented")
     }
 
     unset_runtime_opt(options: RuntimeOptions) {

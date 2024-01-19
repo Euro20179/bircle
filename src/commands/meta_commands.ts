@@ -390,7 +390,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "options", createCommandV2(async ({ msg, rawOpts: opts, args, interpreter }) => {
+        "options", createCommandV2(async ({ msg, rawOpts: opts, args, interpreter, runtime_opts }) => {
             let user: string = msg.author.id
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
@@ -447,7 +447,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (validOpt) {
                 return { content: `**${optionToCheck}**\n${user_options.getOpt(user, validOpt, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
-            if (interpreter.altClient) {
+            if (runtime_opts.get("remote", false)) {
                 let html = ""
                 for (let opt of user_options.allowedOptions) {
                     html += `<h3>${opt}</h3><br><p><pre>${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}</pre></p><hr><br>`

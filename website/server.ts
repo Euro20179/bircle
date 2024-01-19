@@ -15,6 +15,7 @@ import timer from '../src/timer'
 import { getInventory } from '../src/shop'
 
 import ws from 'ws'
+import cmds from '../src/command-parser/cmds'
 
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
@@ -688,22 +689,41 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
             return new Collection(prompt_replies as [])
         }
 
-        common_to_commands.cmd({
-            msg, command_excluding_prefix: command as string, sendCallback: async (data) => {
-                //make sendcallback go to the client
-                ws.send(JSON.stringify({ event: "append-data", rv: data }))
-                return msg as Message<true>
+        (async function(){
+            for await (let item of cmds.runcmd({
+                command: "(PREFIX)" + command,
+                prefix: "(PREFIX)",
+                msg
+            })){
+                handleReturn({interpreter: undefined, rv: item})
             }
-        }).then((data) => {
+            return
+        })().then(() => {
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
-            return handleReturn(data)
-        }
-        ).catch((data) => {
+        }).catch(() => {
+
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
-            return handleError(data)
+            handleError("ERrr")
         })
+
+        // common_to_commands.cmd({
+        //     msg, command_excluding_prefix: command as string, sendCallback: async (data) => {
+        //         //make sendcallback go to the client
+        //         ws.send(JSON.stringify({ event: "append-data", rv: data }))
+        //         return msg as Message<true>
+        //     }
+        // }).then((data) => {
+        //     channel.send = oldSend
+        //     channel.awaitMessages = oldAwaitMessage
+        //     return handleReturn(data)
+        // }
+        // ).catch((data) => {
+        //     channel.send = oldSend
+        //     channel.awaitMessages = oldAwaitMessage
+        //     return handleError(data)
+        // })
 
     }).catch(handleError)
 }
