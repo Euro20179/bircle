@@ -1312,7 +1312,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false, status: StatusCode.RETURN }
             if (dm) {
-                rv['channel'] = msg.author.dmChannel ?? undefined
+                rv['channel'] = await msg.author.createDM() ?? undefined
             }
             if (opts['mimetype'] && String(opts['mimetype']).match(/^[^\/]+\/[^\/]+$/)) {
                 rv['mimetype'] = String(opts['mimetype']) as MimeType

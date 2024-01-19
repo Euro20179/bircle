@@ -118,7 +118,6 @@ export type RunCmdOptions = {
     command: string,
     prefix: string,
     msg: Message,
-    program_args: string[],
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     runtime_opts?: RuntimeOptions
 }
@@ -126,7 +125,7 @@ export type RunCmdOptions = {
 //missing support for:
 //recursion_count
 //banned_commands
-async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, program_args }: RunCmdOptions) {
+async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts }: RunCmdOptions) {
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)
