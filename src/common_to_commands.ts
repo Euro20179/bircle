@@ -502,10 +502,10 @@ export class AliasV2 {
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
         if (legacy !== true) {
-            for await(
+            for await (
                 let result of
-             globals.PROCESS_MANAGER.spawn_cmd({command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback}, `${this.name}(SUB)`, )
-                     ){
+                globals.PROCESS_MANAGER.spawn_cmd({ command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback }, `${this.name}(SUB)`,)
+            ) {
                 yield result
             }
         }
@@ -1234,7 +1234,9 @@ export class Interpreter {
         }
         else if (cmdObject instanceof AliasV2) {
             //dont need to apply finality as it's already been applied
-            rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, legacy: true }) as CommandReturn
+            for await (let res of cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, legacy: true })) {
+                rv = res
+            }
             this.aliasV2 = cmdObject
         }
         else {

@@ -69,8 +69,6 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
 
 //TODO: aliases
 async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
-    let opts;
-
     let cmd = tokens[0].data as string
 
     if (common.BLACKLIST[msg.author.id]?.includes(cmd)) {
@@ -120,10 +118,10 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         unix: getOptsUnix,
         normal: getOpts
     }[user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
-    [opts, raw_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
+    let [opts, parsed_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
 
     //@ts-ignore
-    let args = new ArgList(raw_args)
+    let args = new ArgList(parsed_args)
 
     if (cmdObject instanceof AliasV2) {
         for await (let result of
