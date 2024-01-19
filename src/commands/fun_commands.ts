@@ -1864,8 +1864,8 @@ Valid formats:
             }
             if (opts.getBool("above-the-fold-data", false)) {
                 let jString = repalaceCity ?
-                    JSON.stringify(json).replaceAll(found_city, "a city")
-                    : JSON.stringify(json)
+                    JSON.stringify(weatherJson).replaceAll(found_city, "a city")
+                    : JSON.stringify(weatherJson)
                 if (!fmt.length) {
                     return crv(jString)
                 }
