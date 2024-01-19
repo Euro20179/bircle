@@ -959,7 +959,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     yield [
         "[", ccmdV2(async function({ args, opts, sendCallback, msg, runtime_opts }) {
             let end_of_check = args.indexOf("]")
-            if(end_of_check === -1){
+            if (end_of_check === -1) {
                 end_of_check = args.indexOf("then")
             }
             if (end_of_check < 0) {
@@ -1282,7 +1282,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if", ccmdV2(async function({ msg, rawArgs: args, recursionCount: recursion_count, commandBans: command_bans }) {
+        "if", ccmdV2(async function*({ msg, rawArgs: args, recursionCount: recursion_count, commandBans: command_bans, runtime_opts }) {
             let [condition, cmdToCheck] = args.join(" ").split(";")
             if (!cmdToCheck) {
                 return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
@@ -1334,7 +1334,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     }
                     expected += ch;
                 }
-                let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, disable: command_bans })).rv as CommandReturn).trim()
+                let rv: CommandReturn = { status: 0, noSend: true }
+                for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
+                    cmds.runcmd({ command: command_to_run, prefix: globals.PREFIX, runtime_opts, msg })
+                )) {
+                    rv = result
+                }
+                let content = getContentFromResult(rv)
                 expected = expected.trim()
                 switch (check.trim().toLowerCase()) {
                     case "==": {
@@ -1405,11 +1411,19 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }
             }
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, disable: command_bans })).rv as CommandReturn
+                for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
+                    cmds.runcmd({ command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg })
+                )) {
+                    yield result
+                }
             }
             let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
             if (elseCmd) {
-                return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, disable: command_bans })).rv as CommandReturn
+                for await (let result of globals.PROCESS_MANAGER.spawn("if(SUB)",
+                    cmds.runcmd({ command: "(PREFIX)" + elseCmd.trim(), prefix: "(PREFIX)", runtime_opts, msg })
+                )) {
+                    yield result
+                }
             }
             return { content: "?", status: StatusCode.ERR }
 
