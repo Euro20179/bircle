@@ -130,6 +130,9 @@ declare global {
         */
         argList: ArgList,
         stdin?: CommandReturn,
+        /**
+            * @deprecated always undefined, impossible in the new system
+        */
         pipeTo?: Token[],
         interpreter: Interpreter,
         argShapeResults: Record<string, unknown>

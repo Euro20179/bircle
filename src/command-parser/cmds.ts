@@ -24,7 +24,11 @@ export class SymbolTable {
     }
 }
 
-async function runcmd(command: string, prefix: string, msg: Message) {
+//TODO:
+//missing support for:
+//recursion_count
+//banned_commands
+async function runcmd(command: string, prefix: string, msg: Message, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
     let modifiers = lexer.getModifiers(command)
 
     let symbols = new SymbolTable()
@@ -71,7 +75,7 @@ async function runcmd(command: string, prefix: string, msg: Message) {
 
             let evalulator = new tokenEvaluator.TokenEvaluator(pipe_working_tokens, symbols, msg)
             let new_tokens = await evalulator.evaluate()
-            rv = await runner.command_runner(new_tokens, msg, rv)
+            rv = await runner.command_runner(new_tokens, msg, rv, sendCallback)
             pipe_start_idx = pipe_idx + 1
         }
         if (rv && semi_index != semi_indexes[semi_indexes.length - 1]) {

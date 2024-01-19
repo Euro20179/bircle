@@ -20,6 +20,7 @@ import { performance } from 'perf_hooks'
 import fetch from 'node-fetch'
 import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
+import cmds from '../command-parser/cmds'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
@@ -1848,13 +1849,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return text
             }
             for (let line of text) {
-                if (interpreter.killed)
-                    break
                 line = line.trim()
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                await handleSending(msg, (await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })).rv)
+                let result = await cmds.runcmd(`(PREFIX)${parseRunLine(line)}`, "(PREFIX)", msg, sendCallback)
+                await handleSending(msg, result)
+                // await handleSending(msg, (await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })).rv)
             }
             return { noSend: true, status: StatusCode.INFO }
 
