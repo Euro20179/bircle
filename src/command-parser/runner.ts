@@ -8,7 +8,7 @@ import { ArgList, BADVALUE, Options, generateCommandSummary } from "../util";
 import user_options from "../user-options"
 import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
-import { PROCESS_MANAGER } from '../globals';
+import { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
 
 async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
 
@@ -18,7 +18,7 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
         rawArgs: raw_args,
         args,
         sendCallback: sendCallback ?? msg.channel.send.bind(msg.channel),
-        recursionCount: 19,
+        recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", RECURSION_LIMIT) - 1),
         commandBans: undefined,
         opts: new Options(opts),
         rawOpts: opts,
@@ -118,7 +118,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
                 rawArgs: raw_args,
                 args,
                 opts: opts,
-                recursionCount: 19,
+                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", RECURSION_LIMIT) - 1),
             })) {
             yield result
         }

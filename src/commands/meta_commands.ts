@@ -845,7 +845,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "for", createCommandV2(async function*({ msg, args, recursionCount, commandBans, sendCallback, interpreter }) {
+        "for", createCommandV2(async function*({ msg, args, recursionCount, commandBans, sendCallback, interpreter, runtime_opts }) {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
@@ -863,7 +863,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
                     for await (let result of globals.PROCESS_MANAGER.spawn("FOR",
-                        cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback })
+                        cmds.runcmd({ command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts })
                     )) {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
