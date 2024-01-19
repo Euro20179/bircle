@@ -146,30 +146,31 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     }, CAT, "get specific data from stdin/pipe")]
 
     yield ["set", ccmdV2(async ({ opts, args, interpreter }) => {
-        let newIfs = opts.getString("IFS", "")
-        if (newIfs) {
-            interpreter.context.export("IFS", newIfs)
-        }
-
-        let explicit = opts.getBool("x", null)
-        if (explicit !== null) {
-            interpreter.context.setOpt("explicit", Number(explicit))
-        }
-
-        let intCache = opts.getBool("c", null)
-        if (intCache !== null) {
-            interpreter.context.setOpt("no-int-cache", Number(intCache))
-        }
-
-        let dryRun = opts.getBool("d", null)
-        if (dryRun !== null)
-            interpreter.context.setOpt("dryRun", Number(dryRun))
-
-        let newProgArgs = args.slice(0)
-        if (newProgArgs.length) {
-            interpreter.context.programArgs = newProgArgs
-        }
-        return crv(interpreter.context.programArgs.join(interpreter.context.env.IFS ?? " "))
+        return crv("")
+        // let newIfs = opts.getString("IFS", "")
+        // if (newIfs) {
+        //     interpreter.context.export("IFS", newIfs)
+        // }
+        //
+        // let explicit = opts.getBool("x", null)
+        // if (explicit !== null) {
+        //     interpreter.context.setOpt("explicit", Number(explicit))
+        // }
+        //
+        // let intCache = opts.getBool("c", null)
+        // if (intCache !== null) {
+        //     interpreter.context.setOpt("no-int-cache", Number(intCache))
+        // }
+        //
+        // let dryRun = opts.getBool("d", null)
+        // if (dryRun !== null)
+        //     interpreter.context.setOpt("dryRun", Number(dryRun))
+        //
+        // let newProgArgs = args.slice(0)
+        // if (newProgArgs.length) {
+        //     interpreter.context.programArgs = newProgArgs
+        // }
+        // return crv(interpreter.context.programArgs.join(interpreter.context.env.IFS ?? " "))
     }, "Sets program arguments", {
         helpOptions: {
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}"),
@@ -856,13 +857,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     let rv = await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
                     await handleSending(msg, rv.rv, sendCallback)
                     await new Promise(res => setTimeout(res, 1000))
-                    if (interpreter.killed) {
-                        break outer
-                    }
-                }
-                //this is here in case no lines of code should be run, and ]stop is run
-                if (interpreter.killed) {
-                    break outer
                 }
             }
             return { noSend: true, status: StatusCode.RETURN }

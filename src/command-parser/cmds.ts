@@ -143,6 +143,7 @@ async function* runcmd(command: string, prefix: string, msg: Message, sendCallba
         skip_parsing: runtime_opts.get("skip", false)
     })
     let tokens = lex.lex()
+
     let semi_indexes = []
     for (let i = 0; i < tokens.length; i++) {
         if (tokens[i] instanceof lexer.TTSemi) {
@@ -156,6 +157,8 @@ async function* runcmd(command: string, prefix: string, msg: Message, sendCallba
     for (let semi_index of semi_indexes) {
         let working_tokens = tokens.slice(start_idx, semi_index)
 
+        //first token (presumably command) should be trimmed
+        working_tokens[0].data = working_tokens[0].data.trim()
 
         let pipe_indexes = []
         for (let i = 0; i < working_tokens.length; i++) {

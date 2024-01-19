@@ -12,9 +12,9 @@ s:option opts-parser ${old-parser} ;;
 echo -D ${wait-time} ${LINENO} testing math syntax `\$[2+2]` = $[2+2] ;;
 echo -D ${wait-time} ${LINENO} testing syntax in math syntax `\$[Math.round(\$(rand))]` = $[ Math.round($(rand)) ] ;;
 echo -D ${wait-time} ${LINENO} testing pipes (`echo -D hi \>pipe> rev`) = $(echo -D hi >pipe> rev) ;;
-for i 1..3 \{ 
-    echo -D ${LINENO} testing for loop, \${%:i}
+for i 1..3 { 
+    echo -D ${LINENO} testing for loop, ${%:i}
 } ;;
 echo -D ${wait-time} ${LINENO} testing long pipe (`echo -D \$(echo -D hello \>pipe> rev) \>pipe> echo -D {%} is neato`) = $(echo -D $(echo -D hello >pipe> rev) >pipe> echo -D {%} is neato) ;;
-echo -D ${LINENO} testing `argc hi\\sbye \\s{hi bye} \\y{$[3 + 3] is neat}` = $(argc hi\sbye \s{hi bye} \y{$[3+3] is neat} ) ;;
+echo -D ${LINENO} testing `argc hi\\sbye \\s\{hi bye} \\y\{$[3 + 3] is neat}` = $(argc hi\sbye \s{hi bye} \y{$[3+3] is neat} ) ;;
 s:option opts-parser ${old-parser}

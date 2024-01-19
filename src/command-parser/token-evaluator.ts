@@ -93,7 +93,7 @@ class TokenEvaluator {
                 if (format_parsers[seq]) {
                     str = await format_parsers[seq](token, this.symbols, seq, args, this.msg, this.runtime_opts)
                 }
-                this.add_to_cur_tok(str)
+                this.add_to_cur_tok(`{${str}}`)
                 // this.new_tokens.push(new lexer.TTString(str, token.start, token.end))
             }
             else if (token instanceof lexer.TTIFS) {

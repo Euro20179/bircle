@@ -66,7 +66,7 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
 async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>)) {
     let opts;
 
-    let cmd = tokens[0].data.trim() as string
+    let cmd = tokens[0].data as string
 
     if (common.BLACKLIST[msg.author.id]?.includes(cmd)) {
         yield { content: "You are blacklisted from this command", status: StatusCode.ERR }
