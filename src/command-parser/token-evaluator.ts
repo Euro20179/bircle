@@ -1,10 +1,14 @@
-import { Message } from 'discord.js'
+import { ChannelType, Message } from 'discord.js'
 import { getContentFromResult, safeEval } from '../util'
 import cmds from './cmds'
 import { SymbolTable } from './cmds'
 import lexer, { TT } from './lexer'
 import { escape } from 'querystring'
 import vars from '../vars'
+import economy from '../economy'
+import timer from '../timer'
+import { format } from '../parsing'
+import htmlRenderer from '../html-renderer'
 
 
 /**
@@ -83,9 +87,10 @@ class TokenEvaluator {
                 // this.new_tokens.push(token)
             }
             else if (token instanceof lexer.TTFormat) {
+                let [seq, ...args] = token.data.split("|")
                 let str = token.data
-                if (format_parsers[token.data]) {
-                    str = await format_parsers[token.data](token, this.symbols, this.msg)
+                if (format_parsers[seq]) {
+                    str = await format_parsers[seq](token, this.symbols, seq, args, this.msg)
                 }
                 this.add_to_cur_tok(str)
                 // this.new_tokens.push(new lexer.TTString(str, token.start, token.end))
@@ -134,10 +139,165 @@ class TokenEvaluator {
     }
 }
 
-const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, msg: Message) => Promise<string>> = {
+const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq: string, args: string[], msg: Message) => Promise<string>> = {
     ["%"]: async (_token, symbols) => {
         return symbols.get("stdin:%") ?? "{%}"
     },
+    //TODO: cmd: async()
+    fhex: async (_token, _, __, args) => {
+        let [num, base] = args
+        return String(parseInt(num, parseInt(base) || 16))
+    },
+    fbase: async (...args) => await format_parsers["fhex"](...args),
+    token: async (token, symbols, _seq, args, msg) => {
+        let [tt, ...data] = args
+        let text = data.join("|")
+        let lexer_token_type = lexer[`TT${tt}` as keyof typeof lexer]
+        if (!lexer_token_type) {
+            return `{${token.data}}`
+        }
+        try {
+            //@ts-ignore
+            let t = new lexer_token_type(text, token.start, token.end)
+            let evalulator = new TokenEvaluator([t], symbols, msg)
+            let new_tok = await evalulator.evaluate()
+            return new_tok[0].data
+        }
+        catch (err) {
+            return `{${token.data}}`
+
+        }
+    },
+    rev: async (_, __, ___, args) => {
+        if (args.length > 1) {
+            return args.reverse().join(" ")
+        }
+        return [...args.join(" ")].reverse().join("")
+    },
+    reverse: async (...args) => await format_parsers['rev'](...args),
+    ["$"]: async (_, __, ___, args, msg) => String(economy.calculateAmountFromString(msg.author.id, args.join(" ") || "100%")),
+    ["$l"]: async (_, __, ___, args, msg) => String(economy.calculateLoanAmountFromString(msg.author.id, args.join(" ") || "100%")),
+    ["$t"]: async (_, __, ___, args, msg) => String(economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%")),
+    ["$n"]: async (_, __, ___, args, msg) => String(economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(msg.author.id, "100%")),
+    timer: async (_, __, ___, args, msg) => {
+        let name = args.join(" ").trim()
+        if (name[0] === "-") {
+            return String(timer.do_lap(msg.author.id, name.slice(1)))
+        }
+        return String(timer.getTimer(msg.author.id, args.join(" ").trim()))
+    },
+    user: async (_, __, ___, args, msg) => {
+        let fmt = args.join(" ") || "<@%i>"
+        let member = msg.member
+        let user = member?.user || msg.author
+        if (user === undefined && member === undefined && member === null) {
+            return `{${args.join(" ")}}`
+        }
+        return format(fmt,
+            {
+                i: user.id || "#!N/A",
+                u: user.username || "#!N/A",
+                n: member?.displayName || "#!N/A",
+                X: () => member?.displayHexColor.toString() || "#!N/A",
+                x: () => member?.displayColor.toString() || "#!N/A",
+                c: user.createdAt?.toString() || "#!N/A",
+                j: member?.joinedAt?.toString() || "#!N/A",
+                b: member?.premiumSince?.toString() || "#!N/A",
+                a: () => user?.avatarURL() || "#N/A"
+            }
+        )
+    },
+    rand: async (_, __, ___, args) => {
+        if (args && args?.length > 0)
+            return args[Math.floor(Math.random() * args.length)]
+        return "{rand}"
+    },
+    num: async (_, __, ___, args) => {
+        if (!args || args.length < 1)
+            return String(Math.random())
+        let low = Number(args[0])
+        let high = Number(args[1]) || low * 10
+        let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
+        if (dec)
+            return String((Math.random() * (high - low)) + low)
+        return String(Math.floor((Math.random() * (high - low)) + low))
+    },
+    number: async (...args) => await format_parsers["num"](...args),
+    ruser: async (_, __, ___, args, msg) => {
+        let fmt = args.join(" ") || "%u"
+        let guild = msg.guild
+        if (guild === null) {
+            return `{${fmt}}`
+        }
+
+        let member = guild.members.cache.random()
+        if (member === undefined)
+            member = (await guild.members.fetch()).random()
+        if (member === undefined) {
+            return `{${fmt}}`
+        }
+        let user = member.user
+        return format(fmt,
+            {
+                i: user.id || "#!N/A",
+                u: user.username || "#!N/A",
+                n: member.displayName || "#!N/A",
+                X: () => member?.displayHexColor.toString() || "#!N/A",
+                x: () => member?.displayColor.toString() || "#!N/A",
+                c: user.createdAt.toString() || "#!N/A",
+                j: member.joinedAt?.toString() || "#!N/A",
+                b: member.premiumSince?.toString() || "#!N/A"
+            }
+        )
+    },
+    html: async (_, __, ___, args) => htmlRenderer.renderHTML(args.join("|")),
+    time: async (_, __, ___, args) => {
+        let date = new Date()
+        if (!args.length) {
+            return date.toString()
+        }
+        let hours = date.getHours()
+        let AMPM = hours < 12 ? "AM" : "PM"
+        if (args[0].trim() == '12') {
+            hours > 12 ? hours = hours - 12 : hours
+            args.splice(0, 1)
+        }
+        return format(args.join("|"), {
+            "d": `${date.getDate()}`,
+            "H": `${hours}`,
+            "M": `${date.getMinutes()}`,
+            "S": `${date.getSeconds()}`,
+            "T": `${hours}:${date.getMinutes()}:${date.getSeconds()}`,
+            "t": `${hours}:${date.getMinutes()}`,
+            "1": `${date.getMilliseconds()}`,
+            "z": `${date.getTimezoneOffset()}`,
+            "x": AMPM,
+            "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+            "m": `${date.getMonth() + 1}`,
+            "Y": `${date.getFullYear()}`,
+            "w": `${date.getDay()}`,
+            "s": `${Date.now()}`
+        })
+    },
+    channel: async (_, __, ___, args, msg) => {
+        return format(args.join("|"), {
+            "i": `${msg.channel.id}`,
+            "N!": `${(() => {
+                let ch = msg.channel
+                if (ch.type === ChannelType.GuildText)
+                    return ch.nsfw
+                return "IsNotText"
+            })()}`,
+            "n": `${(() => {
+                let ch = msg.channel
+                if (ch.type !== ChannelType.DM)
+                    return ch.name
+                return "IsDM"
+            })()}`,
+            "c": `${msg.channel.createdAt}`
+        })
+
+    }
 }
 
 const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolTable, msg: Message) => Promise<string | string[]>> = {
@@ -258,7 +418,7 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
         }
         return `\\V{${sequence}}`
     },
-    v: async(token, _, msg) => {
+    v: async (token, _, msg) => {
         let [__, sequence] = token.data
         let num = Number(sequence)
         //basically checks if it's a n
@@ -274,16 +434,16 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
         }
         return `\\v{${sequence}}`
     },
-    ["\\"]: async(token) => {
+    ["\\"]: async (token) => {
         let seq = token.data[1]
-        if(seq){
+        if (seq) {
             return `\\{${seq}}`
         }
         return `\\`
     },
-    [" "]: async(token) => {
+    [" "]: async (token) => {
         let seq = token.data[1]
-        if(seq){
+        if (seq) {
             return seq
         }
         return " "
