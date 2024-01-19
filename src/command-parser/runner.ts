@@ -120,7 +120,6 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }[user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
     let [opts, parsed_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
 
-    //@ts-ignore
     let args = new ArgList(parsed_args)
 
     if (cmdObject instanceof AliasV2) {
