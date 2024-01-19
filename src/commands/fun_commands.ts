@@ -1842,17 +1842,21 @@ Valid formats:
             }
             const link = `https://search.brave.com/search?q=${city}+weather&source=web`
             let res = await fetch.default(link)
-            const $ = cheerio.load(await res.text())
-            let json = JSON.parse($("#js-weather").attr("data") || "{}")
-
+            let text = await res.text()
+            let data = text.match(/const data = (\[.*\]);/)
+            //must use eval because it's not valid json
+            //@ts-ignore
+            let json = eval(data[1])
             if (!Object.keys(json).length) {
                 return crv("Could not get data", { status: StatusCode.ERR })
             }
+            let weatherJson = json[1].data.body.response.rich.results[0].data
+
             let excluded_cities = fs.readFileSync('./command-perms/city', 'utf-8').split("\n")
-            if (json.props.generic) {
-                return crv("Generic city found, invalid json")
-            }
-            let found_city = json.props.name
+            // if (json.props.generic) {
+            //     return crv("Generic city found, invalid json")
+            // }
+            let found_city = weatherJson.city.name
             let repalaceCity = false
             if (excluded_cities.includes(found_city)) {
                 repalaceCity = true
@@ -1875,7 +1879,7 @@ Valid formats:
                 })
                 return crv(str)
             }
-            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg: _, weather, wind_gust, pressure, uvi, clouds } = json.data.current
+            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg: _, weather, wind_gust, pressure, uvi, clouds } = weatherJson.current
 
             let tempF = temp * (9 / 5) + 32
             let feelsLikeF = feels_like * (9 / 5) + 32
@@ -1910,7 +1914,7 @@ Valid formats:
                 [tempF <= 0 ? 1 : 0]: "Purple",
             }[1] ?? "DarkButNotBlack"
 
-            let name = json.props.state ? `${found_city}, ${json.props.state}` : `${found_city}, ${json.props.country}`
+            let name = weatherJson.city.state ? `${found_city}, ${weatherJson.city.state}` : `${found_city}, ${weatherJson.city.country}`
             let icon = `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
             let descriptionData = titleStr(weather[0].description)
 
@@ -1920,7 +1924,7 @@ Valid formats:
             let forecastEmbeds: EmbedBuilder[] = []
             let forecastCEmbeds: EmbedBuilder[] = []
 
-            for (let day of json.data.daily) {
+            for (let day of weatherJson.daily) {
                 let high = day.temp.max
                 let highF = day.temp.max * (9 / 5) + 32
                 let low = day.temp.min
