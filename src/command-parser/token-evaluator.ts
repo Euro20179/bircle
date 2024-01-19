@@ -91,16 +91,7 @@ class TokenEvaluator {
             }
         }
         else if (token instanceof lexer.TTJSExpr) {
-            let lex = new lexer.Lexer(token.data, {
-                is_command: false
-            })
-            let tokens = lex.lex()
-            let evaulator = new TokenEvaluator(tokens, this.symbols, this.msg, this.runtime_opts)
-            let evauluated_tokens = await evaulator.evaluate()
-            let text = ""
-            for (let t of evauluated_tokens) {
-                text += t.data + " "
-            }
+            let text = (await cmds.expandSyntax(token.data, this.msg)).join(" ")
             let new_text = String(safeEval(text, {}, {}))
             this.add_to_cur_tok(new_text)
             // this.new_tokens.push(new lexer.TTString(new_text, token.start, token.end))

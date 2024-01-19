@@ -7,6 +7,7 @@ import { isMsgChannel, mimeTypeToFileExtension } from '../util'
 import { StatusCode } from '../common_to_commands'
 
 import { RECURSION_LIMIT } from '../globals'
+import { getOpt } from '../user-options'
 
 export class SymbolTable {
     symbols: Record<string, string>
@@ -152,7 +153,8 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_l
 
     let lex = new lexer.Lexer(command, {
         prefix,
-        skip_parsing: runtime_opts.get("skip", false)
+        skip_parsing: runtime_opts.get("skip", false),
+        pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     })
     let tokens = lex.lex()
 
@@ -257,7 +259,8 @@ async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (da
 
 async function expandSyntax(bircle_string: string, msg: Message) {
     let tokens = new lexer.Lexer(bircle_string, {
-        is_command: false
+        is_command: false,
+        pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     }).lex()
 
     let symbolTable = new SymbolTable()
