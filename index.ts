@@ -135,15 +135,18 @@ async function handlePingResponse(m: Message) {
             let old_id = m.author.id
             m.author.id = member!.user.id
             const gPrefix = globals.PREFIX;
-            command_commons.isCmd(pingresponse, gPrefix)
-                ? await handleSending(m,
-                    (await command_commons.cmd({
-                        msg: m,
-                        command_excluding_prefix: pingresponse.slice(gPrefix.length),
-                        disable: command_commons.generateDefaultRecurseBans()
-                    })).rv
-                )
-                : m.channel.send(pingresponse)
+            if (common_to_commands.isCmd(pingresponse, gPrefix)) {
+
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: pingresponse, prefix: gPrefix, msg: m },
+                    `${pingresponse} - ${m.author.id}`,
+                )) {
+                    await cmds.handleSending(m, result)
+                }
+            }
+            else {
+                m.channel.send(pingresponse)
+            }
             m.author.id = old_id
         }
     }
