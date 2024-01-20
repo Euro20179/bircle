@@ -158,7 +158,7 @@ type LexerOptions = {
 class Lexer {
     private i = -1
     private curChar = ""
-    private IFS = " \n\t"
+    private IFS = " \t"
     private special_chars = `{$\\${this.IFS};`
     private options: LexerOptions
     public tokens: TT<any>[] = []
