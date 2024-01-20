@@ -68,8 +68,8 @@ class Variable<T extends keyof typeof VarType>{
 let defaultVars: Record<string, Variable<"function" | "number">> = {
     "?return": new Variable("number", 0),
     "?warning": new Variable("number", 1),
-    "?err": new Variable("number", 2),
-    "?achivement": new Variable("number", -3),
+    "?error": new Variable("number", 2),
+    "?achievement": new Variable("number", -3),
     "?info": new Variable("number", -1),
     "?prompt": new Variable("number", -2),
     random: new Variable('function', () => String(Math.random())),
