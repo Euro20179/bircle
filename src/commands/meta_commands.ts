@@ -318,16 +318,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
                     res.push('.bircle')
                 }
-                else if (aliasV2s[cmd]) {
-                    res.push("av2")
-                }
-                else if (matches[cmd]) {
-                    res.push("match")
-                }
-                else if (userMatches.get(cmd)) {
-                    res.push("user-match")
-                }
-                else if (cmds.get(cmd)) {
+                else if(cmds.get(cmd)){
                     switch (cmds.get(cmd)?.cmd_std_version) {
                         case 2:
                             res.push("cmdv2")
@@ -335,6 +326,15 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         default:
                             res.push("cmdv1")
                     }
+                }
+                else if (matches[cmd]) {
+                    res.push("match")
+                }
+                else if (userMatches.get(cmd)) {
+                    res.push("user-match")
+                }
+                else if (aliasV2s[cmd]) {
+                    res.push("av2")
                 }
                 else {
                     res.push("undefined")
