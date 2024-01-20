@@ -10,6 +10,8 @@ import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
 import { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
 
+import events from './events'
+
 async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
 
     let argShapeResults: Record<string, any> = {}
@@ -111,8 +113,6 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         }
         yield { content: `\\${cmd} is not a valid command`, status: StatusCode.ERR }
 
-        lastCommand[msg.author.id] = msg.content
-
         return
     }
 
@@ -125,7 +125,16 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
 
     let args = new ArgList(parsed_args)
 
+    events.commandEventListener.emit(events.cmdRun, {
+        msg,
+        cmdObject,
+        args,
+        opts,
+        runtimeOpts: runtime_options
+    })
+
     if (cmdObject instanceof AliasV2) {
+        let rv;
         for await (let result of
             cmdObject.run({
                 msg,
@@ -134,17 +143,28 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
                 opts: opts,
                 recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", RECURSION_LIMIT) - 1),
             })) {
+            rv = result
+            events.commandEventListener.emit(events.cmdResult, { rv: result, msg })
             yield result
         }
-        lastCommand[msg.author.id] = msg.content
+        events.commandEventListener.emit(events.cmdOver, {
+            msg,
+            finalRv: rv
+        })
         return
     }
 
     else if (cmdObject.cmd_std_version === 2) {
+        let rv
         for await (let item of run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback, pid_label)) {
+            events.commandEventListener.emit(events.cmdResult, { rv: item, msg })
+            rv = item
             yield item
         }
-        lastCommand[msg.author.id] = msg.content
+        events.commandEventListener.emit(events.cmdOver, {
+            msg,
+            finalRv: rv
+        })
         return
     }
     yield crv("NOTHING")
