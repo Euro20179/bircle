@@ -679,7 +679,10 @@ function getOptsUnix(args: ArgumentList, shortOpts: string, longOpts: [string, "
     let opts: Opts = {}
     let i: number;
     for (i = 0; i < args.length; i++) {
-        if(args[i] === "--") break
+        if(args[i] === "--") {
+            i++ //do not count the curent arg (which will be --) as a true arg
+            break
+        }
         else if(args[i][0] === "-" && args[i][1] === "-"){
             //check this first because --x=y should ALWAYS work even if longOpts is set
             //--x y should only work if longOpts is set
@@ -727,7 +730,10 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
             let [opt, ...value] = args[i].slice(1).split("=")
             if (opt !== "-")
                 opts[opt] = value[0] == undefined ? true : value.join("=");
-            else break
+            else {
+                i++ //do not count the curent arg (which will be --) as a true arg
+                break
+            }
         }
         else { break }
     }
