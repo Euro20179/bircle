@@ -158,7 +158,7 @@ type LexerOptions = {
 class Lexer {
     private i = -1
     private curChar = ""
-    private IFS = " "
+    private IFS = " \n\t"
     private special_chars = `{$\\${this.IFS};`
     private options: LexerOptions
     public tokens: TT<any>[] = []
@@ -268,21 +268,17 @@ class Lexer {
 
     parse_simple() {
         while (this.advance()) {
-            switch (this.curChar) {
-                case this.IFS: {
-                    while (this.curChar === this.IFS) {
-                        this.advance()
-                    }
-                    this.back()
-                    this.tokens.push(new TTIFS(this.IFS, this.i, this.i))
-                    continue;
+            if (this.IFS.includes(this.curChar)) {
+                while (this.IFS.includes(this.curChar)) {
+                    this.advance()
                 }
-                default: {
-                    let start = this.i
-                    let str = this.parseContinuousChars()
-                    this.tokens.push(new TTString(str, start, this.i))
-                }
+                this.back()
+                this.tokens.push(new TTIFS(this.IFS[0], this.i, this.i))
+                continue
             }
+            let start = this.i
+            let str = this.parseContinuousChars()
+            this.tokens.push(new TTString(str, start, this.i))
         }
         return this.tokens
     }
@@ -310,6 +306,15 @@ class Lexer {
             return this.parse_simple()
         }
         while (this.advance()) {
+            if (this.IFS.includes(this.curChar)) {
+                while (this.IFS.includes(this.curChar)) {
+                    this.advance()
+                }
+                this.back()
+                this.tokens.push(new TTIFS(this.IFS[0], this.i, this.i))
+                continue;
+
+            }
             switch (this.curChar) {
                 case "%": {
                     let start = this.i
@@ -382,14 +387,6 @@ class Lexer {
                         this.tokens.push(new TTString(`{${inner}`, start, this.i - 1))
                     }
                     break
-                }
-                case this.IFS: {
-                    while (this.curChar === this.IFS) {
-                        this.advance()
-                    }
-                    this.back()
-                    this.tokens.push(new TTIFS(this.IFS, this.i, this.i))
-                    continue;
                 }
                 default: {
                     let start = this.i
