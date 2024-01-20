@@ -21,6 +21,7 @@ import fetch from 'node-fetch'
 import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'
+import lexer from '../command-parser/lexer'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
@@ -28,6 +29,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         clearSnipes()
         return crv("Snipes cleared")
     }, "Clears all snipes")]
+
     yield ['runas', ccmdV2(async function({ msg, args }) {
         let oldId = msg.author
         let user = await fetchUserFromClient(common.client, args[0])
@@ -280,20 +282,25 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
-            return { content: JSON.stringify((await cmd({ msg, command_excluding_prefix: args.slice(0, -1).join(" "), recursion: rec + 1, disable: bans, sendCallback })).rv), status: StatusCode.RETURN }
+            let rv: CommandReturn = { noSend: true, status: 0 }
+            for await(let res of cmds.runcmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg })){
+                rv = res
+            }
+            return { content: JSON.stringify(rv), status: StatusCode.RETURN }
+            // return { content: JSON.stringify((await cmd({ msg, command_excluding_prefix: args.slice(0, -1).join(" "), recursion: rec + 1, disable: bans, sendCallback })).rv), status: StatusCode.RETURN }
         }, CAT),
     ]
 
     yield [
-        'tokenize', createCommandV2(async ({ msg, rawArgs: args }) => {
-            let parser: Parser = new Parser(msg, args.join(" ").trim())
-            await parser.parse()
-            return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
+        'tokenize', createCommandV2(async ({ rawArgs: args }) => {
+            let tokens = new lexer.Lexer(args.join(" ").trim(), {}).lex()
+            return crv(tokens.map(v => `${v.constructor.name} ${JSON.stringify(v)}`).join(";\n") + ";")
         }, CAT, "Tokenize command input"),
     ]
 
     yield [
         "interprate", ccmdV2(async ({ msg, rawArgs: args }) => {
+
             let parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
             let int = new Interpreter(msg, parser.tokens, { modifiers: parser.modifiers })
