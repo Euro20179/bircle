@@ -2840,8 +2840,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             let { major, minor, bug, part, alpha, beta } = common.VERSION
             let mainDisplay = `${major}.${minor}.${bug}`
             if (part) mainDisplay += `.${part}`
-            if (alpha) mainDisplay += `A.${mainDisplay}`
-            if (beta) mainDisplay += `B.${mainDisplay}`
+            if (alpha) mainDisplay = `A.${mainDisplay}`
+            if (beta) mainDisplay = `B.${mainDisplay}`
             return {
                 content: format(fmt, {
                     v: mainDisplay,
