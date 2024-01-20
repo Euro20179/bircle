@@ -25,17 +25,23 @@ export class LengthUnit {
     }
 
     static fromUnitRepr(repr: `${number}${string}`) {
-        let numberPart = ""
-        let unitPart = ""
-        for (let ch of repr) {
-            if (!"0123456789".includes(ch)) {
-                unitPart += ch
-            }
-            else {
-                numberPart += ch
-            }
-        }
+        let numberPart = parseFloat(repr)
+        let unitPart = repr.slice(String(numberPart).length)
+        // let numberPart = ""
+        // let unitPart = ""
+        // for (let ch of repr) {
+        //     if (!"0123456789".includes(ch)) {
+        //         unitPart += ch
+        //     }
+        //     else {
+        //         numberPart += ch
+        //     }
+        // }
         return new (this.fromUnitName(unitPart))(Number(numberPart))
+    }
+
+    toString(){
+        return `${this.value}${this.getShorthand()}`
     }
 
     /**
@@ -49,6 +55,11 @@ export class LengthUnit {
         let inYards = this.yards()
         let amountOfUnitsInYards = (new cls(1)).yards()
         return new cls(inYards / amountOfUnitsInYards)
+    }
+
+    getShorthand(){
+        //@ts-ignore
+        return this.constructor.shorthand
     }
 }
 
@@ -72,7 +83,7 @@ class Yard extends LengthUnit {
     static longname = "yard"
     static shorthand = "yd"
     yards() {
-        return 1
+        return this.value
     }
 }
 

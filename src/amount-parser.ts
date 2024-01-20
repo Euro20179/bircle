@@ -1,5 +1,12 @@
 import { max, min } from "lodash"
-import { isBetween, isNumeric, choice} from "./util"
+import { isBetween, isNumeric, choice } from "./util"
+import units, { LengthUnit } from "./units"
+
+let unit_names: string[] = []
+for (let key in units) {
+    unit_names.push(units[key as keyof typeof units].shorthand)
+    unit_names.push(units[key as keyof typeof units].longname)
+}
 
 function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
@@ -51,6 +58,7 @@ enum TT {
     "le",
     gt,
     ge,
+    unit
 }
 
 const ENDFUNC = 'rav',
@@ -96,11 +104,12 @@ type TokenDataType = {
     [TT.le]: "<=",
     [TT.lt]: "<",
     [TT.gt]: ">",
-    [TT.ge]: ">="
+    [TT.ge]: ">=",
+    [TT.unit]: string
 }
 
 class Token<TokenType extends TT> {
-    constructor(public type: TokenType, public data: TokenDataType[TokenType]) {}
+    constructor(public type: TokenType, public data: TokenDataType[TokenType]) { }
 }
 
 class Lexer {
@@ -310,7 +319,10 @@ class Lexer {
                 }
                 default: {
                     let str = this.parseLiteral()
-                    if (KEYWORDS.includes(str as typeof KEYWORDS[number])) {
+                    if (unit_names.includes(str)) {
+                        this.tokens.push(new Token(TT.unit, str as typeof unit_names[number]))
+                    }
+                    else if (KEYWORDS.includes(str as typeof KEYWORDS[number])) {
                         this.tokens.push(new Token(TT.keyword, str as typeof KEYWORDS[number]))
                     }
                     else this.tokens.push(new Token(TT.ident, str))
@@ -363,7 +375,7 @@ abstract class Node {
     abstract repr(indent: number): string
 }
 
-type ValidJSTypes = string | number | UserFunction
+type ValidJSTypes = string | number | UserFunction | LengthUnit
 
 abstract class Type<JSType extends ValidJSTypes>{
     protected data: JSType
@@ -389,6 +401,123 @@ abstract class Type<JSType extends ValidJSTypes>{
 
     toString() {
         return `[${this.type}] ${this.string().access()}`
+    }
+}
+
+class UnitType extends Type<LengthUnit> {
+    type = "unit"
+    access(): LengthUnit {
+        return this.data
+    }
+
+    string(): StringType {
+        return new StringType(`${this.data.value}${this.data.getShorthand()}`)
+    }
+
+    number(): NumberType {
+        return new NumberType(this.data.value)
+    }
+
+    truthy(): boolean {
+        return this.data.value !== 0
+    }
+
+    sub(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            return new UnitType(LengthUnit.fromUnitRepr(`${this.data.value - other.access()}${this.data.getShorthand()}`))
+        }
+        else if (other instanceof UnitType) {
+            return new UnitType(
+                //@ts-ignore
+                LengthUnit.fromUnitRepr(`${this.data.value - other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
+            )
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+
+    add(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            return new UnitType(LengthUnit.fromUnitRepr(`${this.data.value + other.access()}${this.data.getShorthand()}`))
+        }
+        else if (other instanceof UnitType) {
+            return new UnitType(
+                //@ts-ignore
+                LengthUnit.fromUnitRepr(`${this.data.value + other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
+            )
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+
+    isub(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            this.data.value -= other.access()
+            return this
+        }
+        else if (other instanceof UnitType) {
+            this.data.value -= other.access().toUnit(this.data.constructor).value
+            return this
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+
+    idiv(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            this.data.value /= other.access()
+            return this
+        }
+        else if (other instanceof UnitType) {
+            this.data.value /= other.access().toUnit(this.data.constructor).value
+            return this
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+    imul(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            this.data.value *= other.access()
+            return this
+        }
+        else if (other instanceof UnitType) {
+            this.data.value *= other.access().toUnit(this.data.constructor).value
+            return this
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+    iadd(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            this.data.value += other.access()
+            return this
+        }
+        else if (other instanceof UnitType) {
+            this.data.value += other.access().toUnit(this.data.constructor).value
+            return this
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+
+    mul(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            return new UnitType(LengthUnit.fromUnitRepr(`${this.data.value * other.access()}${this.data.getShorthand()}`))
+        }
+        else if (other instanceof UnitType) {
+            return new UnitType(
+                //@ts-ignore
+                LengthUnit.fromUnitRepr(`${this.data.value * other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
+            )
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+    }
+
+    div(other: Type<any>): Type<LengthUnit> {
+        if (other instanceof NumberType) {
+            return new UnitType(LengthUnit.fromUnitRepr(`${this.data.value / other.access()}${this.data.getShorthand()}`))
+        }
+        else if (other instanceof UnitType) {
+            return new UnitType(
+                //@ts-ignore
+                LengthUnit.fromUnitRepr(`${this.data.value / other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
+            )
+        }
+        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
     }
 }
 
@@ -595,12 +724,15 @@ function createTypeFromJSType<T extends ValidJSTypes>(jsType: T) {
     else if (typeof jsType === 'number') {
         return new NumberType(jsType)
     }
+    else if (jsType instanceof LengthUnit) {
+        return new UnitType(jsType)
+    }
     return new FunctionType(jsType)
 }
 
 class ProgramNode extends Node {
     relativeTo: number
-    constructor(public program: Node, rel: number){
+    constructor(public program: Node, rel: number) {
         super()
         this.relativeTo = rel
     }
@@ -749,7 +881,7 @@ class VariableAssignNode extends Node {
     constructor(name: Token<TT.ident>[], public value: Node) {
         super()
         this.name = name[0].data
-        for(let i = 1; i < name.length; i++){
+        for (let i = 1; i < name.length; i++) {
             this.name += ` ${name[i].data}`
         }
     }
@@ -841,7 +973,7 @@ class FuncCreateNode extends Node {
     constructor(name: Token<TT.ident>[], parameterNames: Token<TT.ident>[], code: Token<TT>[]) {
         super()
         this.name = name[0].data
-        for(let i = 1; i < name.length; i++){
+        for (let i = 1; i < name.length; i++) {
             this.name += ` ${name[i].data}`
         }
         this.code = code
@@ -869,7 +1001,7 @@ class VarAccessNode extends Node {
     constructor(name: Token<TT.ident>[]) {
         super()
         this.name = name[0].data
-        for(let i = 1; i < name.length; i++){
+        for (let i = 1; i < name.length; i++) {
             this.name += ` ${name[i].data}`
         }
     }
@@ -926,16 +1058,20 @@ class NumberNode extends Node {
 }
 
 class RightUnOpNode extends Node {
-    constructor(public left: Node, public operator: Token<TT.percent | TT.hash | TT.number_suffix>) {
+    constructor(public left: Node, public operator: Token<TT.percent | TT.hash | TT.number_suffix | TT.unit>) {
         super()
     }
-    visit(program: ProgramNode, table: SymbolTable): NumberType {
+    visit(program: ProgramNode, table: SymbolTable): NumberType | UnitType {
         let number = this.left.visit(program, table)
         if (!(number instanceof NumberType)) {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
         let n = number.access()
         let data: number;
+        if (this.operator.type === TT.unit) {
+            let unit = LengthUnit.fromUnitRepr(`${n}${this.operator.data}`)
+            return new UnitType(unit)
+        }
         switch (this.operator.data) {
             case '#': data = program.relativeTo % n; break;
             case '%': data = (n / 100) * program.relativeTo; break;
@@ -943,6 +1079,7 @@ class RightUnOpNode extends Node {
             case 'M': data = n * 1_000_000; break;
             case 'B': data = n * 1_000_000_000; break;
             case 'T': data = n * 1_000_000_000_000; break;
+            default: data = n
         }
         return new NumberType(data)
     }
@@ -1020,11 +1157,11 @@ class FunctionNode extends Node {
     constructor(name: Token<TT.ident>[], public nodes: Node[]) {
         super()
         this.name = name[0].data
-        for(let i = 1; i < name.length; i++){
+        for (let i = 1; i < name.length; i++) {
             this.name += ` ${name[i].data}`
         }
     }
-    visit(program: ProgramNode, table: SymbolTable): NumberType | StringType | FunctionType {
+    visit(program: ProgramNode, table: SymbolTable): NumberType | StringType | FunctionType | UnitType {
         let values = this.nodes.map(v => v.visit(program, table)) ?? [new NumberType(0)]
         let argCount = {
             'rand': 2,
@@ -1151,7 +1288,7 @@ class Parser {
 
     func() {
         let name = [this.#curTok as Token<TT.ident>]
-        while(this.advance() && this.#curTok?.type === TT.ident){
+        while (this.advance() && this.#curTok?.type === TT.ident) {
             name.push(this.#curTok as Token<TT.ident>)
         }
 
@@ -1188,17 +1325,17 @@ class Parser {
             this.advance()
             return new StringNode(tok as Token<TT.string>)
         }
-        if(this.#curTok?.type !== TT.ident){
+        if (this.#curTok?.type !== TT.ident) {
             throw new SyntaxError("expected identifier")
         }
 
         let nameTok = [this.#curTok as Token<TT.ident>]
-        while(this.advance() && this.#curTok?.type === TT.ident){
+        while (this.advance() && this.#curTok?.type === TT.ident) {
             nameTok.push(this.#curTok as Token<TT.ident>)
         }
 
         if (this.#curTok?.type as TT === TT.lparen) {
-            for(let i = 0; i < nameTok.length; i++)
+            for (let i = 0; i < nameTok.length; i++)
                 this.back()
             return this.func()
         }
@@ -1233,7 +1370,7 @@ class Parser {
 
     mutate_expr(): Node {
         let node = this.left_unary_op();
-        while ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
+        while ([TT.percent, TT.hash, TT.number_suffix, TT.unit].includes(this.#curTok?.type as TT)) {
             let next = this.#curTok as Token<any>
             this.advance()
             node = new RightUnOpNode(node, next)
@@ -1284,7 +1421,7 @@ class Parser {
     var_assign(): Node {
         this.advance()
         let name = [this.#curTok as Token<TT.ident>]
-        while(this.advance() && this.#curTok?.type === TT.ident){
+        while (this.advance() && this.#curTok?.type === TT.ident) {
             name.push(this.#curTok as Token<TT.ident>)
         }
         if (this.#curTok?.type === TT.eq) {
@@ -1416,7 +1553,7 @@ class Parser {
             else if (this.#curTok.data === IF) {
                 return this.if_statement()
             }
-            else if(this.#curTok.data === WHILE){
+            else if (this.#curTok.data === WHILE) {
                 return this.while_loop()
             }
             else if (this.#curTok.data === SETREL) {
@@ -1447,7 +1584,7 @@ class Parser {
         return new MultiStatementNode(nodeArr)
     }
 
-    program(relativeTo: number){
+    program(relativeTo: number) {
         return new ProgramNode(this.multi_statement(), relativeTo)
 
     }
