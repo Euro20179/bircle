@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
-import { AliasV2, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
+import { AliasV2, StatusCode, commands, crv, getAliasesV2, lastCommand, promptUser } from "../common_to_commands";
 import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import { TT } from './lexer'
 import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary } from "../util";
@@ -110,6 +110,9 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
             return
         }
         yield { content: `\\${cmd} is not a valid command`, status: StatusCode.ERR }
+
+        lastCommand[msg.author.id] = msg.content
+
         return
     }
 
@@ -133,6 +136,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
             })) {
             yield result
         }
+        lastCommand[msg.author.id] = msg.content
         return
     }
 
@@ -140,6 +144,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         for await (let item of run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback, pid_label)) {
             yield item
         }
+        lastCommand[msg.author.id] = msg.content
         return
     }
     yield crv("NOTHING")

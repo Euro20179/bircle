@@ -30,7 +30,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         return crv("Snipes cleared")
     }, "Clears all snipes")]
 
-    yield ['runas', ccmdV2(async function({ msg, args }) {
+    yield ['runas', ccmdV2(async function*({ msg, args, runtime_opts }) {
         let oldId = msg.author
         let user = await fetchUserFromClient(common.client, args[0])
         if (!user) {
@@ -38,9 +38,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
         msg.author = user
         let c = args.slice(1).join(" ")
-        let { rv } = (await cmd({ msg, command_excluding_prefix: c }))
+        for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: c, prefix: "", runtime_opts }, "runas(SUB)")) {
+            yield result
+        }
         msg.author = oldId
-        return rv
     }, "Runas", {
         permCheck: m => globals.ADMINS.includes(m.author.id)
     })]
@@ -267,11 +268,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     })]
 
     yield [
-        "```bircle", createCommandV2(async ({ msg, args, commandBans: bans, sendCallback }) => {
+        "```bircle", createCommandV2(async function*({ msg, args, commandBans: bans, sendCallback, runtime_opts }) {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                await handleSending(msg, (await cmd({ msg, command_excluding_prefix: line, recursion: globals.RECURSION_LIMIT - 1, disable: bans, sendCallback })).rv)
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg })) {
+                    yield result
+                }
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "Run some commands"),
@@ -283,29 +286,24 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
             let rv: CommandReturn = { noSend: true, status: 0 }
-            for await(let res of cmds.runcmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg })){
+            for await (let res of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg }, "( (SUB)")) {
                 rv = res
             }
             return { content: JSON.stringify(rv), status: StatusCode.RETURN }
-            // return { content: JSON.stringify((await cmd({ msg, command_excluding_prefix: args.slice(0, -1).join(" "), recursion: rec + 1, disable: bans, sendCallback })).rv), status: StatusCode.RETURN }
         }, CAT),
     ]
 
     yield [
         'tokenize', createCommandV2(async ({ rawArgs: args }) => {
-            let tokens = new lexer.Lexer(args.join(" ").trim(), {}).lex()
+            let tokens = new lexer.Lexer(args.join(" ").trim(), {prefix: ""}).lex()
             return crv(tokens.map(v => `${v.constructor.name} ${JSON.stringify(v)}`).join(";\n") + ";")
         }, CAT, "Tokenize command input"),
     ]
 
     yield [
         "interprate", ccmdV2(async ({ msg, rawArgs: args }) => {
-
-            let parser = new Parser(msg, args.join(" ").trim())
-            await parser.parse()
-            let int = new Interpreter(msg, parser.tokens, { modifiers: parser.modifiers })
-            await int.interprate()
-            return { content: JSON.stringify(int), status: StatusCode.RETURN }
+            let strings = await cmds.expandSyntax(args.join(" ").trim(), msg)
+            return crv(JSON.stringify(strings))
         }, "Interprate args"),
     ]
 
@@ -807,9 +805,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "del", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, opts, sendCallback }) => {
+        "del", createCommandV2(async function*({ msg, args, opts, runtime_opts }) {
             if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
-            await cmd({ msg, command_excluding_prefix: args.join(" "), recursion: rec + 1, disable: bans, sendCallback })
+
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), msg, runtime_opts, prefix: "(PREFIX)" }, "del(SUB)")) {
+                yield result
+            }
             return { noSend: true, delete: true, status: StatusCode.RETURN }
         }, CAT, "delete your message", {
             "...text": createHelpArgument("text"),
@@ -819,7 +820,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "analyze-cmd", createCommandV2(async ({ msg, sendCallback: sc, rawOpts: opts, args, recursionCount: rec, commandBans: bans }) => {
+        "analyze-cmd", createCommandV2(async ({ msg, rawOpts: opts, args, runtime_opts }) => {
             let results = []
 
             let text = args.join(" ").trim()
@@ -827,7 +828,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             text = text.slice(command.length + 2)
 
-            let rv = (await cmd({ msg, command_excluding_prefix: command, recursion: rec + 1, disable: bans, sendCallback: sc })).rv
+            let rv: CommandReturn = { noSend: true, status: 0 }
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + command, prefix: "(PREFIX)", msg, runtime_opts }, "analyze-cmd(SUB)")) {
+                rv = result
+            }
             for (let line of text.split("\n")) {
                 line = line.trim()
                 if (!line) continue
@@ -1361,7 +1365,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     rv = result
                 }
                 let content = getContentFromResult(rv)
-                // let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, disable: command_bans })).rv as CommandReturn).trim()
                 expected = expected.trim()
                 switch (check.trim().toLowerCase()) {
                     case "==": {
@@ -1637,7 +1640,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (!opts.getBool("n", false))
                     await cmds.handleSending(msg, result)
             }
-            // let rv = await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
             let end = performance.now()
             return { content: `${end - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
@@ -1960,8 +1962,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "silent", ccmdV2(async function({ args, msg, recursionCount, commandBans }) {
-            await cmd({ msg, command_excluding_prefix: args.join(" "), recursion: recursionCount, disable: commandBans, sendCallback: async () => msg })
+        "silent", ccmdV2(async function({ args, msg, runtime_opts }) {
+            runtime_opts.set("silent", true)
+            let gen = globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), prefix: "(PREFIX)", runtime_opts, msg }, "silent(SUB)")
+            while (!(await gen.next()).done);
             return { noSend: true, status: StatusCode.RETURN }
         }, "Run a command silently")
     ]
@@ -2767,15 +2771,15 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!", ccmdV2(async function({ msg, rawOpts: opts, recursionCount: rec, commandBans: bans, sendCallback }) {
+        "!!", ccmdV2(async function*({ msg, rawOpts: opts, recursionCount: rec, commandBans: bans, sendCallback, runtime_opts }) {
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
                 return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
                 return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
-            msg.content = lastCommand[msg.author.id]
-            return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id], recursion: rec + 1, disable: bans, sendCallback })).rv as CommandReturn
-
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: lastCommand[msg.author.id], prefix: user_options.getOpt(msg.author.id, "prefix", globals.PREFIX), runtime_opts, msg })) {
+                yield result
+            }
         }, "Run the last command that was run", {
             helpOptions: {
                 p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])
@@ -2894,7 +2898,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "shell", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback }) {
+        "shell", ccmdV2(async function({ msg, runtime_opts }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             if (globals.userUsingCommand(msg.author.id, "shell")) {
                 return { content: "You are already using this command", status: StatusCode.ERR }
@@ -2916,8 +2920,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                let rv = await cmd({ msg: m, command_excluding_prefix: m.content, recursion: recursionCount + 1, disable: commandBans, sendCallback })
-                await handleSending(msg, rv.rv, sendCallback)
+                for await(let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: m.content, prefix: "", runtime_opts})){
+                    await cmds.handleSending(msg, result)
+                }
             })
 
             collector.on("end", () => {
