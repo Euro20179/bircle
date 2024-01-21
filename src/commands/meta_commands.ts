@@ -22,6 +22,7 @@ import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'
 import lexer from '../command-parser/lexer'
+import { kill } from 'process'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
@@ -209,19 +210,28 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         return crv(Array.from(procs, (v) => `${v}: ${globals.PROCESS_MANAGER.getproclabel(v)}`).join("\n"))
     }, "Gets all running processes")]
 
-    yield ['kill', ccmdV2(async function({ argShapeResults }) {
-        let pid = argShapeResults['pid'] as number
-        if(!globals.PROCESS_MANAGER.killproc(pid)){
-            return crv(`No process with pid: ${pid}`)
+    yield ['kill', ccmdV2(async function({ args }) {
+        let killed: string[] = []
+        let dne: string[] = []
+        for (let pid of args) {
+            (
+                globals.PROCESS_MANAGER.killproc(pid)
+                    ? killed
+                    : dne
+            ).push(pid)
         }
-        return crv(`${pid} killed`)
-    }, "Kill a process", {
+        let text = ""
+        if (killed.length) {
+            text += `pids: ${killed.join(", ")} have been killed`
+        }
+        if (dne.length) {
+            text += `pids: ${dne.join(", ")} do not exist`
+        }
+        return crv(text)
+    }, "Kill process(es)", {
         helpArguments: {
-            pid: createHelpArgument("The pid to kill")
+            "...pids": createHelpArgument("The pid(s) to kill")
         },
-        argShape: async function*(args) {
-            yield [args.expectInt(1), "pid"]
-        }
     })]
 
     yield ["export", ccmdV2(async ({ args, symbols }) => {
@@ -293,7 +303,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         'tokenize', createCommandV2(async ({ rawArgs: args }) => {
-            let tokens = new lexer.Lexer(args.join(" ").trim(), {prefix: ""}).lex()
+            let tokens = new lexer.Lexer(args.join(" ").trim(), { prefix: "" }).lex()
             return crv(tokens.map(v => `${v.constructor.name} ${JSON.stringify(v)}`).join(";\n") + ";")
         }, CAT, "Tokenize command input"),
     ]
@@ -316,7 +326,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
                     res.push('.bircle')
                 }
-                else if(cmds.get(cmd)){
+                else if (cmds.get(cmd)) {
                     switch (cmds.get(cmd)?.cmd_std_version) {
                         case 2:
                             res.push("cmdv2")
@@ -2918,7 +2928,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                for await(let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: m.content, prefix: "", runtime_opts})){
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: m.content, prefix: "", runtime_opts })) {
                     await cmds.handleSending(msg, result)
                 }
             })
