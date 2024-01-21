@@ -92,6 +92,12 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         cmdObject = commands.get(cmd) || getAliasesV2()[cmd]
     }
 
+    let disabled = runtime_options.get("disable", false)
+    if(disabled && (disabled.commands?.includes(cmd) || disabled.categories?.includes(cmdObject?.category))){
+        yield { content: "This command has been banned in this context", status: StatusCode.ERR }
+        return
+    }
+
     let warn_cmds = user_options.getOpt(msg.author.id, "warn-cmds", "").split(" ")
     let warn_categories = user_options.getOpt(msg.author.id, "warn-categories", "").split(" ")
 

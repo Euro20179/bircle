@@ -27,7 +27,7 @@ export class SymbolTable {
     }
 }
 
-type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args" | "verbose" | "no-run"
+type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args" | "verbose" | "no-run" | "disable"
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -42,6 +42,7 @@ type RuntimeOptionValue = {
     verbose: boolean,
     ["program-args"]: string[]
     ["no-run"]: boolean,
+    disable: { categories?: CommandCategory[], commands?: string[] } | false
 }
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
@@ -125,7 +126,6 @@ export type RunCmdOptions = {
 }
 //TODO:
 //missing support for:
-//recursion_count
 //banned_commands
 async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_label }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.assert(pid_label !== undefined, "Pid label is undefined")
@@ -198,7 +198,14 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_l
         if (!runtime_opts.get("no-run", false)) {
             for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
                 if(result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
+                    let old_disable = runtime_opts.get('disable', false)
+                    if(typeof result.recurse === 'object'){
+                        result.recurse.categories ??= []
+                        result.recurse.commands ??= []
+                        runtime_opts.set('disable', result.recurse)
+                    }
                     yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                    runtime_opts.set('disable', old_disable)
                     continue
                 }
                 yield result

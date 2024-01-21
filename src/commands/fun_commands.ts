@@ -36,6 +36,7 @@ import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
+import cmds from '../command-parser/cmds';
 
 export default function*(): Generator<[string, CommandV2]> {
 
@@ -400,7 +401,7 @@ export default function*(): Generator<[string, CommandV2]> {
         // return { noSend: true, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
-    yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
+    yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans, runtime_opts }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: "You must run `[option enable-mail true` to run this command", status: StatusCode.ERR }
         }
@@ -425,9 +426,21 @@ export default function*(): Generator<[string, CommandV2]> {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, globals.PREFIX.length) === globals.PREFIX) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(globals.PREFIX.length), recursion: recursionCount, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
-            if (signature.startsWith(globals.PREFIX)) {
-                signature = "\\" + signature
+            if(runtime_opts){
+                let rv: CommandReturn = { noSend: true, status: 0 }
+                let old_disable = runtime_opts.get('disable', false)
+                runtime_opts.set("disable", generateDefaultRecurseBans())
+                for await(let result of cmds.runcmd({ command: signature, runtime_opts, msg, prefix: globals.PREFIX })){
+                    rv = result
+                }
+                runtime_opts.set("disable", old_disable)
+                signature = getContentFromResult(rv)
+            }
+            else{
+                signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(globals.PREFIX.length), recursion: recursionCount, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
+                if (signature.startsWith(globals.PREFIX)) {
+                    signature = "\\" + signature
+                }
             }
         }
 

@@ -723,7 +723,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "money", createCommandV2(async ({ rawOpts: opts, msg, args }) => {
+        "money", createCommandV2(async ({ rawOpts: opts, msg, args, runtime_opts }) => {
             let user: User | undefined = msg.author
             if (args.join(" "))
                 user = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
@@ -746,6 +746,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
                 if (text) {
                     return { content: text, status: StatusCode.RETURN }
+                }
+                if(runtime_opts){
+                    runtime_opts.set("disable", generateDefaultRecurseBans())
                 }
                 if (opts['no-round']) {
                     return { content: format(money_format, { user: user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
