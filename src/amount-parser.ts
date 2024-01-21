@@ -1180,6 +1180,8 @@ class FunctionNode extends Node {
             'eval': 1,
             'factorial': 1,
             'setrel': 1,
+            sin: 1,
+            cos: 1,
             number: 1
         }
         if (this.name in argCount && values.length < argCount[this.name as keyof typeof argCount]) {
@@ -1202,6 +1204,8 @@ class FunctionNode extends Node {
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'abs': return new NumberType(Math.abs(values[0].access()))
+            case 'sin': return new NumberType(Math.sin(values[0].access()))
+            case 'cos': return new NumberType(Math.cos(values[0].access()))
             case 'string': return values[0].string()
             case 'number': return values[0].number()
             case 'typeof': return new StringType(values[0].type)
