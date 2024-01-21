@@ -1414,7 +1414,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let text = args.join(" ") || "hi"
             let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
             let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary })
-            let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [button] })
+            let row = new ActionRowBuilder<ButtonBuilder>({ components: [button] })
             let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
             let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
             collector.on("collect", async (interaction) => {
