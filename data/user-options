@@ -32,16 +32,6 @@ dm-when-online:The text to send to dms when the bot comes online
 
 mail-signature:The text to append when you send mail to someone
 
-change-cmd-info:When something is sent to chat with the INFO status, say this instead
-
-change-cmd-return:When something is sent to chat with the RETURN status, say this instead
-
-change-cmd-prompt:When something is sent to chat with the PROMPT status, say this instead
-
-change-cmd-error:When something is sent to chat with the ERROR status, say this instead
-
-change-cmd-warning:When something is sent to chat with the WARNING status, say this instead
-
 no-pingresponse:When pinging someone, do not show their pingresponse if they have one (default false)
 
 connect4-win:The text to send when you win connect4
