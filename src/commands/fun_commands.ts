@@ -5,7 +5,7 @@ import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
 import lemmy from 'lemmy-js-client'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction } from 'discord.js';
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction, TextInputBuilder, TextInputStyle } from 'discord.js';
 
 import fetch = require('node-fetch')
 
@@ -36,7 +36,7 @@ import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
-import cmds from '../command-parser/cmds';
+import cmds, { SymbolTable } from '../command-parser/cmds';
 
 export default function*(): Generator<[string, CommandV2]> {
 
