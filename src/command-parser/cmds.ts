@@ -4,9 +4,9 @@ import lexer, { TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
-import { StatusCode } from '../common_to_commands'
+import { StatusCode, isCmd } from '../common_to_commands'
 
-import { RECURSION_LIMIT } from '../globals'
+import { PREFIX, RECURSION_LIMIT } from '../globals'
 import { getOpt } from '../user-options'
 
 export class SymbolTable {
@@ -127,8 +127,9 @@ export type RunCmdOptions = {
 //missing support for:
 //recursion_count
 //banned_commands
-async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_label }: RunCmdOptions) {
+async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_label }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.assert(pid_label !== undefined, "Pid label is undefined")
+
     if (!runtime_opts) {
         runtime_opts = new RuntimeOptions()
         runtime_opts.set("recursion_limit", RECURSION_LIMIT)
@@ -196,12 +197,15 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_l
 
         if (!runtime_opts.get("no-run", false)) {
             for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
+                if(result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
+                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                    continue
+                }
                 yield result
             }
         }
         start_idx = semi_index + 1
     }
-    // return rv ?? { content: `\\${command}(NO MESSAGE)`, status: StatusCode.RETURN }
 }
 
 async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
