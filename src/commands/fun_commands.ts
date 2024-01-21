@@ -13,7 +13,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from '../util'
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, countOf } from '../util'
 
 // import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
 //
@@ -1245,7 +1245,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let text = htmlRenderer.renderHTML(pageJson.parse.text, 0, `https://wikipedia.com`)
                 .replaceAll(/\[\[edit\]\(\/w\/.*&action=edit.*\)\]/g, "")
 
-            let [main, refs] = text.split("## References")
+            let [main, _refs] = text.split("## References")
 
             let e = new EmbedBuilder().setDescription(main.slice(0, 4000)).setTitle(title)
             return { embeds: [e], status: StatusCode.RETURN }
@@ -2283,6 +2283,7 @@ Valid formats:
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []
                 for (let [i, post] of enumerate(posts)) {
+                    //@ts-ignore
                     let uploaded = new Date(post.counts.published)
                     let [_http, __, inst, _c, community] = post.community.actor_id.split("/")
                     let authImg = post.community.icon
@@ -2370,6 +2371,7 @@ Valid formats:
                 if (opts.getBool("text", false)) {
                     let text = ""
                     for (let post of res.posts) {
+                        //@ts-ignore
                         let uploaded = new Date(post.counts.published)
                         text += `# ${post.post.name}\n`
                         text += `Uploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\n`

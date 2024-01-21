@@ -17,7 +17,6 @@ import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
-import cmds from './command-parser/cmds';
 
 function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
     //@ts-ignore
@@ -1104,6 +1103,7 @@ export class Interpreter {
     async runCmdV2(cmd: string, cmdObject: CommandV2, rv: CommandReturn, opts: Opts, args: string[], args2: ArgumentList): Promise<CommandReturn> {
         let argList = new ArgList(args2)
         let argShapeResults: Record<string, any> = {}
+        //@ts-ignore, this will remain umaintained and broken
         let obj: CommandV2RunArg = {
             msg: this.#msg,
             rawArgs: args,
@@ -1673,5 +1673,5 @@ export default {
     createFakeMessage,
     clearSnipes,
     handleUserMatchCommands,
-    handleMatchCommands
+    handleMatchCommands,
 }

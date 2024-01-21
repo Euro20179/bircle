@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
-import { AliasV2, StatusCode, commands, crv, getAliasesV2, lastCommand, promptUser } from "../common_to_commands";
+import { AliasV2, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
 import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import { TT } from './lexer'
 import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary } from "../util";

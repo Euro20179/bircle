@@ -1,7 +1,7 @@
 import fs from 'fs'
 
-import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
-import { handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
+import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
+import { handleSending, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
 
 import globals = require('../globals')
 import economy from '../economy'
@@ -247,7 +247,7 @@ export default function*(): Generator<[string, CommandV2]> {
 </p>`
     })]
 
-    yield ["know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
+    yield ["know-your-meme", createCommandV2(async ({ msg, sendCallback, opts }) => {
 
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
@@ -1177,7 +1177,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "heist", ccmdV2(async ({ msg, rawOpts: opts, args, sendCallback }) => {
+        "heist", ccmdV2(async ({ msg, rawOpts: opts, sendCallback }) => {
             if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
                 return { content: "U dingus u are already in the game", status: StatusCode.ERR }
             }
@@ -1599,7 +1599,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "last-run", ccmdV2(async function({ msg, args, sendCallback }) {
+        "last-run", ccmdV2(async function({ msg, args }) {
             let lastRun;
             let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
             if (fs.existsSync("./command-results/last-run")) {
@@ -2508,7 +2508,6 @@ until you put a 0 in the box`)
                 let guessed = ""
                 let disp = ""
                 let lives = parseInt(opts["lives"] as string) || 10
-                let _startingLives = lives
                 let word = [...wordstr]
                 for (let i = 0; i < wordLength; i++) {
                     if (word[i] == " ") {

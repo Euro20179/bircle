@@ -14,7 +14,7 @@ commands()
 
 import { slashCmds } from './src/slashCommands'
 
-import command_commons, { StatusCode, handleSending } from './src/common_to_commands'
+import command_commons, { StatusCode } from './src/common_to_commands'
 
 import globals from './src/globals'
 import { defer, isMsgChannel } from './src/util'

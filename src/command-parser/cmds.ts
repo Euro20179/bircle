@@ -4,7 +4,7 @@ import lexer, { TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
-import { StatusCode, isCmd } from '../common_to_commands'
+import common_to_commands, { StatusCode, isCmd } from '../common_to_commands'
 
 import { PREFIX, RECURSION_LIMIT } from '../globals'
 import { getOpt } from '../user-options'
@@ -195,27 +195,31 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_l
             yield { content: command.slice(working_tokens[0].start, working_tokens[working_tokens.length - 1].end + 1), status: StatusCode.INFO }
         }
 
-        if (!runtime_opts.get("no-run", false)) {
-            for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
-                if(result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
-                    let old_disable = runtime_opts.get('disable', false)
-                    if(typeof result.recurse === 'object'){
-                        result.recurse.categories ??= []
-                        result.recurse.commands ??= []
-                        runtime_opts.set('disable', result.recurse)
+        try{
+            if (!runtime_opts.get("no-run", false)) {
+                for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
+                    if(result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
+                        let old_disable = runtime_opts.get('disable', false)
+                        if(typeof result.recurse === 'object'){
+                            result.recurse.categories ??= []
+                            result.recurse.commands ??= []
+                            runtime_opts.set('disable', result.recurse)
+                        }
+                        yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                        runtime_opts.set('disable', old_disable)
+                        continue
                     }
-                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
-                    runtime_opts.set('disable', old_disable)
-                    continue
+                    yield result
                 }
-                yield result
             }
+        } catch(err: any){
+            yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }
         }
         start_idx = semi_index + 1
     }
 }
 
-async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
+async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>): Promise<Message> {
     if (!isMsgChannel(msg.channel)) return msg
 
     if (!Object.keys(rv).length) {

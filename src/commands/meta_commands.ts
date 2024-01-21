@@ -3,11 +3,11 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, clearSnipes, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, helpArg, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from '../common_to_commands'
+import { aliasesV2, AliasV2, ccmdV2, clearSnipes, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
 import globals = require('../globals')
 import user_options = require('../user-options')
 import API = require('../api')
-import { Parser, parseBracketPair, formatPercentStr, format } from '../parsing'
+import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from '../util'
@@ -22,7 +22,6 @@ import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'
 import lexer from '../command-parser/lexer'
-import { kill } from 'process'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
@@ -277,7 +276,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     })]
 
     yield [
-        "```bircle", createCommandV2(async function*({ msg, args, commandBans: bans, sendCallback, runtime_opts }) {
+        "```bircle", createCommandV2(async function*({ msg, args, runtime_opts }) {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
@@ -290,7 +289,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "(", createCommandV2(async ({ msg, rawArgs: args, commandBans: bans, recursionCount: rec, sendCallback }) => {
+        "(", createCommandV2(async ({ msg, rawArgs: args }) => {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
@@ -2010,7 +2009,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (prefix !== '__global__') {
                     return crv("Invalid prefix", { status: StatusCode.ERR })
                 }
-                let res = vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
+                vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
                 if (!opts['silent'])
                     return {
                         content: vars.getVar(msg, `${msg.author.id}:${name}`),
@@ -2780,7 +2779,7 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!", ccmdV2(async function*({ msg, rawOpts: opts, recursionCount: rec, commandBans: bans, sendCallback, runtime_opts }) {
+        "!!", ccmdV2(async function*({ msg, rawOpts: opts, runtime_opts }) {
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
                 return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {

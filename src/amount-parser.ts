@@ -432,7 +432,7 @@ class UnitType extends Type<LengthUnit> {
                 LengthUnit.fromUnitRepr(`${this.data.value - other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
             )
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
 
     add(other: Type<any>): Type<LengthUnit> {
@@ -445,7 +445,7 @@ class UnitType extends Type<LengthUnit> {
                 LengthUnit.fromUnitRepr(`${this.data.value + other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
             )
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
 
     isub(other: Type<any>): Type<LengthUnit> {
@@ -454,10 +454,11 @@ class UnitType extends Type<LengthUnit> {
             return this
         }
         else if (other instanceof UnitType) {
+            //@ts-ignore
             this.data.value -= other.access().toUnit(this.data.constructor).value
             return this
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
 
     idiv(other: Type<any>): Type<LengthUnit> {
@@ -466,10 +467,11 @@ class UnitType extends Type<LengthUnit> {
             return this
         }
         else if (other instanceof UnitType) {
+            //@ts-ignore
             this.data.value /= other.access().toUnit(this.data.constructor).value
             return this
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
     imul(other: Type<any>): Type<LengthUnit> {
         if (other instanceof NumberType) {
@@ -477,10 +479,11 @@ class UnitType extends Type<LengthUnit> {
             return this
         }
         else if (other instanceof UnitType) {
+            //@ts-ignore
             this.data.value *= other.access().toUnit(this.data.constructor).value
             return this
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
     iadd(other: Type<any>): Type<LengthUnit> {
         if (other instanceof NumberType) {
@@ -488,10 +491,11 @@ class UnitType extends Type<LengthUnit> {
             return this
         }
         else if (other instanceof UnitType) {
+            //@ts-ignore
             this.data.value += other.access().toUnit(this.data.constructor).value
             return this
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
 
     mul(other: Type<any>): Type<LengthUnit> {
@@ -504,7 +508,7 @@ class UnitType extends Type<LengthUnit> {
                 LengthUnit.fromUnitRepr(`${this.data.value * other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
             )
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
 
     div(other: Type<any>): Type<LengthUnit> {
@@ -517,7 +521,7 @@ class UnitType extends Type<LengthUnit> {
                 LengthUnit.fromUnitRepr(`${this.data.value / other.access().toUnit(this.data.constructor).value}${this.data.constructor.shorthand}`)
             )
         }
-        return new TypeError(`Cannot add Unit and ${other.constructor.name}`)
+        throw new TypeError(`(Relscript): Cannot add Unit and ${other.constructor.name}`)
     }
 }
 
@@ -619,19 +623,19 @@ class StringType extends Type<string>{
     }
 
     sub(_other: Type<any>): Type<string> {
-        throw new TypeError("Cannot subtract strings")
+        throw new TypeError("(Relscript): Cannot subtract strings")
     }
 
     isub(_other: Type<any>): Type<string> {
-        throw new TypeError("Cannot subtract strings")
+        throw new TypeError("(Relscript): Cannot subtract strings")
     }
 
     div(_other: Type<any>): Type<string> {
-        throw new TypeError("Cannot divide strings")
+        throw new TypeError("(Relscript): Cannot divide strings")
     }
 
     idiv(_other: Type<any>): Type<string> {
-        throw new TypeError("Cannot divide strings")
+        throw new TypeError("(Relscript): Cannot divide strings")
     }
 
     string(): StringType {
@@ -687,7 +691,7 @@ class FunctionType extends Type<UserFunction> {
     }
 
     number(): NumberType {
-        throw new TypeError(`Function: ${this.data.name} cannot be converted to a number`)
+        throw new TypeError(`(Relscript): Function: ${this.data.name} cannot be converted to a number`)
     }
 
     run(program: ProgramNode, args: Type<any>[], table: SymbolTable) {
@@ -701,7 +705,7 @@ class UserFunction {
     run(program: ProgramNode, args: Type<any>[], table: SymbolTable) {
         let argRecord: { [key: string]: any } = {}
         if (args.length < this.argIdents.length) {
-            throw new TypeError(`${this.name} expected ${this.argIdents.length} arguments but got ${args.length}`)
+            throw new TypeError(`(Relscript): ${this.name} expected ${this.argIdents.length} arguments but got ${args.length}`)
         }
         for (let i = 0; i < this.argIdents.length; i++) {
             argRecord[this.argIdents[i]] = args[i]

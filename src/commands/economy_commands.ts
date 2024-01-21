@@ -9,7 +9,7 @@ import vars from '../vars'
 
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, PagedEmbed, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, isNumeric, fetchUserFromClientOrGuild, entriesOf, ArgList } from '../util'
+import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, fetchUserFromClientOrGuild, entriesOf, ArgList } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -466,7 +466,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "shop", ccmdV2(async function({ msg, args, rawOpts: opts }) {
+        "shop", ccmdV2(async function({ msg, rawOpts: opts }) {
             let items = fs.readFileSync("./data/shop.json", "utf-8")
             let user = msg.author
             let userCheckingShop = user
@@ -793,7 +793,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     toolbox: (amount) => {
                         return { message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0 }
                     },
-                    "back-ally-deal": amount => {
+                    "back-ally-deal": _amount => {
                         let gain = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "25%")
                         return { message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0 }
                     }
@@ -1097,7 +1097,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "leaderboard", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+        "leaderboard", ccmdV2(async function({ msg, args, rawOpts: opts }) {
             let place = Number(args[0]) || 10
             if (opts['top']) {
                 place = parseInt(String(opts['top']))

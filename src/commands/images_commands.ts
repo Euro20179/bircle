@@ -5,7 +5,7 @@ import fetch = require('node-fetch')
 
 import { Stream } from 'stream'
 
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, StatusCode } from '../common_to_commands'
 import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import sharp from 'sharp'
@@ -212,7 +212,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "draw", createCommandV2(async ({ rawOpts: opts, msg, args, sendCallback }) => {
+        "draw", createCommandV2(async ({ rawOpts: opts, msg, sendCallback }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let width = Pipe.start(opts['w']).default(500).next((v: any) => String(v)).done()
             let height = Pipe.start(opts['h']).default(500).next((v: any) => String(v)).done()
@@ -844,7 +844,7 @@ The commands below, only work after **path** has been run:
             ctx.fill()
             const buffer = canv.toBuffer("image/png")
             fs.writeFileSync(fn, buffer)
-            handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(res => {
+            handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(_res => {
                 fs.rmSync(fn)
             })
             return {
