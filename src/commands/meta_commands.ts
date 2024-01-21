@@ -246,7 +246,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             return crv("Name must be alphanumeric + _- only", { status: StatusCode.ERR })
         }
 
-        if(symbols)
+        if (symbols)
             symbols.set(name, value)
 
         return crv(`${name} = ${value}`)
@@ -2941,4 +2941,5 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
         }, "Run commands without having to do a prefix")
     ]
 }
+
 

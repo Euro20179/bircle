@@ -17,6 +17,7 @@ let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
 
 let ENDPOINTS: {[key: string]: string[]} = {}
 
+
 function loadMatchCommands() {
     if (fs.existsSync("./data/match-commands")) {
         let data = fs.readFileSync("./data/match-commands", "utf-8")

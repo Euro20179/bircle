@@ -258,7 +258,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
                 att.name,
 
             )) {
-
                 await cmds.handleSending(m, result)
             }
         }

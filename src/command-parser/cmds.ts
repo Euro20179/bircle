@@ -102,9 +102,9 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
             for (let modifier of modifier_dat[1]) {
                 modifier.unset_runtime_opt(runtime_opts)
             }
-            for await (let piped_item of handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)) {
-                yield piped_item
-            }
+
+            yield* handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)
+
             for (let mod of modifier_dat[1]) {
                 mod.set_runtime_opt(runtime_opts)
             }
@@ -226,10 +226,11 @@ async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (da
         return msg
     }
 
+
     if (!sendCallback) {
-        sendCallback = rv.sendCallback || rv.reply ? msg.reply.bind(msg) :
+        sendCallback = rv.sendCallback || (rv.reply ? msg.reply.bind(msg) :
             rv.channel?.send.bind(rv.channel) ||
-            msg.channel.send.bind(msg.channel)
+            msg.channel.send.bind(msg.channel))
     }
 
     if (rv.delete) {
