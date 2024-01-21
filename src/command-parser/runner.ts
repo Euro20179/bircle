@@ -129,6 +129,13 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }[user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
     let [opts, parsed_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
 
+    if(opts['?']){
+        parsed_args = ["help"].concat(parsed_args)
+        console.log(parsed_args)
+        cmdObject = commands.get("help")
+        delete opts['?']
+    }
+
     let args = new ArgList(parsed_args)
 
     events.commandEventListener.emit(events.cmdRun, {
