@@ -5,7 +5,26 @@ import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
 import lemmy from 'lemmy-js-client'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction, TextInputBuilder, TextInputStyle } from 'discord.js';
+import {
+    ColorResolvable,
+    DMChannel,
+    Guild,
+    GuildMember,
+    Message,
+    ActionRowBuilder,
+    ButtonBuilder,
+    EmbedBuilder,
+    User,
+    StringSelectMenuBuilder,
+    ChannelType,
+    ButtonStyle,
+    ComponentType,
+    Embed,
+    CacheType,
+    ButtonInteraction,
+    TextInputBuilder,
+    TextInputStyle
+} from 'discord.js';
 
 import fetch = require('node-fetch')
 
@@ -13,7 +32,31 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, countOf } from '../util'
+import {
+    choice,
+    fetchUser,
+    getImgFromMsgAndOpts,
+    Pipe,
+    rgbToHex,
+    ArgList,
+    searchList,
+    fetchUserFromClient,
+    getContentFromResult,
+    fetchChannel,
+    efd,
+    BADVALUE,
+    MimeType,
+    range,
+    isMsgChannel,
+    isBetween,
+    fetchUserFromClientOrGuild,
+    cmdFileName,
+    truthy,
+    enumerate,
+    getImgFromMsgAndOptsAndReply,
+    titleStr,
+    countOf
+} from '../util'
 
 // import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
 //
@@ -22,7 +65,23 @@ import user_options = require('../user-options')
 import pet from '../pets'
 import globals = require('../globals')
 import timer from '../timer'
-import common_to_commands, { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, PagedEmbed, promptUser, purgeSnipe, snipes, StatusCode } from '../common_to_commands';
+import common_to_commands, {
+    ccmdV2,
+    cmd,
+    CommandCategory,
+    createCommandV2,
+    createHelpArgument,
+    createHelpOption,
+    crv,
+    generateDefaultRecurseBans,
+    getCommands,
+    handleSending,
+    PagedEmbed,
+    promptUser,
+    purgeSnipe,
+    snipes,
+    StatusCode
+} from '../common_to_commands';
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -44,7 +103,10 @@ export default function*(): Generator<[string, CommandV2]> {
         globals.startCommand(msg.author.id, "mastermind")
         const chars = opts.getString("options", "abcdef").toUpperCase()
         let moveCount = opts.getNumber("moves", 9)
-        const answer = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
+        const answer = Array.from(
+            { length: 5 },
+            () => chars[Math.floor(Math.random() * chars.length)]
+        ).join("")
         let guess;
         while (guess !== answer) {
             moveCount--
@@ -82,7 +144,10 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (answer[i] === guess[i]) {
                     responseText.push({ letter: guess[i], type: "correct" })
                 }
-                else if (answer.includes(guess[i]) && countOf(responseText.map(v => v.letter), guess[i]) !== countOf(answer, guess[i])) {
+                else if (answer.includes(guess[i]) && countOf(
+                    responseText.map(v => v.letter),
+                    guess[i]
+                ) !== countOf(answer, guess[i])) {
                     //keeps track if the guess has the correct letter after where we currently are, to avoid duplicates
                     let guessContainsCorrectLetter = false
                     for (let j = 0; j < guess.length; j++) {
@@ -108,8 +173,15 @@ export default function*(): Generator<[string, CommandV2]> {
                     case "wrong": return `\\_ `
                     case "correct": return `**${v.letter}** `
                 }
-            }).join("")).setFooter({ text: `${moveCount} guesses remaining` }).setAuthor({ name: msg.author.username, iconURL: msg.author.avatarURL() as string })
-            await handleSending(msg, { content: msg.author.toString(), status: StatusCode.INFO, embeds: [e] })
+            }).join("")).setFooter({ text: `${moveCount} guesses remaining` }).setAuthor({
+                name: msg.author.username,
+                iconURL: msg.author.avatarURL() as string
+            })
+            await handleSending(msg, {
+                content: msg.author.toString(),
+                status: StatusCode.INFO,
+                embeds: [e]
+            })
         }
         if (opts.getNumber("moves", 9) - moveCount === 1) {
             let ach = achievements.achievementGet(msg.author.id, "mind master")
@@ -182,7 +254,16 @@ export default function*(): Generator<[string, CommandV2]> {
             if (opts.getBool("fs", true) || DO_ALL)
                 text += `# FS\n${Math.random() > .5 ? "true" : "false"}\n`
             if (opts.getBool("stage-selection", opts.getBool("ss", false)) || DO_ALL)
-                text += `# Stage Selection\n${choice(["anyone", "take turns", "loser's pick", "order", "random", "battlefield & omega", "battlefield only", "omega only"])}\n`
+                text += `# Stage Selection\n${choice([
+                    "anyone",
+                    "take turns",
+                    "loser's pick",
+                    "order",
+                    "random",
+                    "battlefield & omega",
+                    "battlefield only",
+                    "omega only"
+                ])}\n`
             if (opts.getBool("sudden-death-options", false) || DO_ALL) {
                 text += `# Sudden Death\n`
                 text += `## Screen Srhink\n${Math.random() > .5 ? "true" : "false"}\n`
@@ -202,7 +283,9 @@ export default function*(): Generator<[string, CommandV2]> {
             if (opts.getBool("launch-rate", opts.getBool("lr", false)) || DO_ALL) {
                 let launch_min = opts.getNumber("launch-rate-min", opts.getNumber("lr-min", 0.5))
                 let launch_max = opts.getNumber("launch-rate-max", opts.getNumber("lr-max", 2.1))
-                text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)}\n`
+                text += `# Launch Rate\n${
+                    (Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)
+                }\n`
             }
             if (opts.getBool("ud-boost", false) || DO_ALL) {
                 text += `# Underdog Boost\n${Math.random() > .5 ? "true" : "false"}\n`
@@ -224,20 +307,40 @@ export default function*(): Generator<[string, CommandV2]> {
             "all": createHelpOption("Do all generations"),
             "items": createHelpOption("Generate items, true by default"),
             "type": createHelpOption("Generate the gamemode, true by default"),
-            "enable-time": createHelpOption("If timed is not selected, generate a time limit anyway, true by default"),
-            "min-stamina": createHelpOption("Minimum stamina for random stamina generation, 100 by default (1 is lowest)"),
-            "max-stamina": createHelpOption("Maximum stamina for random stamina generation, 300 by default (999 is highest)"),
-            "min-lives": createHelpOption("Minimum lives for random stock generation, 1 by default (1 is lowest)"),
-            "max-lives": createHelpOption("Maximum lives for random stock generation, 5 by default (99 is highest)"),
+            "enable-time": createHelpOption(
+                "If timed is not selected, generate a time limit anyway, true by default"
+            ),
+            "min-stamina": createHelpOption(
+                "Minimum stamina for random stamina generation, 100 by default (1 is lowest)"
+            ),
+            "max-stamina": createHelpOption(
+                "Maximum stamina for random stamina generation, 300 by default (999 is highest)"
+            ),
+            "min-lives": createHelpOption(
+                "Minimum lives for random stock generation, 1 by default (1 is lowest)"
+            ),
+            "max-lives": createHelpOption(
+                "Maximum lives for random stock generation, 5 by default (99 is highest)"
+            ),
             "min-items": createHelpOption("Minimum amount of items to generate, 1 by default"),
             "max-items": createHelpOption("Maximum amount of items to generate, 100 by default"),
             "mercy": createHelpOption("Generate true/false for the mercy rule, false by default"),
             "fs": createHelpOption("Generate true/false for the final smash rule, true by default"),
-            "stage-selection": createHelpOption("Generate the type of stage selection, false by default", ["ss"]),
-            "sudden-death-options": createHelpOption("Generate options for sudden death, false by default"),
-            "stage-options": createHelpOption("Generate options for stage gameplay, false by default", ["so"]),
+            "stage-selection": createHelpOption(
+                "Generate the type of stage selection, false by default",
+                ["ss"]
+            ),
+            "sudden-death-options": createHelpOption(
+                "Generate options for sudden death, false by default"
+            ),
+            "stage-options": createHelpOption(
+                "Generate options for stage gameplay, false by default",
+                ["so"]
+            ),
             "launch-rate": createHelpOption("Generate the launch rate, false by default", ["lr"]),
-            "ud-boost": createHelpOption("Generate true/false for the underdog boost rule, false by default"),
+            "ud-boost": createHelpOption(
+                "Generate true/false for the underdog boost rule, false by default"
+            ),
             "display": createHelpOption("Generate the display options, false by default")
         },
         argShape: async function*(args) {
@@ -259,14 +362,19 @@ export default function*(): Generator<[string, CommandV2]> {
 
         globals.saveScallywagTokens()
 
-        return { content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN }
+        return {
+            content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`,
+            status: StatusCode.RETURN
+        }
     }, CommandCategory.FUN, "Give a user another scallywag token")]
 
 
     yield ["scallywag-token-count", createCommandV2(async ({ msg, args, opts }) => {
         let user: User | undefined = msg.author
 
-        if (!args[0]) return crv(`${globals.SCALLYWAG_TOKENS[user.id]}`, { status: StatusCode.RETURN })
+        if (!args[0]) return crv(`${globals.SCALLYWAG_TOKENS[user.id]}`, {
+            status: StatusCode.RETURN
+        })
 
         if (opts.getBool("f", false) && msg.guild) {
             user = (await fetchUser(msg.guild as Guild, args[0]))?.user
@@ -283,7 +391,9 @@ export default function*(): Generator<[string, CommandV2]> {
     }, CommandCategory.FUN, "get the scallywag token count of a user", {
         user: createHelpArgument("The user to get the count of", false)
     }, {
-        f: createHelpOption("Fetch user based on your current guild instead of the bot's known users (only works in servers)")
+        f: createHelpOption(
+            "Fetch user based on your current guild instead of the bot's known users (only works in servers)"
+        )
     })]
 
     yield ["chat", createCommandV2(async ({ msg, opts, args, sendCallback }) => {
@@ -316,8 +426,12 @@ export default function*(): Generator<[string, CommandV2]> {
 `
         }
         if (!(model in approved_models))
-            return crv(`${model} is not one of ${Object.keys(approved_models).join(", ")}`, { status: StatusCode.ERR })
-        let prompt = (approved_models[model as keyof typeof approved_models] as string).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", args.join(" "))
+            return crv(`${model} is not one of ${Object.keys(approved_models).join(", ")}`, {
+                status: StatusCode.ERR
+            })
+        let prompt = (
+            approved_models[model as keyof typeof approved_models] as string
+        ).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", args.join(" "))
         if (opts.getBool("c", false)) {
             messages.push({
                 role: "system",
@@ -344,7 +458,9 @@ export default function*(): Generator<[string, CommandV2]> {
                     content: resp.content
                 })
                 await msg.channel.sendTyping()
-                let prompt = (approved_models[model as keyof typeof approved_models] as string).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", resp.content)
+                let prompt = (approved_models[
+                    model as keyof typeof approved_models
+                ] as string).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", resp.content)
                 const result = await fetch.default(`${baseurl}:11434/api/chat`, {
                     method: "POST",
                     body: JSON.stringify({
@@ -360,7 +476,11 @@ export default function*(): Generator<[string, CommandV2]> {
                     })
                 })
                 const json = await result.json()
-                await handleSending(msg, {content: json["message"]["content"], status: StatusCode.RETURN, reply: true}, sendCallback)
+                await handleSending(msg, {
+                    content: json["message"]["content"],
+                    status: StatusCode.RETURN,
+                    reply: true
+                }, sendCallback)
             } while (true)
             return crv("Chat session ended")
         }
@@ -403,26 +523,37 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans, runtime_opts }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
-            return { content: "You must run `[option enable-mail true` to run this command", status: StatusCode.ERR }
+            return {
+                content: "You must run `[option enable-mail true` to run this command",
+                status: StatusCode.ERR
+            }
         }
         let toUser: User | undefined = undefined;
         if (!msg.guild) {
             toUser = await fetchUserFromClient(common.client, argList[0])
         }
         else {
-            toUser = (await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember))?.user
+            toUser = (await argList.assertIndexIsUser(
+                msg.guild,
+                0,
+                msg.member as GuildMember
+            ))?.user
         }
         if (!toUser) {
             return { content: `Could not find user`, status: StatusCode.ERR }
         }
         if (user_options.getOpt(toUser.id, "enable-mail", "false").toLowerCase() !== "true") {
-            return { content: `${toUser instanceof GuildMember ? toUser.displayName : toUser.username} does not have mail enabled`, status: StatusCode.ERR }
+            return { content: `${
+                toUser instanceof GuildMember ? toUser.displayName : toUser.username
+            } does not have mail enabled`, status: StatusCode.ERR }
         }
         try {
             await toUser.createDM()
         }
         catch (err) {
-            return { content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username}`, status: StatusCode.ERR }
+            return { content: `Could not create dm channel with ${
+                toUser instanceof GuildMember ? toUser.displayName : toUser.username
+            }`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, globals.PREFIX.length) === globals.PREFIX) {
@@ -430,14 +561,24 @@ export default function*(): Generator<[string, CommandV2]> {
                 let rv: CommandReturn = { noSend: true, status: 0 }
                 let old_disable = runtime_opts.get('disable', false)
                 runtime_opts.set("disable", generateDefaultRecurseBans())
-                for await(let result of cmds.runcmd({ command: signature, runtime_opts, msg, prefix: globals.PREFIX })){
+                for await(let result of cmds.runcmd({
+                    command: signature,
+                    runtime_opts,
+                    msg,
+                    prefix: globals.PREFIX
+                })){
                     rv = result
                 }
                 runtime_opts.set("disable", old_disable)
                 signature = getContentFromResult(rv)
             }
             else{
-                signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(globals.PREFIX.length), recursion: recursionCount, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
+                signature = getContentFromResult((await cmd({
+                    msg,
+                    command_excluding_prefix: signature.slice(globals.PREFIX.length),
+                    recursion: recursionCount,
+                    disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() }
+                })).rv as CommandReturn)
                 if (signature.startsWith(globals.PREFIX)) {
                     signature = "\\" + signature
                 }
@@ -445,16 +586,26 @@ export default function*(): Generator<[string, CommandV2]> {
         }
 
         let user = toUser instanceof GuildMember ? toUser.user : toUser
-        handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, user.send.bind(user.dmChannel), recursionCount)
+        handleSending(msg, {
+            content: argList.slice(1).join(" ") + `\n${signature}`
+                || `${msg.member?.displayName || msg.author.username} says hi`,
+            status: StatusCode.RETURN
+        }, user.send.bind(user.dmChannel), recursionCount)
         return { content: "Message sent", status: StatusCode.RETURN, delete: true }
     }, "Mail a user who has the enable-mail option set to true", {
         helpArguments: {
             user: createHelpArgument("The user to mail", true),
-            '...message': createHelpArgument("The message to send<br>your mail-signature will be automatically added to the end", true)
+            '...message': createHelpArgument(
+                "The message to send<br>your mail-signature will be automatically added to the end",
+                true
+            )
         }
     })]
 
-    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command", { delete: true }), "How do you run it, nobody knows", { use_result_cache: true })]
+    yield ["the secret command", ccmdV2(async () => crv(
+        "Congrats, you found the secret command",
+        { delete: true }
+    ), "How do you run it, nobody knows", { use_result_cache: true })]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
         let isRetired = economy.isRetired(msg.author.id)
@@ -467,7 +618,9 @@ export default function*(): Generator<[string, CommandV2]> {
             return crv("You are not retired", { status: StatusCode.ERR })
         }
         if (!timer.has_x_s_passed(msg.author.id, "%retirement-activity", 1800) && !firstTime) {
-            return crv(`You must wait ${(1800 - ((timer.do_lap(msg.author.id, "%retirement-activity") || 0) / 1000)) / 60} minutes`)
+            return crv(`You must wait ${
+                (1800 - ((timer.do_lap(msg.author.id, "%retirement-activity") || 0) / 1000)) / 60
+            } minutes`)
         }
         timer.restartTimer(msg.author.id, "%retirement-activity")
         let activities: { [activity: string]: () => Promise<CommandReturn> } = {
@@ -486,19 +639,30 @@ export default function*(): Generator<[string, CommandV2]> {
             "spanking": async () => {
                 let lostAmount = Math.floor(Math.random() * 10)
                 let name = choice(["Johnny", "Jicky", "Aldo", "Yicky", "Jinky", "Mumbo"])
-                await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
+                await handleSending(msg, crv(`${name} didnt like that - ${
+                    user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+                } ${lostAmount} 😳`), sendCallback)
                 return { noSend: true, status: StatusCode.RETURN }
             },
             "social security": async () => {
                 let amount = economy.economyLooseGrandTotal().total * 0.04
                 economy.addMoney(msg.author.id, amount)
                 return {
-                    content: `You got ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount} in social security benifits`,
+                    content: `You got ${
+                        user_options.getOpt(
+                            msg.author.id,
+                            "currency-sign",
+                            common.GLOBAL_CURRENCY_SIGN
+                        )
+                    }${amount} in social security benifits`,
                     status: StatusCode.RETURN
                 }
             },
             "doing bingo night": async () => {
-                economy.addMoney(msg.author.id, economy.calculateAmountFromString(msg.author.id, "1%"))
+                economy.addMoney(
+                    msg.author.id,
+                    economy.calculateAmountFromString(msg.author.id, "1%")
+                )
                 return crv("YOU WIN!!!!", {
                     files: [
                         {
@@ -511,7 +675,10 @@ export default function*(): Generator<[string, CommandV2]> {
                 economy.addMoney(msg.author.id, -5)
                 return crv("Your grandchild visits and you give them $5")
             },
-            "getting a retirement massage": async () => crv(choice(["Now that's relaxing", "That really chilled out my bone structure",]))
+            "getting a retirement massage": async () => crv(choice([
+                "Now that's relaxing",
+                "That really chilled out my bone structure",
+            ]))
         }
 
         let activity = choice(Array.from(Object.keys(activities)))
@@ -545,7 +712,10 @@ export default function*(): Generator<[string, CommandV2]> {
         let mumboStink = hasItem(msg.author.id, "mumbo stink")
         //if random number is less than 1 / 2^x
         if (mumboStink && Math.random() < (1 / Math.pow(2, mumboStink))) {
-            return { content: "All that mumbo stink you had drove all the fish away", status: StatusCode.RETURN }
+            return {
+                content: "All that mumbo stink you had drove all the fish away",
+                status: StatusCode.RETURN
+            }
         }
 
         let isUsingShark = pet.getActivePet(msg.author.id) === "shark"
@@ -596,7 +766,11 @@ export default function*(): Generator<[string, CommandV2]> {
         let recipes: [[string, ...string[]], (count?: number) => Promise<CommandReturn>][] = [
             [['oil'], async (count?: number) => {
 
-                let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+                let sign = user_options.getOpt(
+                    msg.author.id,
+                    "currency-sign",
+                    common.GLOBAL_CURRENCY_SIGN
+                )
                 let gallonToBarrel = 1 / 42
                 let res = await fetch.default("https://oilprice.com/oil-price-charts")
                 let html = await res.text()
@@ -631,14 +805,19 @@ export default function*(): Generator<[string, CommandV2]> {
                     petData.health = petShop[p]['max-hunger']
                 }
                 giveItem(msg.author.id, "mumbo stink", 1)
-                return { content: "All of your pets have full health, there is some leftover smell :nose:", status: StatusCode.RETURN }
+                return {
+                    content: "All of your pets have full health, there is some leftover smell :nose:",
+                    status: StatusCode.RETURN
+                }
             }
             ],
             [["mumbo stink"], async () => {
                 if (Math.random() > .85) {
                     let amount = economy.playerLooseNetWorth(msg.author.id) * 0.01
                     economy.loseMoneyToBank(msg.author.id, amount)
-                    return { content: `You get sued for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount} for being so stinky`, status: StatusCode.RETURN }
+                    return { content: `You get sued for ${
+                        user_options.getOpt(msg.author.id, "currency-sign", "$")
+                    }${amount} for being so stinky`, status: StatusCode.RETURN }
                 }
                 return { content: "You got rid of the mumbo stink", status: StatusCode.RETURN }
             }],
@@ -668,19 +847,30 @@ export default function*(): Generator<[string, CommandV2]> {
             }],
             [["pirate's gold tooth", "a fine quarter"], async () => {
                 giveItem(msg.author.id, "pawn shop", 1)
-                return { content: "With all of your valuables, you decide to open a pawn shop", status: StatusCode.RETURN }
+                return {
+                    content: "With all of your valuables, you decide to open a pawn shop",
+                    status: StatusCode.RETURN
+                }
             }],
             [["a fine grain of sand"], async () => {
                 economy.increaseSandCounter(msg.author.id, 1)
-                return { content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)}`, status: StatusCode.RETURN }
+                return { content: `You have increased your sand counter by 1, you are now at ${
+                    economy.getSandCounter(msg.author.id)
+                }`, status: StatusCode.RETURN }
             }],
             [["stinky ol' boot", "mumbo meal"], async () => {
                 giveItem(msg.author.id, "balanced breakfast", 1)
-                return { content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN }
+                return {
+                    content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast",
+                    status: StatusCode.RETURN
+                }
             }],
             [["Amelia Earhart"], async () => {
                 giveItem(msg.author.id, "airplane", 1)
-                return { content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN }
+                return {
+                    content: "As a thanks for finding her, she gives you her airplane",
+                    status: StatusCode.RETURN
+                }
             }],
             [["The Titanic"], async () => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
@@ -697,7 +887,10 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (ach) {
                     await handleSending(msg, ach)
                 }
-                return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
+                return {
+                    content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>",
+                    status: StatusCode.RETURN
+                }
             }],
             [["ship wreck"], async () => {
                 let amount = Math.random() * economy.playerLooseNetWorth(msg.author.id) * 0.05
@@ -745,7 +938,10 @@ export default function*(): Generator<[string, CommandV2]> {
         })[0]
 
         if (!chosen_recipe) {
-            return { content: `${items.join(" + ")} is not a valid combination`, status: StatusCode.ERR }
+            return {
+                content: `${items.join(" + ")} is not a valid combination`,
+                status: StatusCode.ERR
+            }
         }
 
         let countOfItem = opts.getNumber('count', 1)
@@ -852,11 +1048,15 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             let first_time_embed = new EmbedBuilder()
             first_time_embed.setTitle(`${score.first_team_away} @ ${score.first_team_home}`)
-            first_time_embed.setDescription(`First time during ${(new Date(score.first_date)).toDateString()}`)
+            first_time_embed.setDescription(`First time during ${
+                (new Date(score.first_date)).toDateString()
+            }`)
             first_time_embed.setFooter({ text: score.first_link })
             let last_time_embed = new EmbedBuilder()
             last_time_embed.setTitle(`${score.last_team_away} @ ${score.last_team_home}`)
-            last_time_embed.setDescription(`Most recent during ${(new Date(score.last_date)).toDateString()}`)
+            last_time_embed.setDescription(`Most recent during ${
+                (new Date(score.last_date)).toDateString()
+            }`)
             last_time_embed.setFooter({ text: score.last_link })
             let info_embed = new EmbedBuilder()
             info_embed.setTitle(`Count:  ${score.count}`)
@@ -915,14 +1115,24 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             count_text = format(count_text, { count: `.${numeric}.` })
             if (common_to_commands.isCmd(count_text, globals.PREFIX)) {
-                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(globals.PREFIX.length), recursion: rec, disable })).rv
+                let rv = (await cmd({
+                    msg,
+                    command_excluding_prefix: count_text.slice(globals.PREFIX.length),
+                    recursion: rec,
+                    disable
+                })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
                 }
                 rv['delete'] = true
                 return rv
             }
-            return { content: count_text, delete: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+            return {
+                content: count_text,
+                delete: true,
+                status: StatusCode.RETURN,
+                do_change_cmd_user_expansion: false
+            }
         }, "Count in the counting channel"),
     ]
 
@@ -935,13 +1145,22 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (!data) {
                     return { content: "No  info found", status: StatusCode.ERR }
                 }
-                await handleSending(msg, { content: "Getting data", status: StatusCode.INFO }, sendCallback)
+                await handleSending(
+                    msg,
+                    { content: "Getting data", status: StatusCode.INFO },
+                    sendCallback
+                )
                 if (fmt == "{embed}") {
                     let embed = new EmbedBuilder()
                     let nChange = Number(data.change)
                     let nPChange = Number(data["%change"]) * 100
                     embed.setTitle(stock.toUpperCase().trim() || "N/A")
-                    embed.addFields(efd(["price", String(data.price).trim() || "N/A", true], ["change", String(data.change).trim() || "N/A", true], ["%change", String(nPChange).trim() || "N/A", true], ["volume", data.volume?.trim() || "N/A"]))
+                    embed.addFields(efd(
+                        ["price", String(data.price).trim() || "N/A", true],
+                        ["change", String(data.change).trim() || "N/A", true],
+                        ["%change", String(nPChange).trim() || "N/A", true],
+                        ["volume", data.volume?.trim() || "N/A"]
+                    ))
                     if (nChange < 0) {
                         embed.setColor("Red")
                     }
@@ -1037,7 +1256,9 @@ export default function*(): Generator<[string, CommandV2]> {
             const JSONData = JSON.parse(text)
             function getAmountUntil(userData: any) {
                 const desired_rank = userData.level + 1
-                const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
+                const xp_to_desired_rank = 5 / 6 * desired_rank * (
+                    2 * desired_rank * desired_rank + 27 * desired_rank + 91
+                )
                 const xp_needed = xp_to_desired_rank - userData.xp
                 const min_messages_for_next_level = Math.ceil(xp_needed / 26) //26 = max xp per minute
                 const max_messages_for_next_level = Math.ceil(xp_needed / 15) //15 = min xp per minute
@@ -1068,15 +1289,31 @@ export default function*(): Generator<[string, CommandV2]> {
                     const user1Data = JSONData.players.filter((v: any) => v.id == member1.id)?.[0]
                     const user2Data = JSONData.players.filter((v: any) => v.id == member2.id)?.[0]
                     if (!user1Data) {
-                        return { content: `No data for ${member1.user.username} found`, status: StatusCode.ERR }
+                        return {
+                            content: `No data for ${member1.user.username} found`,
+                            status: StatusCode.ERR
+                        }
                     }
                     if (!user2Data) {
-                        return { content: `No data for ${member2.user.username} found`, status: StatusCode.ERR }
+                        return {
+                            content: `No data for ${member2.user.username} found`,
+                            status: StatusCode.ERR
+                        }
                     }
                     const rank1 = JSONData.players.indexOf(user1Data)
                     const rank2 = JSONData.players.indexOf(user2Data)
-                    let [xp_needed1, min_messages_for_next_level1, _, avg_messages_for_next_level1] = getAmountUntil(user1Data)
-                    let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
+                    let [
+                        xp_needed1,
+                        min_messages_for_next_level1,
+                        _,
+                        avg_messages_for_next_level1
+                    ] = getAmountUntil(user1Data)
+                    let [
+                        xp_needed2,
+                        min_messages_for_next_level2,
+                        max_messages_for_next_level2,
+                        avg_messages_for_next_level2
+                    ] = getAmountUntil(user2Data)
                     const embed = new EmbedBuilder()
                     embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
                     let redness = Math.min(Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
@@ -1084,7 +1321,15 @@ export default function*(): Generator<[string, CommandV2]> {
                     let hex = rgbToHex(redness, greenness, 0)
                     embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
                     embed.setColor(hex as ColorResolvable)
-                    embed.addFields(efd(["Level", String(user1Data.level - user2Data.level), true], ["XP", String(user1Data.xp - user2Data.xp), true], ["Message Count", String(user1Data.message_count - user2Data.message_count), true], ["XP for next level", String(xp_needed1 - xp_needed2)], ["Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true], ["Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true], ["Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true]))
+                    embed.addFields(efd(
+                        ["Level", String(user1Data.level - user2Data.level), true],
+                        ["XP", String(user1Data.xp - user2Data.xp), true],
+                        ["Message Count", String(user1Data.message_count - user2Data.message_count), true],
+                        ["XP for next level", String(xp_needed1 - xp_needed2)],
+                        ["Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true],
+                        ["Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true],
+                        ["Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true]
+                    ))
                     embeds.push(embed)
                     continue
                 }
@@ -1100,10 +1345,18 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
                 const userData = JSONData.players.filter((v: any) => v.id == member.id)?.[0]
                 if (!userData) {
-                    return { content: `No data for ${member.user.username} found`, status: StatusCode.ERR }
+                    return {
+                        content: `No data for ${member.user.username} found`,
+                        status: StatusCode.ERR
+                    }
                 }
                 const rank = JSONData.players.indexOf(userData)
-                let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
+                let [
+                    xp_needed,
+                    max_messages_for_next_level,
+                    min_messages_for_next_level,
+                    avg_messages_for_next_level
+                ] = getAmountUntil(userData)
                 const embed = new EmbedBuilder()
                 let aurl = member.user.avatarURL()
                 if (aurl) {
@@ -1111,7 +1364,15 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
                 embed.setTitle(`${member.user?.username || member?.displayName} #${rank + 1}`)
                 embed.setColor(member.displayColor)
-                embed.addFields(efd(["Level", String(userData.level), true], ["XP", String(userData.xp), true], ["Message Count", String(userData.message_count), true], ["XP for next level", String(xp_needed)], ["Minimum messages for next level", String(min_messages_for_next_level), true], ["Maximum messages for next level", String(max_messages_for_next_level), true], ["Average messages for next level", String(avg_messages_for_next_level), true]))
+                embed.addFields(efd(
+                    ["Level", String(userData.level), true],
+                    ["XP", String(userData.xp), true],
+                    ["Message Count", String(userData.message_count), true],
+                    ["XP for next level", String(xp_needed)],
+                    ["Minimum messages for next level", String(min_messages_for_next_level), true],
+                    ["Maximum messages for next level", String(max_messages_for_next_level), true],
+                    ["Average messages for next level", String(avg_messages_for_next_level), true]
+                ))
                 embeds.push(embed)
             }
             return { embeds: embeds, status: StatusCode.RETURN }
@@ -2783,7 +3044,10 @@ Valid formats:
             timer.createOrRestartTimer(msg.author.id, "%travel")
 
 
-            let cost = economy.calculateAmountFromStringIncludingStocks(msg.author.id, countries[userGoingTo].cost)
+            let cost = economy.calculateAmountFromStringIncludingStocks(
+                msg.author.id,
+                countries[userGoingTo].cost
+            )
 
             if (hasPassport) {
                 cost = 0
@@ -2808,7 +3072,10 @@ Valid formats:
 
             economy.loseMoneyToBank(msg.author.id, cost)
 
-            await handleSending(msg, crv(`You spent ${sign}${cost} on your trip to ${userGoingTo}`, { status: StatusCode.INFO }))
+            await handleSending(msg, crv(
+                `You spent ${sign}${cost} on your trip to ${userGoingTo}`,
+                { status: StatusCode.INFO }
+            ))
 
             let country = countries[userGoingTo as keyof typeof countries]
 

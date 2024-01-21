@@ -28,7 +28,11 @@ class Achievement{
         let embed = new EmbedBuilder()
         embed.setTitle(`Achievement Get: ${this.name}`)
         embed.setDescription(`reward: ${reward}`)
-        return {embeds: [embed], status: StatusCode.ACHIEVEMENT, do_change_cmd_user_expansion: false}
+        return {
+            embeds: [embed],
+            status: StatusCode.ACHIEVEMENT,
+            do_change_cmd_user_expansion: false
+        }
     }
 
     getReward(){
@@ -88,15 +92,50 @@ const POSSIBLE_ACHIEVEMENTS = {
     russia: new ItemRewardAchievement("russia", "travel to russia", ["hammer and sickle", 1]),
     conquerer: new MoneyRewardAchievement("conquerer", "take over russia", "max(200, 5%)"),
     // traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
-    "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
-    "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(50%,500)"),
-    "impatient": new MoneyRewardAchievement("impatient", "get last run within 1 second of someone else getting it", "max(10%, 100)"),
-    "stale bread": new MoneyRewardAchievement("stale bread", "Sniff a stale baguette", "max(1%,50)"),
-    "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1]),
-    "breaking good": new MoneyRewardAchievement("breaking good", "Create the organic mixture", "max(25%, 250)"),
-    "dealer": new ItemRewardAchievement("dealer", "Sell your organic mixture to the cartel", ["cartel's best wishes", 1]),
-    "conspiracy theorist": new MoneyRewardAchievement("conspiracy theorist", "Obtain the conspiracy", "max(100%,1000)"),
-    "syntax": new ItemRewardAchievement("syntax", "Find a new way to run `the secret command` (ping euro if you did it)", ["syntax", 1]),
+    "even transfer": new ItemRewardAchievement(
+        "even transfer",
+        "exchange 50% of your net worth at once",
+        ['tax evasion', 20]
+    ),
+    "patience": new MoneyRewardAchievement(
+        "patience",
+        "get last run after it hasn't been run for 1 day",
+        "max(50%,500)"
+    ),
+    "impatient": new MoneyRewardAchievement(
+        "impatient",
+        "get last run within 1 second of someone else getting it",
+        "max(10%, 100)"
+    ),
+    "stale bread": new MoneyRewardAchievement(
+        "stale bread",
+        "Sniff a stale baguette",
+        "max(1%,50)"
+    ),
+    "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", [
+        "capitalism hat",
+        1
+    ]),
+    "breaking good": new MoneyRewardAchievement(
+        "breaking good",
+        "Create the organic mixture",
+        "max(25%, 250)"
+    ),
+    "dealer": new ItemRewardAchievement(
+        "dealer",
+        "Sell your organic mixture to the cartel",
+        ["cartel's best wishes", 1]
+    ),
+    "conspiracy theorist": new MoneyRewardAchievement(
+        "conspiracy theorist",
+        "Obtain the conspiracy",
+        "max(100%,1000)"
+    ),
+    "syntax": new ItemRewardAchievement(
+        "syntax",
+        "Find a new way to run `the secret command` (ping euro if you did it)",
+        ["syntax", 1]
+    ),
     "mind master": new ItemRewardAchievement("brain", "Win master mind in one move", ["brain", 1])
 } as const
 
@@ -132,7 +171,10 @@ function isAchievement(name: string){
 
 type AchievementMessage = CommandReturn
 
-function achievementGet(msgOrId: Message | string, achievement: keyof typeof POSSIBLE_ACHIEVEMENTS): AchievementMessage | false{
+function achievementGet(
+    msgOrId: Message | string,
+    achievement: keyof typeof POSSIBLE_ACHIEVEMENTS
+): AchievementMessage | false{
     let id = typeof msgOrId === 'string' ? msgOrId : msgOrId.author.id
     if(!cachedAchievements){
         cachedAchievements = getAchievements()

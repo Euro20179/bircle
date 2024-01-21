@@ -294,7 +294,9 @@ function getVar(msg: Message, varName: string, id?: string) {
     }
 
     if(!varName){
-        return Object.entries(varPrefixObj).map(v => `${v[0]} = ${typeof v[1] === 'string' ? v[1] : v[1].value}`).join("\n")
+        return Object.entries(varPrefixObj).map(v => `${v[0]} = ${typeof v[
+            1
+        ] === 'string' ? v[1] : v[1].value}`).join("\n")
     }
     else if(varPrefixObj[varName] === undefined)
         return false;

@@ -27,7 +27,21 @@ export class SymbolTable {
     }
 }
 
-type RuntimeOption = "silent" | "remote" | "skip" | "typing" | "delete" | "command" | "alias" | "legacy" | "recursion_limit" | "recursion" | "program-args" | "verbose" | "no-run" | "disable"
+type RuntimeOption =
+    "silent"
+    | "remote"
+    | "skip"
+    | "typing"
+    | "delete"
+    | "command"
+    | "alias"
+    | "legacy"
+    | "recursion_limit"
+    | "recursion"
+    | "program-args"
+    | "verbose"
+    | "no-run"
+    | "disable"
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -44,16 +58,24 @@ type RuntimeOptionValue = {
     ["no-run"]: boolean,
     disable: { categories?: CommandCategory[], commands?: string[] } | false
 }
+
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
-    constructor(options?: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>, set_default_opts?: boolean) {
-        this.options = options ?? {} as Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
+    constructor(
+        options?: Record<RuntimeOption,
+            RuntimeOptionValue[keyof RuntimeOptionValue]>,
+        set_default_opts?: boolean
+    ) {
+        this.options = options ?? {} as RuntimeOptions['options']
         if (set_default_opts !== false) {
             this.set("recursion_limit", RECURSION_LIMIT)
             this.set("recursion", 0)
         }
     }
-    get<T extends RuntimeOption>(option: T, default_: RuntimeOptionValue[T]): RuntimeOptionValue[T] {
+    get<T extends RuntimeOption>(
+        option: T,
+        default_: RuntimeOptionValue[T]
+    ): RuntimeOptionValue[T] {
         return this.options[option] as RuntimeOptionValue[T] ?? default_
     }
     set<T extends RuntimeOption>(option: T, value: RuntimeOptionValue[T]) {
@@ -66,7 +88,16 @@ export class RuntimeOptions {
     }
 }
 
-async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], pipeChain: TT<any>[][], msg: Message, symbols: SymbolTable, runtime_opts: RuntimeOptions, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string): AsyncGenerator<CommandReturn> {
+async function* handlePipe(
+    stdin: CommandReturn | undefined,
+    tokens: TT<any>[],
+    pipeChain: TT<any>[][],
+    msg: Message,
+    symbols: SymbolTable,
+    runtime_opts: RuntimeOptions,
+    sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
+    pid_label?: string
+): AsyncGenerator<CommandReturn> {
     if (stdin) {
         symbols.set("stdin:%", stdin.content ?? "")
     }
@@ -86,7 +117,15 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
         mod.set_runtime_opt(runtime_opts)
     }
 
-    for await (let item of runner.command_runner(new_tokens, msg, symbols, runtime_opts, stdin, sendCallback, pid_label as string)) {
+    for await (let item of runner.command_runner(
+        new_tokens,
+        msg,
+        symbols,
+        runtime_opts,
+        stdin,
+        sendCallback,
+        pid_label as string
+    )) {
         //although this could technically be done in the command_runner it's simply easier to do it here
         if (runtime_opts.get("silent", false)) {
             yield { noSend: true, status: StatusCode.RETURN }
@@ -101,7 +140,16 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
             }
 
             //pipe this result to the next pipe in the chain
-            yield* handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)
+            yield* handlePipe(
+                item,
+                pipeChain[0],
+                pipeChain.slice(1),
+                msg,
+                symbols,
+                runtime_opts,
+                sendCallback,
+                pid_label
+            )
 
             for (let mod of modifier_dat[1]) {
                 mod.set_runtime_opt(runtime_opts)
@@ -133,7 +181,15 @@ type RunCmdLineOptions = {
     pid_label?: string
 }
 
-async function* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opts, pid_label, symbols, line_no }: RunCmdLineOptions): AsyncGenerator<CommandReturn> {
+async function* runcmdline({
+    line_tokens: tokens,
+    msg,
+    sendCallback,
+    runtime_opts,
+    pid_label,
+    symbols,
+    line_no
+}: RunCmdLineOptions): AsyncGenerator<CommandReturn> {
     symbols.set("LINENO", String(line_no))
 
     if (runtime_opts.get("verbose", false)) {
@@ -159,9 +215,22 @@ async function* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opt
 
     try {
         if (!runtime_opts.get("no-run", false)) {
-            for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
+            for await (let result of handlePipe(
+                undefined,
+                pipe_token_chains[0],
+                pipe_token_chains.slice(1),
+                msg,
+                symbols,
+                runtime_opts,
+                sendCallback,
+                pid_label as string
+            )) {
                 //this is done here because recursion should be handled per line (;; seperated commands), not per the ENTIRE command, or per pipe
-                if (result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
+                if (result.recurse
+                    && result.content
+                    && isCmd(result.content, PREFIX)
+                    && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
+                ) {
                     let old_disable = runtime_opts.get('disable', false)
                     if (typeof result.recurse === 'object') {
                         result.recurse.categories ??= []
@@ -183,7 +252,14 @@ async function* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opt
 //TODO:
 //missing support for:
 //banned_commands
-async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_label }: RunCmdOptions): AsyncGenerator<CommandReturn> {
+async function* runcmd({
+    command,
+    prefix,
+    msg,
+    sendCallback,
+    runtime_opts,
+    pid_label
+}: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.assert(pid_label !== undefined, "Pid label is undefined")
 
     runtime_opts ??= new RuntimeOptions()
@@ -220,13 +296,25 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_l
                 break
             }
         }
-        yield* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opts, pid_label, symbols, line_no })
+        yield* runcmdline({
+            line_tokens: tokens,
+            msg,
+            sendCallback,
+            runtime_opts,
+            pid_label,
+            symbols,
+            line_no
+        })
         line_no++
     } while (!lex.done)
     return { noSend: true, status: 0 }
 }
 
-async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>): Promise<Message> {
+async function handleSending(
+    msg: Message,
+    rv: CommandReturn,
+    sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>
+): Promise<Message> {
     if (!isMsgChannel(msg.channel)) return msg
 
     if (!Object.keys(rv).length) {
@@ -260,7 +348,12 @@ async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (da
         let fn = `./garbage-files/${msg.author.id}-${msg.id}`
         fs.writeFileSync(fn, rv.content as string)
         let extension = rv.mimetype ? mimeTypeToFileExtension(rv.mimetype) || "txt" : "txt"
-        rv.files = (rv.files ?? []).concat([{ attachment: fn, name: `cmd.${extension}`, description: "command output too long", wasContent: oldContent }])
+        rv.files = (rv.files ?? []).concat([{
+            attachment: fn,
+            name: `cmd.${extension}`,
+            description: "command output too long",
+            wasContent: oldContent
+        }])
         delete rv["content"]
     }
 

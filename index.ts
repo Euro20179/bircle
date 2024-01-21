@@ -40,7 +40,8 @@ init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
-    if (!isMsgChannel(msg.channel)) return { rv: { noSend: true, status: StatusCode.RETURN }, interpreter: undefined }
+    if (!isMsgChannel(msg.channel))
+        return { rv: { noSend: true, status: StatusCode.RETURN }, interpreter: undefined }
     let rv;
     try {
         rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
@@ -48,7 +49,10 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     catch (err) {
         console.error(err)
         await command_commons.handleSending(
-            msg, command_commons.crv(`Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\``, { status: StatusCode.ERR })
+            msg, command_commons.crv(
+                `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\``,
+                { status: StatusCode.ERR }
+            )
         )
         return { rv: { noSend: true, status: 0 }, interpreter: undefined }
     }
@@ -97,7 +101,9 @@ common.client.on(Events.ClientReady, async () => {
                 if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
                     common.client.users.fetch(v).then((u) => {
                         u.createDM().then((channel) => {
-                            channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
+                            channel.send(
+                                user_options.getOpt(v, "dm-when-online", "ONLINE")
+                            ).catch(console.log)
                         })
                     }).catch(console.log)
                 }
@@ -179,12 +185,20 @@ async function handleEarnings(m: Message) {
     if (ap == 'puffle') {
         let stuff = await pet.PETACTIONS['puffle'](m)
         if (!HEADLESS && stuff) {
-            let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
+            let findMessage = user_options.getOpt(
+                m.author.id,
+                "puffle-find",
+                "{user}'s {name} found: {stuff}"
+            )
             await command_commons.handleSending(m, {
                 content: format(findMessage, {
                     user: `<@${m.author.id}>`,
                     name: pet.hasPet(m.author.id, ap)?.name,
-                    stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ")
+                    stuff: stuff.money ? `${user_options.getOpt(
+                        m.author.id,
+                        "currency-sign",
+                        common.GLOBAL_CURRENCY_SIGN
+                    )}${stuff.money}` : stuff.items.join(", ")
                 }),
                 status: command_commons.StatusCode.INFO,
                 recurse: command_commons.generateDefaultRecurseBans()
@@ -195,7 +209,9 @@ async function handleEarnings(m: Message) {
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
-    if (m.member?.roles.cache.find((v: any) => common.BLACKLISTED_ROLES()?.includes(v.id)) || common.BLACKLISTED_USERS().includes(m.author.id)) {
+    if (m.member?.roles.cache.find(
+        (v: any) => common.BLACKLISTED_ROLES()?.includes(v.id)
+    ) || common.BLACKLISTED_USERS().includes(m.author.id)) {
         return
     }
     if (m.channel.type !== ChannelType.DM && m.guild && m.guild?.id !== globals.GUILD_ID)
@@ -210,19 +226,27 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     //you get reset if you have less than -40% of the economy
-    if ((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4) {
+    if (
+        (economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4
+    ) {
         economy.createPlayer(m.author.id)
         economy.setMoney(m.author.id, 0)
     }
 
     let local_prefix = m.author.getBOpt("prefix", globals.PREFIX)
 
-    if (!HEADLESS && !m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
+    if (!HEADLESS
+        && !m.author.bot
+        && (m.mentions.members?.size || 0) > 0
+        && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         handlePingResponse(m)
     }
 
     if (!HEADLESS && m.content === `<@${common.client.user?.id}>`) {
-        await command_commons.handleSending(m, { content: `The prefix is: ${local_prefix}`, status: 0 })
+        await command_commons.handleSending(m, {
+            content: `The prefix is: ${local_prefix}`,
+            status: 0
+        })
     }
 
     let content = m.content
@@ -287,9 +311,16 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isButton() && !interaction.replied) {
         if (interaction.customId.match(/button\.(rock|paper|scissors)/)) {
             let intendedUser = interaction.customId.split(":")[1]
-            let table: { [k: string]: string } = { "rock": "paper", "paper": "scissors", "scissors": "rock" }
+            let table: { [k: string]: string } = {
+                "rock": "paper",
+                "paper": "scissors",
+                "scissors": "rock"
+            }
             if (interaction.user.id != intendedUser) {
-                interaction.reply({ ephemeral: true, content: "You idiot, you already picked" }).catch(console.error)
+                interaction.reply({
+                    ephemeral: true,
+                    content: "You idiot, you already picked"
+                }).catch(console.error)
                 return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
@@ -313,7 +344,8 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
             else if (table[oppChoice] == userChoice) {
                 if (ogBet) {
                     economy.addMoney(ogUser, ogBet)
-                    interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` }).catch(console.error)
+                    interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` })
+                        .catch(console.error)
                 }
                 else interaction.reply({ content: `<@${ogUser}> user wins!` }).catch(console.error)
             }
@@ -322,10 +354,14 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
                     economy.loseMoneyToBank(ogUser, ogBet)
                     if (interaction.member?.user.id) {
                         economy.addMoney(interaction.member?.user.id, ogBet)
-                        interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` }).catch(console.error)
+                        interaction.reply({
+                            content: `<@${interaction.member?.user.id}> user won ${ogBet}!`
+                        }).catch(console.error)
                     }
                 }
-                else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` }).catch(console.error)
+                else interaction.reply({
+                    content: `<@${interaction.member?.user.id}> user wins!`
+                }).catch(console.error)
             }
             for (let button in globals.BUTTONS) {
                 if (button.match(/button\.(rock|paper|scissors)/)) {
@@ -335,7 +371,10 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
         }
     }
     else if (interaction.isCommand() && !interaction.replied) {
-        if (common.BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)) {
+        if (
+            common.BLACKLIST[interaction.member?.user.id as string]
+                ?.includes(interaction.commandName)
+        ) {
             interaction.reply({ content: "You are blacklisted from this" }).catch(console.error)
             return
         }

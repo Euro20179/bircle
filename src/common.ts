@@ -6,7 +6,15 @@ import { Client, GatewayIntentBits } from "discord.js"
 
 const VERSION = { major: 9, minor: 0, bug: 5, part: "", beta: false, alpha: false }
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
+const client = new Client({ intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.MessageContent
+], allowedMentions: { parse: ["users"] } })
 
 let USER_SETTINGS = {}
 
@@ -15,7 +23,7 @@ let BLACKLIST: { [key: string]: string[] } = {}
 
 let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
 
-let ENDPOINTS: {[key: string]: string[]} = {}
+let ENDPOINTS: { [key: string]: string[] } = {}
 
 
 function loadMatchCommands() {
@@ -82,11 +90,17 @@ const reloadBlackList = reloadList.bind(this, "blacklists", BLACKLIST)
 
 
 function savePermList(list: { [key: string]: string[] }, listFile: string) {
-    let data = Object.entries(list).map(([user, perms]) => `${user}: ${perms.join(" ")}`).join("\n")
+    let data = Object.entries(list)
+                .map(([user, perms]) => `${user}: ${perms.join(" ")}`).join("\n")
     fs.writeFileSync(`command-perms/${listFile}`, data)
 }
 
-function addToPermList(list: { [key: string]: string[] }, listFile: string, user: User, cmds: string[]) {
+function addToPermList(
+    list: { [key: string]: string[] },
+    listFile: string,
+    user: User,
+    cmds: string[]
+) {
     if (list[user.id]) {
         list[user.id] = list[user.id].concat(cmds)
     } else {
@@ -94,7 +108,12 @@ function addToPermList(list: { [key: string]: string[] }, listFile: string, user
     }
     savePermList(list, listFile)
 }
-function removeFromPermList(list: { [key: string]: string[] }, listFile: string, user: User, cmds: string[]) {
+function removeFromPermList(
+    list: { [key: string]: string[] },
+    listFile: string,
+    user: User,
+    cmds: string[]
+) {
     list[user.id] = list[user.id] ? list[user.id].filter(v => !cmds.includes(v)) : []
     savePermList(list, listFile)
 }
@@ -104,29 +123,29 @@ function loadIDBlackList(type: "user" | "role") {
     return data.split("\n")
 }
 
-function loadEndpointsDB(){
-    if(fs.existsSync("./data/custom-endpoints.json"))
+function loadEndpointsDB() {
+    if (fs.existsSync("./data/custom-endpoints.json"))
         ENDPOINTS = JSON.parse(fs.readFileSync("./data/custom-endpoints.json", "utf-8"))
     else ENDPOINTS = {}
 }
 
-function usersEndpoints(user: string){
+function usersEndpoints(user: string) {
     return ENDPOINTS[user] || []
 }
 
-function addEndpointToUser(user: string, endpoint: string){
-        if(ENDPOINTS[user])
-            ENDPOINTS[user].push(endpoint)
-        else {
-            ENDPOINTS[user] = [endpoint]
-        }
+function addEndpointToUser(user: string, endpoint: string) {
+    if (ENDPOINTS[user])
+        ENDPOINTS[user].push(endpoint)
+    else {
+        ENDPOINTS[user] = [endpoint]
+    }
 }
 
-function removeEndPointFromUser(user: string, endpoint: string){
+function removeEndPointFromUser(user: string, endpoint: string) {
     ENDPOINTS[user] = ENDPOINTS[user].filter(v => v !== endpoint)
 }
 
-function saveEndPointsDB(){
+function saveEndPointsDB() {
     fs.writeFileSync(`./data/custom-endpoints.json`, JSON.stringify(ENDPOINTS))
     loadEndpointsDB()
 }

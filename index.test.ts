@@ -18,25 +18,39 @@ let loggedIn = common.client.login(globals.getConfigValue("secrets.token"));
 let chan: TextChannel
 
 const getChannel = async () => {
-    chan ||= await (await (await common.client.guilds.fetch()).filter(g => g.id === "427567510611820544").at(0)?.fetch())?.channels.fetch("1052699049310048356") as TextChannel
+    chan ||= await (await (await common.client.guilds.fetch()).filter(
+        g => g.id === "427567510611820544"
+    ).at(0)?.fetch())?.channels.fetch("1052699049310048356") as TextChannel
     return chan
 }
 
-const getFakeMsg = (content: string) => common_to_commands.createFakeMessage(common.client.user as User, chan, content)
+const getFakeMsg = (content: string) => common_to_commands.createFakeMessage(
+    common.client.user as User,
+    chan,
+    content
+)
 
 const cmdTest = (cmd: string, ans: string) => {
     test(cmd, async (done: Function) => {
         await loggedIn
         await getChannel()
         let fakeMsg = getFakeMsg(`]${cmd}`)
-        common_to_commands.cmd({ msg: fakeMsg, command_excluding_prefix: cmd, sendCallback: async () => fakeMsg }).then(rv => {
+        common_to_commands.cmd({
+            msg: fakeMsg,
+            command_excluding_prefix: cmd,
+            sendCallback: async () => fakeMsg
+        }).then(rv => {
             expect(rv.rv.content).toBe(ans)
             done()
         })
     })
 }
 
-const fnTest = function <T extends (...args: any) => any>(fn: T, result: ReturnType<T>, ...args: Parameters<T>) {
+const fnTest = function <T extends (...args: any) => any>(
+    fn: T,
+    result: ReturnType<T>,
+    ...args: Parameters<T>
+) {
     test(`${fn.name}(${JSON.stringify(args)})`, () => {
         //@ts-ignore
         expect(fn(...args)).toBe(result)
