@@ -145,7 +145,8 @@ class Lexer {
     parseNumber() {
         let n = this.#curChar as string
         let hasDot = n === '.'
-        while (this.advance() !== false && (isNumeric(this.#curChar as string) || (this.#curChar === '.' && !hasDot))) {
+        while (this.advance() !== false &&
+            (isNumeric(this.#curChar as string) || (this.#curChar === '.' && !hasDot))) {
             if (this.#curChar === '.') hasDot = true
             n += this.#curChar as string
         }
@@ -167,7 +168,9 @@ class Lexer {
 
     parseLiteral() {
         let s = this.#curChar as string
-        while (this.advance() !== false && !this.#specialChars.includes(this.#curChar as string)) {
+        while (
+            this.advance() !== false && !this.#specialChars.includes(this.#curChar as string)
+        ) {
             s += this.#curChar as string
         }
         //only go back if we have not reached the end
@@ -424,7 +427,11 @@ class UnitType extends Type<LengthUnit> {
 
     sub(other: Type<any>): Type<LengthUnit> {
         if (other instanceof NumberType) {
-            return new UnitType(LengthUnit.fromUnitRepr(`${this.data.value - other.access()}${this.data.getShorthand()}`))
+            return new UnitType(
+                LengthUnit.fromUnitRepr(
+                    `${this.data.value - other.access()}${this.data.getShorthand()}`
+                )
+            )
         }
         else if (other instanceof UnitType) {
             return new UnitType(
@@ -513,7 +520,11 @@ class UnitType extends Type<LengthUnit> {
 
     div(other: Type<any>): Type<LengthUnit> {
         if (other instanceof NumberType) {
-            return new UnitType(LengthUnit.fromUnitRepr(`${this.data.value / other.access()}${this.data.getShorthand()}`))
+            return new UnitType(
+                LengthUnit.fromUnitRepr(
+                    `${this.data.value / other.access()}${this.data.getShorthand()}`
+                )
+            )
         }
         else if (other instanceof UnitType) {
             return new UnitType(
@@ -687,11 +698,15 @@ class FunctionType extends Type<UserFunction> {
     }
 
     string(): StringType {
-        return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.toString()}`)
+        return new StringType(
+            `${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.toString()}`
+        )
     }
 
     number(): NumberType {
-        throw new TypeError(`(Relscript): Function: ${this.data.name} cannot be converted to a number`)
+        throw new TypeError(
+            `(Relscript): Function: ${this.data.name} cannot be converted to a number`
+        )
     }
 
     run(program: ProgramNode, args: Type<any>[], table: SymbolTable) {
@@ -701,7 +716,11 @@ class FunctionType extends Type<UserFunction> {
 
 class UserFunction {
     code: ProgramNode | undefined
-    constructor(public name: string, public codeToks: Token<any>[], public argIdents: string[]) { }
+    constructor(
+        public name: string,
+        public codeToks: Token<any>[],
+        public argIdents: string[]
+    ) { }
     run(program: ProgramNode, args: Type<any>[], table: SymbolTable) {
         let argRecord: { [key: string]: any } = {}
         if (args.length < this.argIdents.length) {
@@ -711,7 +730,11 @@ class UserFunction {
             argRecord[this.argIdents[i]] = args[i]
         }
         if (!this.code) {
-            let data = calculateAmountRelativeToInternals(program.relativeTo, this.codeToks, argRecord).expression
+            let data = calculateAmountRelativeToInternals(
+                program.relativeTo,
+                this.codeToks,
+                argRecord
+            ).expression
             this.code = data
         }
         return this.code.visit(program, new SymbolTable(argRecord, table))
@@ -843,7 +866,11 @@ ${'\t'.repeat(indent)})`
 }
 
 class VariableBinOpAssignNode extends Node {
-    constructor(public name: Token<TT.ident>, public op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>, public value: Node) {
+    constructor(
+        public name: Token<TT.ident>,
+        public op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>,
+        public value: Node
+    ) {
         super()
     }
 
@@ -927,7 +954,12 @@ class WhileNode extends Node {
 
 class IfNode extends Node {
     elifPrograms: [Node, MultiStatementNode][]
-    constructor(public condition: Node, public code: MultiStatementNode, elifPrograms?: [Node, MultiStatementNode][], public elseProgram?: MultiStatementNode) {
+    constructor(
+        public condition: Node,
+        public code: MultiStatementNode,
+        elifPrograms?: [Node, MultiStatementNode][],
+        public elseProgram?: MultiStatementNode
+    ) {
         super()
         this.elifPrograms = elifPrograms ?? []
     }
@@ -985,7 +1017,11 @@ class FuncCreateNode extends Node {
     }
 
     visit(_program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
-        let fn = new FunctionType(new UserFunction(this.name, this.code, this.parameterNames.map(v => v.data)))
+        let fn = new FunctionType(new UserFunction(
+            this.name,
+            this.code,
+            this.parameterNames.map(v => v.data)
+        ))
         table.set(this.name, fn)
         return fn
     }
@@ -1062,7 +1098,10 @@ class NumberNode extends Node {
 }
 
 class RightUnOpNode extends Node {
-    constructor(public left: Node, public operator: Token<TT.percent | TT.hash | TT.number_suffix | TT.unit>) {
+    constructor(
+        public left: Node,
+        public operator: Token<TT.percent | TT.hash | TT.number_suffix | TT.unit>
+    ) {
         super()
     }
     visit(program: ProgramNode, table: SymbolTable): NumberType | UnitType {
@@ -1165,7 +1204,10 @@ class FunctionNode extends Node {
             this.name += ` ${name[i].data}`
         }
     }
-    visit(program: ProgramNode, table: SymbolTable): NumberType | StringType | FunctionType | UnitType {
+    visit(
+        program: ProgramNode,
+        table: SymbolTable
+    ): NumberType | StringType | FunctionType | UnitType {
         let values = this.nodes.map(v => v.visit(program, table)) ?? [new NumberType(0)]
         let argCount = {
             'rand': 2,
@@ -1192,7 +1234,9 @@ class FunctionNode extends Node {
             throw new FunctionError(`${this.name} expects ${argCount[this.name as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name) {
-            case 'eval': return createTypeFromJSType(runRelativeCalculator(program.relativeTo, values[0].access()))
+            case 'eval': return createTypeFromJSType(
+                runRelativeCalculator(program.relativeTo, values[0].access())
+            )
             case 'min': return new NumberType(min(values.map(v => v.access())) as number)
             case 'max': return new NumberType(max(values.map(v => v.access())) as number)
             case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
@@ -1204,7 +1248,9 @@ class FunctionNode extends Node {
             case 'floor': return new NumberType(Math.floor(values[0].access()))
             case 'ceil': return new NumberType(Math.ceil(values[0].access()))
             case 'round': return new NumberType(Math.round(values[0].access()))
-            case 'aspercent': return new NumberType((values[0].access() / program.relativeTo) * 100)
+            case 'aspercent': return new NumberType(
+                (values[0].access() / program.relativeTo) * 100
+            )
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'abs': return new NumberType(Math.abs(values[0].access()))
@@ -1223,8 +1269,12 @@ class FunctionNode extends Node {
             }
             case 'sum': return function() {
                 switch (typeof values[0].access()) {
-                    case 'string': return new StringType(values.reduce((p, c) => p + c.access(), ""))
-                    case 'number': return new NumberType(values.reduce((p, c) => p + c.access(), 0))
+                    case 'string': return new StringType(
+                        values.reduce((p, c) => p + c.access(), "")
+                    )
+                    case 'number': return new NumberType(
+                        values.reduce((p, c) => p + c.access(), 0)
+                    )
                     default: return new NumberType(0)
                 }
             }()
@@ -1307,7 +1357,9 @@ class Parser {
             return new FunctionNode(name, [])
         }
         if (this.#curTok === undefined) {
-            throw new SyntaxError(`Expected expression after '${name.map(v => v.data).join(" ")}('`)
+            throw new SyntaxError(
+                `Expected expression after '${name.map(v => v.data).join(" ")}('`
+            )
         }
         let nodes = [this.statement()]
         while (this.#curTok?.type === TT.comma) {
@@ -1378,7 +1430,12 @@ class Parser {
 
     mutate_expr(): Node {
         let node = this.left_unary_op();
-        while ([TT.percent, TT.hash, TT.number_suffix, TT.unit].includes(this.#curTok?.type as TT)) {
+        while ([
+            TT.percent,
+            TT.hash,
+            TT.number_suffix,
+            TT.unit
+        ].includes(this.#curTok?.type as TT)) {
             let next = this.#curTok as Token<any>
             this.advance()
             node = new RightUnOpNode(node, next)
@@ -1571,7 +1628,15 @@ class Parser {
         else if (this.#curTok?.type === TT.ident) {
             let name = this.#curTok as Token<TT.ident>
             this.advance()
-            if ([TT.muleq, TT.pluseq, TT.minuseq, TT.rooteq, TT.poweq, TT.diveq, TT.eq].includes(this.#curTok?.type as TT)) {
+            if ([
+                TT.muleq,
+                TT.pluseq,
+                TT.minuseq,
+                TT.rooteq,
+                TT.poweq,
+                TT.diveq,
+                TT.eq
+            ].includes(this.#curTok?.type as TT)) {
                 let op = this.#curTok as Token<TT.muleq>
                 this.advance()
                 return new VariableBinOpAssignNode(name, op, this.comp())
@@ -1604,7 +1669,11 @@ class Parser {
 
 class Interpreter {
     symbolTable: SymbolTable
-    constructor(public program: ProgramNode, public relativeTo: number, baseEnv: EnvironBase | SymbolTable) {
+    constructor(
+        public program: ProgramNode,
+        public relativeTo: number,
+        baseEnv: EnvironBase | SymbolTable
+    ) {
         this.program = program
         this.relativeTo = relativeTo
         if (!(baseEnv instanceof SymbolTable))
@@ -1616,7 +1685,11 @@ class Interpreter {
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string | Token<TT>[], extras?: EnvironBase | SymbolTable) {
+function calculateAmountRelativeToInternals(
+    money: number,
+    amount: string | Token<TT>[],
+    extras?: EnvironBase | SymbolTable
+) {
     let tokens, lexer;
     if (typeof amount !== 'object') {
         let lexer = new Lexer(amount, Object.keys(extras ?? {}))
@@ -1644,11 +1717,22 @@ function calculateAmountRelativeToInternals(money: number, amount: string | Toke
     return { lexer, parser, interpreter: int, expression }
 }
 
-function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>, typeConv = Number): number {
+function calculateAmountRelativeTo(
+    money: number,
+    amount: string,
+    extras?: Record<string,
+    (total: number, k: string) => number>,
+    typeConv = Number
+): number {
     return typeConv(calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit())
 }
 
-function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): ValidJSTypes {
+function runRelativeCalculator(
+    relativeTo: number,
+    amount: string,
+    extras?: Record<string,
+    (total: number, k: string) => number>
+): ValidJSTypes {
     return calculateAmountRelativeToInternals(relativeTo, amount, extras).interpreter.visit()
 }
 

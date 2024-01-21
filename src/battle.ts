@@ -8,7 +8,6 @@ import fs = require("fs")
 
 import { getOpts } from './parsing'
 
-//const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy from './economy'
 import { StatusCode, crv, handleSending } from './common_to_commands'
 import { efd, isMsgChannel } from './util'
@@ -180,7 +179,10 @@ class Mumbo extends Player {
             return true
         }
         if (gameState.mumboUser) {
-            economy.loseMoneyToBank(gameState.mumboUser, economy.getEconomy()[gameState.mumboUser]?.money * 0.005)
+            economy.loseMoneyToBank(
+                gameState.mumboUser,
+                economy.getEconomy()[gameState.mumboUser]?.money * 0.005
+            )
             await handleSending(msg, { content: `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`, status: StatusCode.INFO })
             gameState.mumboUser = null
         }
@@ -233,7 +235,10 @@ class GameState {
     * an invalid response references a player that wont be in the game
     * eg: *tries to damage player 4 but there's only 3 players in the game*
 */
-function filterInvalidResponses(responses: BattleResponses, playerCount: number): BattleResponses {
+function filterInvalidResponses(
+    responses: BattleResponses,
+    playerCount: number
+): BattleResponses {
     let t: keyof BattleResponses
     for (t in responses) {
         responses[t] = responses[t]!.filter(v => {
@@ -250,10 +255,15 @@ function filterInvalidResponses(responses: BattleResponses, playerCount: number)
     return responses
 }
 
-function pickBattleResponse(responses: BattleResponses): [keyof BattleResponses, BattleResponse | undefined] {
+function pickBattleResponse(responses: BattleResponses): [
+    keyof BattleResponses,
+    BattleResponse | undefined
+] {
     let r = Math.random()
     let types = Object.keys(responses)
-    let t: keyof BattleResponses = types[Math.floor(Math.random() * types.length)] as keyof BattleResponses
+    let t: keyof BattleResponses = types[
+        Math.floor(Math.random() * types.length)
+    ] as keyof BattleResponses
     while (Math.random() > ITEM_RARITY_TABLE[t]) {
         t = types[Math.floor(Math.random() * types.length)] as keyof BattleResponses
     }
@@ -320,13 +330,20 @@ class Item {
     }
 }
 
-async function handleDeath(id: string, players: { [key: string]: Player }, winningType: "distribute" | "wta"): Promise<{ amountToRemoveFromBetTotal: number, send: EmbedBuilder }> {
+async function handleDeath(
+    id: string,
+    players: { [key: string]: Player },
+    winningType: "distribute" | "wta"
+): Promise<{ amountToRemoveFromBetTotal: number, send: EmbedBuilder }> {
     let remaining = Object.keys(players).length - 1
     let bet = players[id].bet
     let total_spent = bet + players[id].money_spent
     let e = new EmbedBuilder()
     e.setTitle("NEW LOSER")
-    let rv: { amountToRemoveFromBetTotal: number, send: EmbedBuilder } = { amountToRemoveFromBetTotal: 0, send: e }
+    let rv: { amountToRemoveFromBetTotal: number, send: EmbedBuilder } = {
+        amountToRemoveFromBetTotal: 0,
+        send: e
+    }
     if (winningType === 'distribute' && remaining > 0) {
         rv.amountToRemoveFromBetTotal = total_spent
         e.setDescription(`<@${id}> HAS DIED and distributed ${total_spent / remaining * BATTLE_GAME_BONUS} to each player`)

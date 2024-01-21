@@ -42,7 +42,12 @@ class Achievement{
 
 class ItemRewardAchievement extends Achievement{
     reward: [string, number]
-    constructor(name: string, description: string, itemReward: [string, number], message?: string){
+    constructor(
+        name: string,
+        description: string,
+        itemReward: [string, number],
+        message?: string
+    ){
         super(name, description, message)
         this.reward = itemReward
     }
@@ -86,7 +91,11 @@ type AchievedAchievement = {
 const POSSIBLE_ACHIEVEMENTS = { 
     mexico: new MoneyRewardAchievement("mexico", "travel to mexico", "max(2%,100)"),
     canada: new MoneyRewardAchievement("canada", "travel to canada", "max(2%,100)"),
-    "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
+    "united states": new ItemRewardAchievement(
+        "united states",
+        "travel to the us",
+        ["gun", 1]
+    ),
     france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
     iraq: new ItemRewardAchievement("iraq", "travel to iraq", ["oil", 30]),
     russia: new ItemRewardAchievement("russia", "travel to russia", ["hammer and sickle", 1]),

@@ -77,14 +77,23 @@ let defaultVars: Record<string, Variable<"function" | "number">> = {
     prefix: new Variable("function", (msg) => getOpt(msg.author.id, "prefix", PREFIX)),
     sender: new Variable("function", (msg) => `<@${msg.author.id}>`),
     carson: new Variable("function", () => "The all legendary Carson Williams"),
-    money: new Variable("function", msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))),
-    "$": new Variable("function", msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))),
+    money: new Variable(
+        "function",
+        msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))
+    ),
+    "$": new Variable(
+        "function",
+        msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))
+    ),
     "__global_currency_sign": new Variable("function", () => common.GLOBAL_CURRENCY_SIGN),
     _: new Variable('function', msg => getVar(msg, "_!", msg.author.id))
 }
 
 for (let v of allowedOptions) {
-    defaultVars[`__${v.replaceAll("-", "_")}`] = new Variable('function', (msg: Message) => getOpt(msg.author.id, v, false))
+    defaultVars[`__${v.replaceAll("-", "_")}`] = new Variable(
+        'function',
+        (msg: Message) => getOpt(msg.author.id, v, false)
+    )
 }
 
 type VarPrefix = Record<string, Variable<any>>
@@ -191,7 +200,12 @@ function getPrefixAndVarname(varName: string){
         return [prefix, varName]
 }
 
-function createVar<T extends VarType>(type: T, varName: VarName, value: VarTypeValType<T>, id?: string){
+function createVar<T extends VarType>(
+    type: T,
+    varName: VarName,
+    value: VarTypeValType<T>,
+    id?: string
+){
     let [prefix, name] = getPrefixAndVarname(varName)
     let path = getPathFromPrefix(prefix, id)
 
@@ -294,9 +308,9 @@ function getVar(msg: Message, varName: string, id?: string) {
     }
 
     if(!varName){
-        return Object.entries(varPrefixObj).map(v => `${v[0]} = ${typeof v[
-            1
-        ] === 'string' ? v[1] : v[1].value}`).join("\n")
+        return Object.entries(varPrefixObj).map(v => `${v[0]} = ${
+            typeof v[1] === 'string' ? v[1] : v[1].value
+        }`).join("\n")
     }
     else if(varPrefixObj[varName] === undefined)
         return false;
