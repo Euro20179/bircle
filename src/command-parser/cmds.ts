@@ -46,8 +46,12 @@ type RuntimeOptionValue = {
 }
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
-    constructor(options?: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>) {
+    constructor(options?: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>, set_default_opts?: boolean) {
         this.options = options ?? {} as Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
+        if (set_default_opts !== false) {
+            this.set("recursion_limit", RECURSION_LIMIT)
+            this.set("recursion", 0)
+        }
     }
     get<T extends RuntimeOption>(option: T, default_: RuntimeOptionValue[T]): RuntimeOptionValue[T] {
         return this.options[option] as RuntimeOptionValue[T] ?? default_
@@ -124,17 +128,66 @@ export type RunCmdOptions = {
     runtime_opts?: RuntimeOptions,
     pid_label?: string,
 }
+
+type RunCmdLineOptions = {
+    line_tokens: TT<any>[],
+    msg: Message,
+    sendCallback?: RunCmdOptions['sendCallback'],
+    symbols: SymbolTable,
+    runtime_opts: RuntimeOptions,
+    line_no: number,
+    pid_label?: string
+}
+
+async function* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opts, pid_label, symbols, line_no }: RunCmdLineOptions): AsyncGenerator<CommandReturn> {
+    symbols.set("LINENO", String(line_no))
+    let pipe_indexes = []
+    for (let i = 0; i < tokens.length; i++) {
+        if (tokens[i] instanceof lexer.TTPipe) {
+            pipe_indexes.push(i)
+        }
+    }
+    pipe_indexes.push(tokens.length)
+
+    let pipe_token_chains = []
+    let pipe_start_idx = 0
+    for (let idx of pipe_indexes) {
+        pipe_token_chains.push(tokens.slice(pipe_start_idx, idx))
+        pipe_start_idx = idx + 1
+    }
+    if (runtime_opts.get("verbose", false)) {
+        yield { content: tokens.map(v => v.data).join(" "), status: StatusCode.INFO }
+    }
+
+    try {
+        if (!runtime_opts.get("no-run", false)) {
+            for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
+                if (result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
+                    let old_disable = runtime_opts.get('disable', false)
+                    if (typeof result.recurse === 'object') {
+                        result.recurse.categories ??= []
+                        result.recurse.commands ??= []
+                        runtime_opts.set('disable', result.recurse)
+                    }
+                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                    runtime_opts.set('disable', old_disable)
+                    continue
+                }
+                yield result
+            }
+        }
+    } catch (err: any) {
+        yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }
+    }
+}
+
 //TODO:
 //missing support for:
 //banned_commands
 async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_label }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.assert(pid_label !== undefined, "Pid label is undefined")
 
-    if (!runtime_opts) {
-        runtime_opts = new RuntimeOptions()
-        runtime_opts.set("recursion_limit", RECURSION_LIMIT)
-        runtime_opts.set("recursion", 0)
-    }
+    runtime_opts ??= new RuntimeOptions()
 
     //this is a special case modifier that basically has to happen here
     if (command.startsWith("n:")) {
@@ -156,67 +209,22 @@ async function* runcmd({ command, prefix, msg, sendCallback, runtime_opts, pid_l
         skip_parsing: runtime_opts.get("skip", false),
         pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     })
-    let tokens = lex.lex()
 
-    let semi_indexes = []
-    for (let i = 0; i < tokens.length; i++) {
-        if (tokens[i] instanceof lexer.TTSemi) {
-            semi_indexes.push(i)
-        }
-    }
-
-    semi_indexes.push(tokens.length)
-
-    let start_idx = 0
-    for (let i = 0; i < semi_indexes.length; i++) {
-        let semi_index = semi_indexes[i]
-        symbols.set("LINENO", String(i + 1))
-        let working_tokens = tokens.slice(start_idx, semi_index)
-
-        //first token (presumably command) should be trimmed
-        working_tokens[0].data = working_tokens[0].data.trim()
-
-        let pipe_indexes = []
-        for (let i = 0; i < working_tokens.length; i++) {
-            if (working_tokens[i] instanceof lexer.TTPipe) {
-                pipe_indexes.push(i)
+    let line_no = 0
+    let generator = lex.gen_tokens()
+    do {
+        let tokens = []
+        let cur_tok
+        while (!((cur_tok = generator.next()).value instanceof lexer.TTSemi) && cur_tok.value) {
+            tokens.push(cur_tok.value)
+            if (cur_tok.done) {
+                break
             }
         }
-        pipe_indexes.push(working_tokens.length)
-
-        let pipe_token_chains = []
-        let pipe_start_idx = 0
-        for (let idx of pipe_indexes) {
-            pipe_token_chains.push(working_tokens.slice(pipe_start_idx, idx))
-            pipe_start_idx = idx + 1
-        }
-
-        if (runtime_opts.get("verbose", false)) {
-            yield { content: command.slice(working_tokens[0].start, working_tokens[working_tokens.length - 1].end + 1), status: StatusCode.INFO }
-        }
-
-        try{
-            if (!runtime_opts.get("no-run", false)) {
-                for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
-                    if(result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)){
-                        let old_disable = runtime_opts.get('disable', false)
-                        if(typeof result.recurse === 'object'){
-                            result.recurse.categories ??= []
-                            result.recurse.commands ??= []
-                            runtime_opts.set('disable', result.recurse)
-                        }
-                        yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
-                        runtime_opts.set('disable', old_disable)
-                        continue
-                    }
-                    yield result
-                }
-            }
-        } catch(err: any){
-            yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }
-        }
-        start_idx = semi_index + 1
-    }
+        yield* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opts, pid_label, symbols, line_no })
+        line_no++
+    } while (!lex.done)
+    return { noSend: true, status: 0 }
 }
 
 async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>): Promise<Message> {

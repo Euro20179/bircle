@@ -161,6 +161,7 @@ class Lexer {
     private IFS = " \t"
     private special_chars = `{$\\${this.IFS};`
     private options: LexerOptions
+    public done: boolean = false
     public tokens: TT<any>[] = []
     constructor(public command: string, options: LexerOptions) {
         this.options = options
@@ -266,6 +267,22 @@ class Lexer {
         return [char, sequence]
     }
 
+    *gen_parse_simple() {
+        while (this.advance()) {
+            if (this.IFS.includes(this.curChar)) {
+                while (this.IFS.includes(this.curChar)) {
+                    this.advance()
+                }
+                this.back()
+                yield new TTIFS(this.IFS[0], this.i, this.i)
+                continue
+            }
+            let start = this.i
+            let str = this.parseContinuousChars()
+            yield new TTString(str, start, this.i)
+        }
+    }
+
     parse_simple() {
         while (this.advance()) {
             if (this.IFS.includes(this.curChar)) {
@@ -295,7 +312,115 @@ class Lexer {
         return inner
     }
 
+    *gen_tokens() {
+        let pipe_sign = this.pipe_sign()
+        if (this.options.is_command !== false) {
+            let prefix = this.prefix()
+            this.advance(prefix.length)
+            this.tokens.push(new TTPrefix(prefix, 0, this.i))
+        }
+        if (this.options.skip_parsing) {
+            yield* this.parse_simple()
+        }
+        else {
+            while (this.advance()) {
+                if (this.IFS.includes(this.curChar)) {
+                    while (this.IFS.includes(this.curChar)) {
+                        this.advance()
+                    }
+                    this.back()
+                    yield new TTIFS(this.IFS[0], this.i, this.i)
+                    continue;
+                }
+                switch (this.curChar) {
+                    case "%": {
+                        let start = this.i
+                        let data = this.parse_percent()
+                        if (data == "%") {
+                            yield new TTString(data, this.i, this.i)
+                        }
+                        else {
+                            yield new TTDoFirstRepl(data, start, this.i)
+                        }
+                        break;
+                    }
+                    case "\\": {
+                        let start = this.i
+                        let data = this.parseEscape()
+                        if (typeof data === 'string') {
+                            yield new TTString(`${data}`, start, this.i)
+                        }
+                        else {
+                            yield new TTEsc(data as [string, string], start, this.i)
+                        }
+                        break
+                    }
+                    case pipe_sign[0]: {
+                        let string = this.parsePipeSign()
+                        if (string === pipe_sign) {
+                            yield new TTPipe(string, this.i - string.length, this.i)
+                        }
+                        else {
+                            yield new TTString(string, this.i - string.length, this.i)
+                        }
+                        break;
+                    }
+                    case "$": {
+                        let token_or_str = this.parseDollar()
+                        if (typeof token_or_str == "undefined") {
+                            yield new TTString("$", this.i, this.i)
+                        }
+                        else {
+                            yield token_or_str
+                        }
+                        break
+                    }
+                    case ";": {
+                        this.advance()
+                        if (this.curChar == ";") {
+                            yield new TTSemi(";;", this.i - 1, this.i)
+                        }
+                        else {
+                            yield new TTString(";", this.i, this.i)
+                        }
+                        break
+                    }
+                    case "{": {
+                        this.advance()
+                        let start = this.i
+                        let inner = parseBracketPair(this.command, "{}", this.i)
+                        this.advance(inner.length)
+                        //@ts-ignore
+                        if (this.curChar === '}') {
+                            let match = inner.match(/(\d+)\.\.(\d+)/)
+                            if (match) {
+                                yield new TTRange([Number(match[1]), Number(match[2])], start, this.i - 1)
+                            }
+                            else {
+                                yield new TTFormat(inner, start, this.i - 1)
+                            }
+                        }
+                        else {
+                            yield new TTString(`{${inner}`, start, this.i - 1)
+                        }
+                        break
+                    }
+                    default: {
+                        let start = this.i
+                        let data = this.parseContinuousChars()
+                        yield new TTString(data, start, this.i)
+                    }
+                }
+            }
+        }
+        this.done = true
+    }
+
     lex() {
+        for(let tok of this.gen_tokens()){
+            this.tokens.push(tok)
+        }
+        return this.tokens
         let pipe_sign = this.pipe_sign()
         if (this.options.is_command !== false) {
             let prefix = this.prefix()

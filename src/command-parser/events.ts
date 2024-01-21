@@ -31,7 +31,7 @@ type CmdResultEvent = {
     msg: Message
 }
 
-commandEventListener.on(cmdRun, function(event: CmdRunEvent){
+commandEventListener.on(cmdRun, function(_event: CmdRunEvent){
 })
 
 commandEventListener.on(cmdResult, function(event: CmdResultEvent){
