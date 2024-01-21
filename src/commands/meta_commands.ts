@@ -2781,13 +2781,11 @@ ${styles}
     yield [
         "!!", ccmdV2(async function*({ msg, rawOpts: opts, runtime_opts }) {
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
-                return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
+                yield { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
-                return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
+                yield { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
-            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: lastCommand[msg.author.id], prefix: user_options.getOpt(msg.author.id, "prefix", globals.PREFIX), runtime_opts, msg })) {
-                yield result
-            }
+            yield* globals.PROCESS_MANAGER.spawn_cmd({ command: lastCommand[msg.author.id], prefix: user_options.getOpt(msg.author.id, "prefix", globals.PREFIX), runtime_opts, msg })
         }, "Run the last command that was run", {
             helpOptions: {
                 p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])

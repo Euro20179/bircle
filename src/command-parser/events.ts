@@ -32,7 +32,6 @@ type CmdResultEvent = {
 }
 
 commandEventListener.on(cmdRun, function(event: CmdRunEvent){
-    lastCommand[event.msg.author.id] = event.msg.content
 })
 
 commandEventListener.on(cmdResult, function(event: CmdResultEvent){
@@ -40,6 +39,7 @@ commandEventListener.on(cmdResult, function(event: CmdResultEvent){
 })
 
 commandEventListener.on(cmdOver, function(event: CmdOverEvent){
+    lastCommand[event.msg.author.id] = event.msg.content
     vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
 })
 
