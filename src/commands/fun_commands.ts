@@ -1283,7 +1283,6 @@ export default function*(): Generator<[string, CommandV2]> {
             helpOptions: {
                 sep: createHelpOption("The seperator between words")
             },
-            use_result_cache: true
         })
     ]
 

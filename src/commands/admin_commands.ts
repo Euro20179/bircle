@@ -15,6 +15,7 @@ import { server } from '../../website/server'
 import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
 import amountParser from '../amount-parser'
 import { saveConfig, ADMINS, editConfig } from '../globals'
+import runner from '../command-parser/runner'
 
 export default function*(): Generator<[string, CommandV2]> {
 
@@ -40,7 +41,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "CLEAR_INTERPRETER_CACHE", ccmdV2(async function() {
-            Interpreter.resultCache = new Map()
+            runner.CMD_CACHE = new Map()
             return crv("Cache cleared")
         }, "Clears the interpreter cache", {
             permCheck: m => ADMINS.includes(m.author.id)

@@ -86,15 +86,8 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
         mod.set_runtime_opt(runtime_opts)
     }
 
-    if (runtime_opts.get("typing", false)) {
-        await msg.channel.sendTyping()
-    }
-
-    if (runtime_opts.get("delete", false) && msg.deletable) {
-        msg.delete().catch(console.error)
-    }
-
     for await (let item of runner.command_runner(new_tokens, msg, symbols, runtime_opts, stdin, sendCallback, pid_label as string)) {
+        //although this could technically be done in the command_runner it's simply easier to do it here
         if (runtime_opts.get("silent", false)) {
             yield { noSend: true, status: StatusCode.RETURN }
         }
@@ -107,6 +100,7 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
                 modifier.unset_runtime_opt(runtime_opts)
             }
 
+            //pipe this result to the next pipe in the chain
             yield* handlePipe(item, pipeChain[0], pipeChain.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)
 
             for (let mod of modifier_dat[1]) {
@@ -141,6 +135,11 @@ type RunCmdLineOptions = {
 
 async function* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opts, pid_label, symbols, line_no }: RunCmdLineOptions): AsyncGenerator<CommandReturn> {
     symbols.set("LINENO", String(line_no))
+
+    if (runtime_opts.get("verbose", false)) {
+        yield { content: tokens.map(v => v.data).join(" "), status: StatusCode.INFO }
+    }
+
     let pipe_indexes = []
     for (let i = 0; i < tokens.length; i++) {
         if (tokens[i] instanceof lexer.TTPipe) {
@@ -150,18 +149,18 @@ async function* runcmdline({ line_tokens: tokens, msg, sendCallback, runtime_opt
     pipe_indexes.push(tokens.length)
 
     let pipe_token_chains = []
-    let pipe_start_idx = 0
+    let last_pipe_idx = 0
     for (let idx of pipe_indexes) {
-        pipe_token_chains.push(tokens.slice(pipe_start_idx, idx))
-        pipe_start_idx = idx + 1
-    }
-    if (runtime_opts.get("verbose", false)) {
-        yield { content: tokens.map(v => v.data).join(" "), status: StatusCode.INFO }
+        pipe_token_chains.push(tokens.splice(0, idx - last_pipe_idx))
+        //remove the pipe token
+        tokens.splice(0, 1)
+        last_pipe_idx = idx
     }
 
     try {
         if (!runtime_opts.get("no-run", false)) {
             for await (let result of handlePipe(undefined, pipe_token_chains[0], pipe_token_chains.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label as string)) {
+                //this is done here because recursion should be handled per line (;; seperated commands), not per the ENTIRE command, or per pipe
                 if (result.recurse && result.content && isCmd(result.content, PREFIX) && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
                     let old_disable = runtime_opts.get('disable', false)
                     if (typeof result.recurse === 'object') {
@@ -233,7 +232,6 @@ async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (da
     if (!Object.keys(rv).length) {
         return msg
     }
-
 
     if (!sendCallback) {
         sendCallback = rv.sendCallback || (rv.reply ? msg.reply.bind(msg) :

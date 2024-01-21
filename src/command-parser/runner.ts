@@ -12,7 +12,15 @@ import { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
 
 import events from './events'
 
+const CMD_CACHE: Map<string, CommandReturn[]> = new Map()
 async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
+    if (cmdObject.use_result_cache) {
+        let generator = CMD_CACHE.get(raw_args.join(" "))
+        if (generator) {
+            yield* generator[Symbol.iterator]()
+            return
+        }
+    }
 
     let argShapeResults: Record<string, any> = {}
     let obj: CommandV2RunArg = {
@@ -39,19 +47,27 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
         args.beginIter()
         for await (const [result, type, optional, default_] of cmdObject.argShape(args, msg)) {
             if (result === BADVALUE && !optional) {
-                yield { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdObject)}`, status: StatusCode.ERR }
+                return { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdObject)}`, status: StatusCode.ERR }
             }
             else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
             else argShapeResults[type] = result
         }
     }
     let runObj = cmdObject.run.bind([cmd, cmdObject])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+    let l: CommandReturn[] = []
     try {
         for await (let item of runObj) {
             yield item
         }
+        if (cmdObject.use_result_cache) {
+            CMD_CACHE.set(raw_args.join(" "), l)
+        }
     } catch (err) {
-        yield await runObj
+        let res = await runObj
+        yield res
+        if (cmdObject.use_result_cache) {
+            CMD_CACHE.set(raw_args.join(" "), [res])
+        }
     }
 }
 
@@ -71,6 +87,14 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
 
 //TODO: aliases
 async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
+    if (runtime_options.get("typing", false)) {
+        await msg.channel.sendTyping()
+    }
+
+    if (runtime_options.get("delete", false) && msg.deletable) {
+        msg.delete().catch(console.error)
+    }
+
     let cmd = tokens[0].data as string
 
     if (common.BLACKLIST[msg.author.id]?.includes(cmd)) {
@@ -93,7 +117,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }
 
     let disabled = runtime_options.get("disable", false)
-    if(disabled && (disabled.commands?.includes(cmd) || disabled.categories?.includes(cmdObject?.category))){
+    if (disabled && (disabled.commands?.includes(cmd) || disabled.categories?.includes(cmdObject?.category))) {
         yield { content: "This command has been banned in this context", status: StatusCode.ERR }
         return
     }
@@ -129,7 +153,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }[user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
     let [opts, parsed_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
 
-    if(opts['?']){
+    if (opts['?']) {
         parsed_args = ["help"].concat(parsed_args)
         console.log(parsed_args)
         cmdObject = commands.get("help") as CommandV2
@@ -186,4 +210,5 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
 
 export default {
     command_runner,
+    CMD_CACHE
 }
