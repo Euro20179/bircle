@@ -115,14 +115,13 @@ async function* handlePipe(stdin: CommandReturn | undefined, tokens: TT<any>[], 
 
 }
 
-
 export type RunCmdOptions = {
     command: string,
     prefix: string,
     msg: Message,
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     runtime_opts?: RuntimeOptions,
-    pid_label?: string
+    pid_label?: string,
 }
 //TODO:
 //missing support for:
@@ -282,5 +281,5 @@ export default {
     handleSending,
     SymbolTable,
     RuntimeOptions,
-    expandSyntax
+    expandSyntax,
 }

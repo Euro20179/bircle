@@ -1439,13 +1439,13 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             }
             fs.writeFileSync(fn, buffer)
             return {
-                files: [
+                files: !opts['no-image'] && [
                     {
                         attachment: fn,
                         name: `file.png`,
                         description: "why can i describe this"
                     }
-                ],
+                ] || undefined,
                 content: content,
                 status: StatusCode.RETURN
             }
