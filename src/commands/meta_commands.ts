@@ -247,7 +247,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             return crv("Name must be alphanumeric + _- only", { status: StatusCode.ERR })
         }
 
-        symbols.set(name, value)
+        if(symbols)
+            symbols.set(name, value)
 
         return crv(`${name} = ${value}`)
     }, "Sets a variable for the current runtime")]
