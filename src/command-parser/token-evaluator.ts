@@ -100,7 +100,7 @@ class TokenEvaluator {
             //(PREFIX) could be really anything, it just has to be something
             let text = ""
             for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: this.runtime_opts })) {
-                text += getContentFromResult(result)
+                text += result ? getContentFromResult(result, "\n").trim() : ""
             }
             //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
             this.doFirstNoFromArgNo[this.cur_arg] = this.do_first_count
