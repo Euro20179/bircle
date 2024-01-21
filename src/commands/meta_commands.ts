@@ -211,11 +211,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield ['kill', ccmdV2(async function({ argShapeResults }) {
         let pid = argShapeResults['pid'] as number
-        if (!PIDS.keyExists(pid)) {
+        if(!globals.PROCESS_MANAGER.killproc(pid)){
             return crv(`No process with pid: ${pid}`)
         }
-        let i = PIDS.get(pid)
-        i.kill()
         return crv(`${pid} killed`)
     }, "Kill a process", {
         helpArguments: {
