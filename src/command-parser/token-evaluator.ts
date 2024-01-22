@@ -58,7 +58,7 @@ class TokenEvaluator {
                 if (doFirstResultNo === "") {
                     text = doFirst
                 }
-                else if(doFirstResultNo === ".."){
+                else if (doFirstResultNo === "..") {
                     let strings = doFirst.split(" ")
                     this.add_list_of_strings(strings)
                     return true
@@ -99,7 +99,8 @@ class TokenEvaluator {
         else if (token instanceof lexer.TTDoFirst) {
             //(PREFIX) could be really anything, it just has to be something
             let text = ""
-            for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: this.runtime_opts })) {
+            let runtime_copy = this.runtime_opts.copy()
+            for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: runtime_copy })) {
                 text += result ? getContentFromResult(result, "\n") : ""
             }
             //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
@@ -108,6 +109,12 @@ class TokenEvaluator {
             this.do_first_count++
             this.add_to_cur_tok(text)
             // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
+        }
+        else if (token instanceof lexer.TTCommand) {
+            let syntax = await cmds.expandSyntax(token.data, this.msg)
+            this.add_to_cur_tok(syntax.join(" "))
+            this.complete_cur_tok()
+            this.cur_arg--
         }
         else if (token instanceof lexer.TTString) {
             this.add_to_cur_tok(token.data)
@@ -177,7 +184,7 @@ class TokenEvaluator {
             }
         }
         else {
-            if(replace_current){
+            if (replace_current) {
                 this.cur_tok.data = strings[0]
             }
             else this.add_to_cur_tok(strings[0])

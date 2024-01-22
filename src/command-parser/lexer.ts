@@ -25,6 +25,7 @@ export class TT<T>{
 }
 
 class TTString extends TT<string> { }
+class TTCommand extends TT<string> { }
 class TTPipe extends TT<string> { }
 class TTPipeRun extends TT<string> { }
 class TTJSExpr extends TT<string> { }
@@ -125,9 +126,16 @@ class AliasModifier extends Modifier {
     }
 }
 
-
 function getModifiers(command: string): [string, Modifier[]] {
-    const modifiers = [WebModifier, SkipModifier, SilentModifier, TypingModifier, DeleteModifier, CommandModifier, AliasModifier]
+    const modifiers = [
+        WebModifier,
+        SkipModifier,
+        SilentModifier,
+        TypingModifier,
+        DeleteModifier,
+        CommandModifier,
+        AliasModifier,
+    ]
 
     let used_modifiers = []
 
@@ -231,6 +239,16 @@ class Lexer {
         this.back()
     }
 
+    parseCommand() {
+        let builtString = this.curChar
+        while (
+            this.advance() && !this.IFS.includes(this.curChar) && this.curChar !== '\n'
+        ) {
+            builtString += this.curChar
+        }
+        return builtString
+    }
+
     parseContinuousChars() {
         let builtString = this.curChar
         while (this.advance() && !this.special_chars.includes(this.curChar)) {
@@ -317,7 +335,7 @@ class Lexer {
         if (this.options.is_command !== false) {
             let prefix = this.prefix()
             this.advance(prefix.length)
-            this.tokens.push(new TTPrefix(prefix, 0, this.i))
+            yield new TTPrefix(prefix, 0, this.i)
         }
         if (this.options.skip_parsing) {
             yield* this.parse_simple()
@@ -392,7 +410,7 @@ class Lexer {
                         this.advance(inner.length)
                         //@ts-ignore
                         if (this.curChar === '}') {
-                            let match = inner.match(/(\d+)\.\.(\d+)/)
+                            let match = inner.match(/^(\d+)\.\.(\d+)$/)
                             if (match) {
                                 yield new TTRange([Number(match[1]), Number(match[2])], start, this.i - 1)
                             }
@@ -407,8 +425,18 @@ class Lexer {
                     }
                     default: {
                         let start = this.i
-                        let data = this.parseContinuousChars()
-                        yield new TTString(data, start, this.i)
+                        let data
+                        let is_command =
+                            this.options.is_command !== false && this.i === this.prefix.length
+                        if (is_command) {
+                            data = this.parseCommand()
+                        }
+                        else {
+                            data = this.parseContinuousChars()
+                        }
+                        if (is_command)
+                            yield new TTCommand(data, start, this.i)
+                        else yield new TTString(data, start, this.i)
                     }
                 }
             }
@@ -417,7 +445,7 @@ class Lexer {
     }
 
     lex() {
-        for(let tok of this.gen_tokens()){
+        for (let tok of this.gen_tokens()) {
             this.tokens.push(tok)
         }
         return this.tokens
@@ -565,6 +593,7 @@ export default {
     TTEsc,
     TTVariable,
     TTDoFirstRepl,
+    TTCommand,
     TTRange,
     getModifiers
 }

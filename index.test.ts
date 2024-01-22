@@ -8,6 +8,7 @@ import init from './src/init'
 import globals from './src/globals'
 
 import util = require("./src/util")
+import cmds from './src/command-parser/cmds'
 
 init.init()
 
@@ -32,17 +33,31 @@ const getFakeMsg = (content: string) => common_to_commands.createFakeMessage(
 
 const cmdTest = (cmd: string, ans: string) => {
     test(cmd, async (done: Function) => {
-        await loggedIn
+        let rv: CommandReturn | null = null
         await getChannel()
-        let fakeMsg = getFakeMsg(`]${cmd}`)
-        common_to_commands.cmd({
+        let fakeMsg = getFakeMsg(cmd)
+        for await (let res of cmds.runcmd({
+            command: cmd, prefix: "",
             msg: fakeMsg,
-            command_excluding_prefix: cmd,
-            sendCallback: async () => fakeMsg
-        }).then(rv => {
-            expect(rv.rv.content).toBe(ans)
-            done()
-        })
+            sendCallback: async() => fakeMsg,
+            pid_label: `TEST: ${cmd}`
+        })) {
+            rv = res
+        }
+        if(rv)
+            expect(rv.content).toBe(ans)
+        done()
+        // await loggedIn
+        // await getChannel()
+        // let fakeMsg = getFakeMsg(`]${cmd}`)
+        // common_to_commands.cmd({
+        //     msg: fakeMsg,
+        //     command_excluding_prefix: cmd,
+        //     sendCallback: async () => fakeMsg
+        // }).then(rv => {
+        //     expect(rv.rv.content).toBe(ans)
+        //     done()
+        // })
     })
 }
 
@@ -71,6 +86,7 @@ describe("Utility functions", () => {
     fnTest(util.isSafeFilePath, false, "hello/epic")
     fnTest(util.countOf, 3, [3, 3, 3, 4], 3)
     fnTest(util.mulStr, "hihihi", "hi", 3)
+    fnTest(util.titleStr, "Hi There", "hi there")
     test("randomHexColorCode([])", () => {
         expect(util.randomHexColorCode()).toEqual(expect.stringMatching(/^#[0-9A-Z]{6}/))
     })
@@ -79,6 +95,8 @@ describe("Utility functions", () => {
 
 describe("Commands", () => {
     cmdTest("echo -D hi", "hi")
+    cmdTest("echo\n-D hi", "hi")
+    cmdTest("echo -D hi\nyes\nno", "hi\nyes\nno")
     cmdTest("echo -D ${LINENO}", "1")
     cmdTest("relscript x = 3; x + 5", "8")
     cmdTest("export x = 5 ;; echo -D ${x}", "5")
@@ -89,4 +107,8 @@ describe("Commands", () => {
     cmdTest("calc mulStr('yes', 3) + 'ok'", "\"yesyesyesok\"")
     cmdTest("calc -s mulStr('yes', 3) + 'ok'", "yesyesyesok")
     cmdTest("echo -D yes\nalphabet\nok >pipe> sort", "alphabet\nok\nyes")
+    cmdTest("echo -D f\\ {hi}", "f {hi}")
+    cmdTest("argc f\\ {hi}", "1")
+    cmdTest("echo -D {1..10}", "1 2 3 4 5 6 7 8 9 10")
+    cmdTest("echo -D f{1..5}d", "f1d f2d f3d f4d f5d")
 })

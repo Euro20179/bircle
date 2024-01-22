@@ -42,6 +42,8 @@ type RuntimeOption =
     | "verbose"
     | "no-run"
     | "disable"
+    | "no-send" //this is similar to silent, but instead of yielding { noSend: true, status: 0 }
+                //it just adds noSend: true to whatever object it got
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -57,6 +59,7 @@ type RuntimeOptionValue = {
     ["program-args"]: string[]
     ["no-run"]: boolean,
     disable: { categories?: CommandCategory[], commands?: string[] } | false
+    "no-send": boolean
 }
 
 export class RuntimeOptions {
@@ -85,6 +88,15 @@ export class RuntimeOptions {
     delete(option: RuntimeOption) {
         if (option in this.options)
             delete this.options[option]
+    }
+
+    copy(){
+        let copy = new RuntimeOptions()
+        for(let key in this.options){
+            //@ts-ignore
+            copy[key] = this.options[key]
+        }
+        return copy
     }
 }
 
@@ -126,6 +138,9 @@ async function* handlePipe(
         sendCallback,
         pid_label as string
     )) {
+        if(runtime_opts.get("no-send", false)){
+            item.noSend = true
+        }
         //although this could technically be done in the command_runner it's simply easier to do it here
         if (runtime_opts.get("silent", false)) {
             yield { noSend: true, status: StatusCode.RETURN }
@@ -285,7 +300,7 @@ async function* runcmd({
         pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     })
 
-    let line_no = 0
+    let line_no = 1
     let generator = lex.gen_tokens()
     do {
         let tokens = []
