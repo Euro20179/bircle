@@ -114,8 +114,7 @@ class TokenEvaluator {
             //this allows for %{} syntax to make the dofirst replace with nothing
             this.advance()
             if (!(this.cur_parsing_tok instanceof lexer.TTDoFirstRepl)) {
-                console.log("hi")
-                await this.eval_token(new lexer.TTDoFirstRepl("0", this.i, this.i))
+                await this.eval_token(new lexer.TTDoFirstRepl(":", this.i, this.i))
             }
             this.back()
             // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
@@ -127,17 +126,8 @@ class TokenEvaluator {
             this.cur_arg--
         }
         else if (token instanceof lexer.TTSyntax) {
-            let lex = new lexer.Lexer(token.data, {
-                is_command: false
-            })
-            let tokens = lex.lex()
-            let ev = new TokenEvaluator(tokens, this.symbols, this.msg, this.runtime_opts)
-            let new_tokens = await ev.evaluate()
-            let text = ""
-            for (let tok of new_tokens) {
-                text += tok.data + " "
-            }
-            this.add_to_cur_tok(text)
+            let text = await cmds.expandSyntax(token.data, this.msg)
+            this.add_to_cur_tok(text.join(" "))
         }
         else if (token instanceof lexer.TTString) {
             this.add_to_cur_tok(token.data)

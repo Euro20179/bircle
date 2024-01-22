@@ -112,4 +112,7 @@ describe("Commands", () => {
     cmdTest("argc f\\ {hi}", "1")
     cmdTest("echo -D {1..10}", "1 2 3 4 5 6 7 8 9 10")
     cmdTest("echo -D f{1..5}d", "f1d f2d f3d f4d f5d")
+    cmdTest("echo -D $(echo -D hi yes)", "hi yes")
+    cmdTest("echo -D $(echo -D hi yes)%{:0}", "hi")
+    cmdTest("echo -D $(echo -D hi yes)\\ %{:0}", "hi yes hi")
 })
