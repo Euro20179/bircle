@@ -47,7 +47,7 @@ class TokenEvaluator {
             return false
         }
         else if (token instanceof lexer.TTDoFirstRepl) {
-            if(token.data === ""){
+            if (token.data === "") {
                 return true
             }
             let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
@@ -113,7 +113,7 @@ class TokenEvaluator {
             //if the next token is not a TTDoFirstRepl token insert a %{0} token
             //this allows for %{} syntax to make the dofirst replace with nothing
             this.advance()
-            if(!(this.cur_parsing_tok instanceof lexer.TTDoFirstRepl)){
+            if (!(this.cur_parsing_tok instanceof lexer.TTDoFirstRepl)) {
                 console.log("hi")
                 await this.eval_token(new lexer.TTDoFirstRepl("0", this.i, this.i))
             }
@@ -125,6 +125,19 @@ class TokenEvaluator {
             this.add_to_cur_tok(syntax.join(" "))
             this.complete_cur_tok()
             this.cur_arg--
+        }
+        else if (token instanceof lexer.TTSyntax) {
+            let lex = new lexer.Lexer(token.data, {
+                is_command: false
+            })
+            let tokens = lex.lex()
+            let ev = new TokenEvaluator(tokens, this.symbols, this.msg, this.runtime_opts)
+            let new_tokens = await ev.evaluate()
+            let text = ""
+            for (let tok of new_tokens) {
+                text += tok.data + " "
+            }
+            this.add_to_cur_tok(text)
         }
         else if (token instanceof lexer.TTString) {
             this.add_to_cur_tok(token.data)

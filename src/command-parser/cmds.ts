@@ -7,7 +7,7 @@ import { isMsgChannel, mimeTypeToFileExtension } from '../util'
 import common_to_commands, { StatusCode, isCmd } from '../common_to_commands'
 
 import { PREFIX, RECURSION_LIMIT } from '../globals'
-import { getOpt } from '../user-options'
+import userOptions, { getOpt } from '../user-options'
 
 export class SymbolTable {
     symbols: Record<string, string>
@@ -294,10 +294,13 @@ async function* runcmd({
 
     let symbols = new SymbolTable()
 
+    let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
+
     let lex = new lexer.Lexer(command, {
         prefix,
         skip_parsing: runtime_opts.get("skip", false),
-        pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>")
+        pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
+        enable_1_arg_string: enable_arg_string === 'true' ? true : false
     })
 
     let line_no = 1

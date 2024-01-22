@@ -25,6 +25,7 @@ export class TT<T>{
 }
 
 class TTString extends TT<string> { }
+class TTSyntax extends TT<string> {}
 class TTCommand extends TT<string> { }
 class TTPipe extends TT<string> { }
 class TTPipeRun extends TT<string> { }
@@ -160,7 +161,8 @@ type LexerOptions = {
     pipe_sign?: string
     prefix?: string
     is_command?: boolean
-    skip_parsing?: boolean
+    skip_parsing?: boolean,
+    enable_1_arg_string?: boolean
 }
 
 class Lexer {
@@ -173,6 +175,10 @@ class Lexer {
     public tokens: TT<any>[] = []
     constructor(public command: string, options: LexerOptions) {
         this.options = options
+
+        if(this.options.enable_1_arg_string){
+            this.special_chars += `"'`
+        }
     }
 
     private prefix() {
@@ -258,6 +264,36 @@ class Lexer {
         return builtString
     }
 
+    parseSimpleString(){
+        let string = ""
+        while(this.advance() && this.curChar !== "'"){
+            string += this.curChar
+        }
+        return string
+    }
+
+    parseEscapeableString(){
+        let string = ""
+        let escape = false
+        while(this.advance()){
+            if(!escape && this.curChar === '\\'){
+                escape = true
+                continue
+            }
+            else if(escape){
+                string += this.curChar
+            }
+            else if(this.curChar === '"'){
+                break
+            }
+            else {
+                string += this.curChar
+            }
+            escape = false
+        }
+        return string
+    }
+    
     parseEscape() {
         const escChars = "ntUusyYAbiSdDTVv\\ a"
         if (!this.advance()) {
@@ -423,6 +459,18 @@ class Lexer {
                         }
                         break
                     }
+                    case "'": case '"': {
+                        if(this.options.enable_1_arg_string){
+                            let start = this.i
+                            if(this.curChar === "'"){
+                                yield new TTString(this.parseSimpleString(), start, this.i)
+                            }
+                            else {
+                                yield new TTSyntax(this.parseEscapeableString(), start, this.i)
+                            }
+                            break
+                        }
+                    }
                     default: {
                         let start = this.i
                         let data
@@ -495,5 +543,6 @@ export default {
     TTDoFirstRepl,
     TTCommand,
     TTRange,
+    TTSyntax,
     getModifiers
 }
