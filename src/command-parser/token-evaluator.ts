@@ -26,7 +26,12 @@ class TokenEvaluator {
     //goes from do first number to the actual text of the dofirst
     private doFirstFromDoFirstNo: Record<number, string> = {}
     private do_first_count = 0
-    constructor(public tokens: TT<any>[], private symbols: SymbolTable, private msg: Message, private runtime_opts: RuntimeOptions) {
+    constructor(
+        public tokens: TT<any>[],
+        private symbols: SymbolTable,
+        private msg: Message,
+        private runtime_opts: RuntimeOptions
+    ) {
         this.new_tokens = []
     }
 
@@ -103,7 +108,12 @@ class TokenEvaluator {
             //(PREFIX) could be really anything, it just has to be something
             let text = ""
             let runtime_copy = this.runtime_opts.copy()
-            for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: runtime_copy })) {
+            for await (let result of cmds.runcmd({
+                command: `${token.data}`,
+                prefix: "",
+                msg: this.msg,
+                runtime_opts: runtime_copy
+            })) {
                 text += result ? getContentFromResult(result, "\n") : ""
             }
             //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
@@ -137,7 +147,14 @@ class TokenEvaluator {
             let [seq, ...args] = token.data.split("|")
             let str = token.data
             if (format_parsers[seq]) {
-                str = await format_parsers[seq](token, this.symbols, seq, args, this.msg, this.runtime_opts)
+                str = await format_parsers[seq](
+                    token,
+                    this.symbols,
+                    seq,
+                    args,
+                    this.msg,
+                    this.runtime_opts
+                )
                 this.add_to_cur_tok(`${str}`)
             }
             else {
@@ -150,7 +167,12 @@ class TokenEvaluator {
             let pre_data = this.cur_tok.data ?? ""
             let post_data = ""
             if (this.advance() && !(this.cur_parsing_tok instanceof lexer.TTIFS)) {
-                let ev = new TokenEvaluator([this.cur_parsing_tok as TT<any>], this.symbols, this.msg, this.runtime_opts)
+                let ev = new TokenEvaluator(
+                    [this.cur_parsing_tok as TT<any>],
+                    this.symbols,
+                    this.msg,
+                    this.runtime_opts
+                )
                 post_data = (await ev.evaluate())[0].data
             }
             else {
@@ -253,7 +275,14 @@ class TokenEvaluator {
     }
 }
 
-const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq: string, args: string[], msg: Message, runtime_opts: RuntimeOptions) => Promise<string>> = {
+const format_parsers: Record<string, (
+    token: TT<any>,
+    symbols: SymbolTable,
+    seq: string,
+    args: string[],
+    msg: Message,
+    runtime_opts: RuntimeOptions
+) => Promise<string>> = {
     ["%"]: async (_token, symbols) => {
         return symbols.get("stdin:%") ?? "{%}"
     },
@@ -289,10 +318,18 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
         return [...args.join(" ")].reverse().join("")
     },
     reverse: async (...args) => await format_parsers['rev'](...args),
-    ["$"]: async (_, __, ___, args, msg) => String(economy.calculateAmountFromString(msg.author.id, args.join(" ") || "100%")),
-    ["$l"]: async (_, __, ___, args, msg) => String(economy.calculateLoanAmountFromString(msg.author.id, args.join(" ") || "100%")),
-    ["$t"]: async (_, __, ___, args, msg) => String(economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%")),
-    ["$n"]: async (_, __, ___, args, msg) => String(economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(msg.author.id, "100%")),
+    ["$"]: async (_, __, ___, args, msg) => String(
+        economy.calculateAmountFromString(msg.author.id, args.join(" ") || "100%")
+    ),
+    ["$l"]: async (_, __, ___, args, msg) => String(
+        economy.calculateLoanAmountFromString(msg.author.id, args.join(" ") || "100%")
+    ),
+    ["$t"]: async (_, __, ___, args, msg) => String(
+        economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%")
+    ),
+    ["$n"]: async (_, __, ___, args, msg) => String(
+        economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(msg.author.id, "100%")
+    ),
     timer: async (_, __, ___, args, msg) => {
         let name = args.join(" ").trim()
         if (name[0] === "-") {
@@ -414,7 +451,12 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
     }
 }
 
-const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolTable, msg: Message, runtime_opts: RuntimeOptions) => Promise<string | string[]>> = {
+const esc_parsers: Record<string, (
+    token: TT<[string, string]>,
+    symbols: SymbolTable,
+    msg: Message,
+    runtime_opts: RuntimeOptions
+) => Promise<string | string[]>> = {
     "n": async (_token, _) => {
         return "\n"
     },

@@ -345,7 +345,14 @@ function getWinners(players: { [k: string]: Hand }) {
     return false
 }
 
-function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }: {enableGive: boolean, enableShuffle: boolean, enable1: boolean}) {
+function createCards(
+    numberMax: number,
+    {
+        enableGive,
+        enableShuffle,
+        enable1
+    }: {enableGive: boolean, enableShuffle: boolean, enable1: boolean}
+) {
     numberMax ||= 9
     let numbers = Array.from({length: numberMax}, (_, idx) => String(idx))
     let cards = []

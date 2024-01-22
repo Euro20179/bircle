@@ -1,7 +1,32 @@
 import fs = require("fs")
 import common from "./common"
 
-export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "dm-when-online", "currency-sign", "puffle-find", "enable-mail", "mail-signature", "no-pingresponse", "pipe-symbol", "1-arg-string", "warn-cmds", "connect4-win", "connect4-symbol", "warn-categories", "error-on-no-cmd", "opts-parser", "location", "css"] as const
+export const allowedOptions = [
+    "prefix",
+    "default-bj-bet",
+    "bj-screen",
+    "money-format",
+    "pingresponse",
+    "heist-join",
+    "lottery-win",
+    "count-text",
+    "dm-when-online",
+    "currency-sign",
+    "puffle-find",
+    "enable-mail",
+    "mail-signature",
+    "no-pingresponse",
+    "pipe-symbol",
+    "1-arg-string",
+    "warn-cmds",
+    "connect4-win",
+    "connect4-symbol",
+    "warn-categories",
+    "error-on-no-cmd",
+    "opts-parser",
+    "location",
+    "css"
+] as const
 
 export type UserOption = typeof allowedOptions[number]
 

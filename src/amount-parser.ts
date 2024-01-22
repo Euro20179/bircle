@@ -335,7 +335,10 @@ class Lexer {
     }
 }
 
-type EnvironBase = Record<string, ((total: number, k: string) => number) | number | string | Type<TT>>
+type EnvironBase = Record<
+    string,
+    ((total: number, k: string) => number) | number | string | Type<TT>
+>
 
 class SymbolTable extends Map {
     parent?: SymbolTable
@@ -1721,7 +1724,7 @@ function calculateAmountRelativeTo(
     money: number,
     amount: string,
     extras?: Record<string,
-    (total: number, k: string) => number>,
+        (total: number, k: string) => number>,
     typeConv = Number
 ): number {
     return typeConv(calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit())
@@ -1731,7 +1734,7 @@ function runRelativeCalculator(
     relativeTo: number,
     amount: string,
     extras?: Record<string,
-    (total: number, k: string) => number>
+        (total: number, k: string) => number>
 ): ValidJSTypes {
     return calculateAmountRelativeToInternals(relativeTo, amount, extras).interpreter.visit()
 }

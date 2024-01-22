@@ -100,7 +100,8 @@ const POSSIBLE_ACHIEVEMENTS = {
     iraq: new ItemRewardAchievement("iraq", "travel to iraq", ["oil", 30]),
     russia: new ItemRewardAchievement("russia", "travel to russia", ["hammer and sickle", 1]),
     conquerer: new MoneyRewardAchievement("conquerer", "take over russia", "max(200, 5%)"),
-    // traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
+    // traveler:
+    // new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement(
         "even transfer",
         "exchange 50% of your net worth at once",
