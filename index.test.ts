@@ -40,12 +40,12 @@ const cmdTest = (cmd: string, ans: string) => {
         for await (let res of cmds.runcmd({
             command: cmd, prefix: "",
             msg: fakeMsg,
-            sendCallback: async() => fakeMsg,
+            sendCallback: async () => fakeMsg,
             pid_label: `TEST: ${cmd}`
         })) {
             rv = res
         }
-        if(rv)
+        if (rv)
             expect(rv.content).toBe(ans)
         done()
         // await loggedIn
@@ -88,9 +88,25 @@ describe("Utility functions", () => {
     fnTest(util.countOf, 3, [3, 3, 3, 4], 3)
     fnTest(util.mulStr, "hihihi", "hi", 3)
     fnTest(util.titleStr, "Hi There", "hi there")
+    fnTest(util.escapeRegex, "\\^yes\\[\\]", "^yes[]")
+    fnTest(util.escapeShell, "\\$(echo 3)", "$(echo 3)")
+    fnTest(util.strlen, 1, "😀")
     test("randomHexColorCode([])", () => {
         expect(util.randomHexColorCode()).toEqual(expect.stringMatching(/^#[0-9A-Z]{6}/))
     })
+})
+
+describe("ArgList tests", () => {
+    let argsList = new util.ArgList(["hi|", "yes", "|", "no", "|ok"])
+    argsList.beginIter()
+    test(`ArgList(["hi|", "yes", "|", "no", "|ok"]).expectUnknownSizedList("|")`, () => {
+        expect(argsList.expectUnknownSizedList("|")).toEqual(["hi", " yes", "no ", "ok"])
+    })
+
+    let argsList2 = new util.ArgList(["hi", "5"])
+    argsList2.beginIter()
+    fnTest(argsList2.expectInt.bind(argsList2), util.BADVALUE, 1)
+    fnTest(argsList2.expectInt.bind(argsList2), 5, 1)
 })
 
 
@@ -115,4 +131,6 @@ describe("Commands", () => {
     cmdTest("echo -D $(echo -D hi yes)", "hi yes")
     cmdTest("echo -D $(echo -D hi yes)%{:0}", "hi")
     cmdTest("echo -D $(echo -D hi yes)\\ %{:0}", "hi yes hi")
+    cmdTest("for i 1..3 { echo -D ${%:i} }", "2")
+    cmdTest("for i 1..3 { echo -D ${%:i}f } >pipe> rev", "f2")
 })
