@@ -14,7 +14,8 @@ init.init()
 
 commands();
 
-let loggedIn = common.client.login(globals.getConfigValue("secrets.token"));
+//@ts-ignore
+await common.client.login(globals.getConfigValue("secrets.token"));
 
 let chan: TextChannel
 
