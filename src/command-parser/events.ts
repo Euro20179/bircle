@@ -40,7 +40,8 @@ commandEventListener.on(cmdResult, function(event: CmdResultEvent){
 
 commandEventListener.on(cmdOver, function(event: CmdOverEvent){
     lastCommand[event.msg.author.id] = event.msg.content
-    vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
+    if(event.finalRv)
+        vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
 })
 
 export default {

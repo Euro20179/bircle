@@ -475,7 +475,7 @@ class Lexer {
                         let start = this.i
                         let data
                         let is_command =
-                            this.options.is_command !== false && this.i === this.prefix.length
+                            this.options.is_command !== false && this.i === this.prefix().length
                         if (is_command) {
                             data = this.parseCommand()
                         }

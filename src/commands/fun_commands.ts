@@ -1138,18 +1138,14 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "stock", ccmdV2(
-            async ({ msg, sendCallback, opts, argShapeResults }) => {
+            async function*({ msg, sendCallback, opts, argShapeResults }) {
                 let fmt = opts.getString('fmt', '{embed}')
                 let stock = argShapeResults['stock'] as string
                 let data = await economy.getStockInformation(stock)
                 if (!data) {
                     return { content: "No  info found", status: StatusCode.ERR }
                 }
-                await handleSending(
-                    msg,
-                    { content: "Getting data", status: StatusCode.INFO },
-                    sendCallback
-                )
+                yield { content: "Getting data", status: StatusCode.INFO }
                 if (fmt == "{embed}") {
                     let embed = new EmbedBuilder()
                     let nChange = Number(data.change)
@@ -1170,10 +1166,10 @@ export default function*(): Generator<[string, CommandV2]> {
                     else {
                         embed.setColor("#ffff00")
                     }
-                    return { embeds: [embed], status: StatusCode.RETURN }
+                    yield { embeds: [embed], status: StatusCode.RETURN }
                 }
                 else {
-                    return {
+                    yield {
                         content: format(fmt, {
                             p: String(data.price).trim() || "0",
                             n: stock.toUpperCase().trim(),

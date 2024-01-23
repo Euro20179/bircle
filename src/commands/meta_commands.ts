@@ -1316,7 +1316,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         "if", ccmdV2(async function*({ msg, rawArgs: args, runtime_opts }) {
             let [condition, cmdToCheck] = args.join(" ").split(";")
             if (!cmdToCheck) {
-                return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
+                return {
+                    content: "You are missing a ; after the condition",
+                    status: StatusCode.ERR
+                }
             }
             cmdToCheck = cmdToCheck.split(";end")[0]
             let success;
@@ -1445,7 +1448,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg },
+                    {
+                        command: "(PREFIX)" + cmdToCheck.trim(),
+                        prefix: "(PREFIX)",
+                        runtime_opts,
+                        msg
+                    },
                     "if(SUB)"
                 )) {
                     yield result
