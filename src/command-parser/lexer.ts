@@ -24,21 +24,21 @@ export class TT<T>{
     }
 }
 
-class TTString extends TT<string> { }
-class TTSyntax extends TT<string> {}
-class TTCommand extends TT<string> { }
-class TTPipe extends TT<string> { }
-class TTPipeRun extends TT<string> { }
-class TTJSExpr extends TT<string> { }
-class TTDoFirst extends TT<string> { }
-class TTDoFirstRepl extends TT<string> { }
-class TTPrefix extends TT<string> { }
-class TTVariable extends TT<string> { }
-class TTSemi extends TT<string> { }
-class TTFormat extends TT<string> { }
-class TTRange extends TT<[number, number]> { }
-class TTIFS extends TT<string> { }
-class TTEsc extends TT<[string, string]>{ }
+export class TTString extends TT<string> { }
+export class TTSyntax extends TT<string> {}
+export class TTCommand extends TT<string> { }
+export class TTPipe extends TT<string> { }
+export class TTPipeRun extends TT<string> { }
+export class TTJSExpr extends TT<string> { }
+export class TTDoFirst extends TT<string> { }
+export class TTDoFirstRepl extends TT<string> { }
+export class TTPrefix extends TT<string> { }
+export class TTVariable extends TT<string> { }
+export class TTSemi extends TT<string> { }
+export class TTFormat extends TT<string> { }
+export class TTRange extends TT<[number, number]> { }
+export class TTIFS extends TT<string> { }
+export class TTEsc extends TT<[string, string]>{ }
 
 
 export abstract class Modifier {

@@ -2,7 +2,7 @@ import { ChannelType, Message } from 'discord.js'
 import { getContentFromResult, safeEval } from '../util'
 import cmds, { RuntimeOptions } from './cmds'
 import { SymbolTable } from './cmds'
-import lexer, { TT } from './lexer'
+import lexer, { TT, TTCommand, TTDoFirst, TTDoFirstRepl, TTEsc, TTFormat, TTIFS, TTJSExpr, TTPipe, TTPrefix, TTRange, TTSemi, TTString, TTSyntax, TTVariable } from './lexer'
 import vars from '../vars'
 import economy from '../economy'
 import timer from '../timer'
@@ -47,161 +47,181 @@ class TokenEvaluator {
         this.cur_tok = new lexer.TTString("", this.char_pos, this.char_pos)
     }
 
-    async eval_token(token: TT<any>) {
-        if (token instanceof lexer.TTPipe || token instanceof lexer.TTSemi) {
-            return false
+    async eval_TTDoFirstRepl(token: TTDoFirstRepl) {
+        if (token.data === "") {
+            return true
         }
-        else if (token instanceof lexer.TTDoFirstRepl) {
-            if (token.data === "") {
+        let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
+        if (doFirstResultNo === undefined) {
+            doFirstResultNo = doFirstArgNo
+            doFirstArgNo = String(this.doFirstNoFromArgNo[this.cur_arg])
+        }
+        let doFirst = this.doFirstFromDoFirstNo[Number(doFirstArgNo)]
+        if (doFirst !== undefined) {
+            let text = ""
+            if (doFirstResultNo === "") {
+                text = doFirst
+            }
+            else if (doFirstResultNo === "..") {
+                let strings = doFirst.split(" ")
+                this.add_list_of_strings(strings)
                 return true
             }
-            let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
-            if (doFirstResultNo === undefined) {
-                doFirstResultNo = doFirstArgNo
-                doFirstArgNo = String(this.doFirstNoFromArgNo[this.cur_arg])
+            else {
+                text = doFirst.split(" ")[Number(doFirstResultNo)] ?? ""
             }
-            let doFirst = this.doFirstFromDoFirstNo[Number(doFirstArgNo)]
-            if (doFirst !== undefined) {
-                let text = ""
-                if (doFirstResultNo === "") {
-                    text = doFirst
-                }
-                else if (doFirstResultNo === "..") {
-                    let strings = doFirst.split(" ")
-                    this.add_list_of_strings(strings)
-                    return true
+            this.add_to_cur_tok(text)
+        }
+    }
+
+    async eval_TTPipe(_token: TTPipe) {
+        return false
+    }
+
+    async eval_TTSemi(_token: TTSemi) {
+        return false
+    }
+
+    async eval_TTVariable(token: TTVariable) {
+        let [varName, ...ifNull] = token.data.split("||")
+        let value = this.symbols.get(varName)
+        if (value !== undefined) {
+            this.add_to_cur_tok(value)
+        }
+        else {
+            let _var = vars.getVar(this.msg, varName)
+            if (_var === false) {
+                if (ifNull) {
+                    this.add_to_cur_tok(ifNull.join("||"))
                 }
                 else {
-                    text = doFirst.split(" ")[Number(doFirstResultNo)] ?? ""
+                    this.add_to_cur_tok(`\${${varName}}`)
                 }
-                this.add_to_cur_tok(text)
-            }
-        }
-        else if (token instanceof lexer.TTVariable) {
-            let [varName, ...ifNull] = token.data.split("||")
-            let value = this.symbols.get(varName)
-            if (value !== undefined) {
-                this.add_to_cur_tok(value)
             }
             else {
-                let _var = vars.getVar(this.msg, varName)
-                if (_var === false) {
-                    if (ifNull) {
-                        this.add_to_cur_tok(ifNull.join("||"))
-                    }
-                    else {
-                        this.add_to_cur_tok(`\${${varName}}`)
-                    }
-                }
-                else {
-                    this.add_to_cur_tok(_var)
-                }
+                this.add_to_cur_tok(_var)
             }
         }
-        else if (token instanceof lexer.TTJSExpr) {
-            let text = (await cmds.expandSyntax(token.data, this.msg)).join(" ")
-            let new_text = String(safeEval(text, {}, {}))
-            this.add_to_cur_tok(new_text)
-            // this.new_tokens.push(new lexer.TTString(new_text, token.start, token.end))
+    }
+
+    async eval_TTJSExpr(token: TTJSExpr) {
+        let text = (await cmds.expandSyntax(token.data, this.msg)).join(" ")
+        let new_text = String(safeEval(text, {}, {}))
+        this.add_to_cur_tok(new_text)
+        // this.new_tokens.push(new lexer.TTString(new_text, token.start, token.end))
+    }
+
+    async eval_TTDoFirst(token: TTDoFirst) {
+        //(PREFIX) could be really anything, it just has to be something
+        let text = ""
+        let runtime_copy = this.runtime_opts.copy()
+        for await (let result of cmds.runcmd({
+            command: `${token.data}`,
+            prefix: "",
+            msg: this.msg,
+            runtime_opts: runtime_copy
+        })) {
+            text += result ? getContentFromResult(result, "\n") : ""
         }
-        else if (token instanceof lexer.TTDoFirst) {
-            //(PREFIX) could be really anything, it just has to be something
-            let text = ""
-            let runtime_copy = this.runtime_opts.copy()
-            for await (let result of cmds.runcmd({
-                command: `${token.data}`,
-                prefix: "",
-                msg: this.msg,
-                runtime_opts: runtime_copy
-            })) {
-                text += result ? getContentFromResult(result, "\n") : ""
-            }
-            //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
-            this.doFirstNoFromArgNo[this.cur_arg] = this.do_first_count
-            this.doFirstFromDoFirstNo[this.do_first_count] = text
-            this.do_first_count++
-            //if the next token is not a TTDoFirstRepl token insert a %{0} token
-            //this allows for %{} syntax to make the dofirst replace with nothing
-            this.advance()
-            if (!(this.cur_parsing_tok instanceof lexer.TTDoFirstRepl)) {
-                await this.eval_token(new lexer.TTDoFirstRepl(":", this.i, this.i))
-            }
+        //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
+        this.doFirstNoFromArgNo[this.cur_arg] = this.do_first_count
+        this.doFirstFromDoFirstNo[this.do_first_count] = text
+        this.do_first_count++
+        //if the next token is not a TTDoFirstRepl token insert a %{0} token
+        //this allows for %{} syntax to make the dofirst replace with nothing
+        this.advance()
+        if (!(this.cur_parsing_tok instanceof lexer.TTDoFirstRepl)) {
+            await this.eval_token(new lexer.TTDoFirstRepl(":", this.i, this.i))
+        }
+        this.back()
+        // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
+    }
+
+    async eval_TTCommand(token: TTCommand) {
+        let syntax = await cmds.expandSyntax(token.data, this.msg)
+        this.add_to_cur_tok(syntax.join(" "))
+        this.complete_cur_tok()
+        this.cur_arg--
+    }
+
+    async eval_TTSyntax(token: TTSyntax) {
+        let text = await cmds.expandSyntax(token.data, this.msg)
+        this.add_to_cur_tok(text.join(" "))
+    }
+
+    async eval_TTString(token: TTString) {
+        this.add_to_cur_tok(token.data)
+        // this.new_tokens.push(token)
+    }
+
+    async eval_TTFormat(token: TTFormat) {
+        let [seq, ...args] = token.data.split("|")
+        let str = token.data
+        if (format_parsers[seq]) {
+            str = await format_parsers[seq](
+                token,
+                this.symbols,
+                seq,
+                args,
+                this.msg,
+                this.runtime_opts
+            )
+            this.add_to_cur_tok(`${str}`)
+        }
+        else {
+            this.add_to_cur_tok(`{${str}}`)
+        }
+        // this.new_tokens.push(new lexer.TTString(str, token.start, token.end))
+    }
+
+    async eval_TTRange(token: TTRange) {
+        let [start, end] = token.data
+        let pre_data = this.cur_tok.data ?? ""
+        let post_data = ""
+        if (this.advance() && !(this.cur_parsing_tok instanceof lexer.TTIFS)) {
+            let ev = new TokenEvaluator(
+                [this.cur_parsing_tok as TT<any>],
+                this.symbols,
+                this.msg,
+                this.runtime_opts
+            )
+            post_data = (await ev.evaluate())[0].data
+        }
+        else {
             this.back()
-            // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
         }
-        else if (token instanceof lexer.TTCommand) {
-            let syntax = await cmds.expandSyntax(token.data, this.msg)
-            this.add_to_cur_tok(syntax.join(" "))
-            this.complete_cur_tok()
-            this.cur_arg--
+        let strings = []
+        end = end > 10000 ? 10000 : end
+        for (let i = start; i <= end; i++) {
+            strings.push(`${pre_data}${i}${post_data}`)
         }
-        else if (token instanceof lexer.TTSyntax) {
-            let text = await cmds.expandSyntax(token.data, this.msg)
-            this.add_to_cur_tok(text.join(" "))
+        this.add_list_of_strings(strings, true)
+    }
+
+    async eval_TTIFS(token: TTIFS) {
+        this.complete_cur_tok()
+    }
+
+    async eval_TTEsc(token: TTEsc) {
+        let char = token.data[0]
+        let resp: string | string[] = ""
+        if (esc_parsers[char]) {
+            resp = await esc_parsers[char](token, this.symbols, this.msg, this.runtime_opts)
         }
-        else if (token instanceof lexer.TTString) {
-            this.add_to_cur_tok(token.data)
-            // this.new_tokens.push(token)
+        if (typeof resp === 'string') {
+            this.add_to_cur_tok(resp)
         }
-        else if (token instanceof lexer.TTFormat) {
-            let [seq, ...args] = token.data.split("|")
-            let str = token.data
-            if (format_parsers[seq]) {
-                str = await format_parsers[seq](
-                    token,
-                    this.symbols,
-                    seq,
-                    args,
-                    this.msg,
-                    this.runtime_opts
-                )
-                this.add_to_cur_tok(`${str}`)
-            }
-            else {
-                this.add_to_cur_tok(`{${str}}`)
-            }
-            // this.new_tokens.push(new lexer.TTString(str, token.start, token.end))
+        else {
+            this.add_list_of_strings(resp)
         }
-        else if (token instanceof lexer.TTRange) {
-            let [start, end] = token.data
-            let pre_data = this.cur_tok.data ?? ""
-            let post_data = ""
-            if (this.advance() && !(this.cur_parsing_tok instanceof lexer.TTIFS)) {
-                let ev = new TokenEvaluator(
-                    [this.cur_parsing_tok as TT<any>],
-                    this.symbols,
-                    this.msg,
-                    this.runtime_opts
-                )
-                post_data = (await ev.evaluate())[0].data
-            }
-            else {
-                this.back()
-            }
-            let strings = []
-            end = end > 10000 ? 10000 : end
-            for (let i = start; i <= end; i++) {
-                strings.push(`${pre_data}${i}${post_data}`)
-            }
-            this.add_list_of_strings(strings, true)
-        }
-        else if (token instanceof lexer.TTIFS) {
-            this.complete_cur_tok()
-        }
-        else if (token instanceof lexer.TTEsc) {
-            let char = token.data[0]
-            let resp: string | string[] = ""
-            if (esc_parsers[char]) {
-                resp = await esc_parsers[char](token, this.symbols, this.msg, this.runtime_opts)
-            }
-            if (typeof resp === 'string') {
-                this.add_to_cur_tok(resp)
-            }
-            else {
-                this.add_list_of_strings(resp)
-            }
-        }
+    }
+
+    async eval_TTPrefix(token: TTPrefix){
         return true
+    }
+
+    async eval_token(token: TT<any>) {
+        return await (this[`eval_${token.constructor.name}` as keyof typeof this] as (token: TT<any>) => Promise<boolean | void>)(token) ?? true
     }
 
     add_list_of_strings(strings: string[], replace_current = false) {
