@@ -898,6 +898,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
                     }
+                    runtime_opts.set("recursion", runtime_opts.get("recursion", 1) - 1)
                 }
             }
             return { noSend: true, status: StatusCode.RETURN }
@@ -1700,6 +1701,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     yield result
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
+                runtime_opts.set("recursion", runtime_opts.get("recursion", 1) - 1)
             }
             yield {
                 content: "done",
@@ -1965,6 +1967,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 )) {
                     yield result
                 }
+                runtime_opts.set("recursion", runtime_opts.get("recursion", 1) - 1)
             }
         }, "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%")
     ]
