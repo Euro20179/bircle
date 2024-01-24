@@ -209,7 +209,7 @@ async function handleEarnings(m: Message) {
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
-    console.log(m, m.channel.type, m.guild?.id)
+    console.log(m.content, m.channel.type, m.guild?.id)
     if (m.member?.roles.cache.find(
         (v: any) => common.BLACKLISTED_ROLES()?.includes(v.id)
     ) || common.BLACKLISTED_USERS().includes(m.author.id)) {
