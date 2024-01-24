@@ -140,7 +140,7 @@ function getPathFromPrefix(prefix: string, id?: string){
         if(!vars[user]){
             vars[user] = {}
         }
-        if(vars[user][prefix]){
+        if(!vars[user][prefix]){
             return (vars[user][prefix] = {})
         }
         return vars[user][prefix]
