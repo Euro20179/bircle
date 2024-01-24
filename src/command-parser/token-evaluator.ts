@@ -328,7 +328,6 @@ const format_parsers: Record<string, (
         }
         catch (err) {
             return `{${token.data}}`
-
         }
     },
     rev: async (_, __, ___, args) => {

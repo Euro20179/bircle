@@ -43,7 +43,7 @@ type RuntimeOption =
     | "no-run"
     | "disable"
     | "no-send" //this is similar to silent, but instead of yielding { noSend: true, status: 0 }
-                //it just adds noSend: true to whatever object it got
+//it just adds noSend: true to whatever object it got
 type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
@@ -90,9 +90,9 @@ export class RuntimeOptions {
             delete this.options[option]
     }
 
-    copy(){
+    copy() {
         let copy = new RuntimeOptions()
-        for(let key in this.options){
+        for (let key in this.options) {
             //@ts-ignore
             copy[key] = this.options[key]
         }
@@ -138,7 +138,7 @@ async function* handlePipe(
         sendCallback,
         pid_label as string
     )) {
-        if(runtime_opts.get("no-send", false)){
+        if (runtime_opts.get("no-send", false)) {
             item.noSend = true
         }
         //although this could technically be done in the command_runner it's simply easier to do it here
@@ -229,35 +229,36 @@ async function* runcmdline({
     }
 
     try {
-        if (!runtime_opts.get("no-run", false)) {
-            for await (let result of handlePipe(
-                undefined,
-                pipe_token_chains[0],
-                pipe_token_chains.slice(1),
-                msg,
-                symbols,
-                runtime_opts,
-                sendCallback,
-                pid_label as string
-            )) {
-                //this is done here because recursion should be handled per line (;; seperated commands), not per the ENTIRE command, or per pipe
-                if (result.recurse
-                    && result.content
-                    && isCmd(result.content, PREFIX)
-                    && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
-                ) {
-                    let old_disable = runtime_opts.get('disable', false)
-                    if (typeof result.recurse === 'object') {
-                        result.recurse.categories ??= []
-                        result.recurse.commands ??= []
-                        runtime_opts.set('disable', result.recurse)
-                    }
-                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
-                    runtime_opts.set('disable', old_disable)
-                    continue
+        if (runtime_opts.get("no-run", false)) {
+            return
+        }
+        for await (let result of handlePipe(
+            undefined,
+            pipe_token_chains[0],
+            pipe_token_chains.slice(1),
+            msg,
+            symbols,
+            runtime_opts,
+            sendCallback,
+            pid_label as string
+        )) {
+            //this is done here because recursion should be handled per line (;; seperated commands), not per the ENTIRE command, or per pipe
+            if (result.recurse
+                && result.content
+                && isCmd(result.content, PREFIX)
+                && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
+            ) {
+                let old_disable = runtime_opts.get('disable', false)
+                if (typeof result.recurse === 'object') {
+                    result.recurse.categories ??= []
+                    result.recurse.commands ??= []
+                    runtime_opts.set('disable', result.recurse)
                 }
-                yield result
+                yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                runtime_opts.set('disable', old_disable)
+                continue
             }
+            yield result
         }
     } catch (err: any) {
         yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }

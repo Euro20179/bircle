@@ -34,6 +34,8 @@ declare global {
     interface Array<T> {
         shuffleArray(): Array<T>
     }
+
+    type Option<T> = null | T
 }
 
 //Utility

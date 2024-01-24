@@ -1354,6 +1354,7 @@ function defileCommandReturn(rv: CommandReturn) {
 }
 
 function cmdUserExpansion(msg: Message, rv: CommandReturn) {
+    //@ts-ignore
     let optionToGet: UserOption = ({
         [StatusCode.ERR]: "change-cmd-error",
         [StatusCode.INFO]: "change-cmd-info",
