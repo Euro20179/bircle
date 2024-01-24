@@ -38,6 +38,7 @@ export class ProcessManager {
             }
             yield result
         }
+        result_generator.return("done")
         this.killproc(pid)
         return pid
     }

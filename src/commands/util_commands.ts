@@ -3267,7 +3267,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             const stackl = require("../stackl")
             let opts: Opts;
             [opts, args] = getOpts(args)
-            console.log(opts, args)
             let useStart = true
             if (opts['no-start'] === true) {
                 useStart = false
