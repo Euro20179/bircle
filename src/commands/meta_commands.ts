@@ -2539,8 +2539,7 @@ ${styles}
             let playerNumbers: ["all"] | number[] = []
             for (let p of players.split(" ")) {
                 if (p === "all") {
-                    //@ts-ignore
-                    playerNumbers.push(p as "all")
+                    playerNumbers = ["all"]
                     break
                 }
                 let n = Number(p)

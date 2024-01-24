@@ -2114,8 +2114,7 @@ Valid formats:
             let text = await res.text()
             let data = text.match(/const data = (\[.*\]);/)
             //must use eval because it's not valid json
-            //@ts-ignore
-            let json = eval(data[1])
+            let json = eval(data?.[1] ?? "")
             if (!Object.keys(json).length) {
                 return crv("Could not get data", { status: StatusCode.ERR })
             }

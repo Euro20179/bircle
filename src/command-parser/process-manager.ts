@@ -27,6 +27,8 @@ export class ProcessManager {
 
     async* spawn_cmd(args: RunCmdOptions, label?: string){
         label ??= args.command
+        //ensures every label is unique
+        label += ` ${String(this.PIDS.size + 1)}`
         args.pid_label = label
         let result_generator = cmds.runcmd(args)
         let pid = this.PIDS.size + 1

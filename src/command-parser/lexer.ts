@@ -444,8 +444,7 @@ class Lexer {
                         let start = this.i
                         let inner = parseBracketPair(this.command, "{}", this.i)
                         this.advance(inner.length)
-                        //@ts-ignore
-                        if (this.curChar === '}') {
+                        if (this.curChar as string === '}') {
                             let match = inner.match(/^(\d+)\.\.(\d+)$/)
                             if (match) {
                                 yield new TTRange([Number(match[1]), Number(match[2])], start, this.i - 1)

@@ -63,6 +63,11 @@ declare global {
     type NumberStr = FloatStr | IntStr
 }
 
+//discord types
+declare global {
+    type userid_t = Tagger<string>
+}
+
 //time Units
 declare global {
     type milliseconds_t = Tagger<number>

@@ -134,7 +134,7 @@ function getPathFromPrefix(prefix: string, id?: string){
         }
         return vars[prefix]
     }
-    else if(prefix.includes('.') && prefix.match(/^\d{18}\./)){
+    else if(prefix.includes('.') && prefix.match(/^\d{18,19}\./)){
         let user;
         [user, prefix] = prefix.split(".")
         if(!vars[user]){

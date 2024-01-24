@@ -93,22 +93,30 @@ common.client.on(Events.GuildMemberAdd, async (member) => {
     }
 })
 
+
+function sendOnlineMessageToUser(user: userid_t, msg: string) {
+    common.client.users.fetch(user).then((u) => {
+        u.createDM().then((channel) => {
+            channel.send(
+                msg
+            ).catch(console.log)
+        })
+    }).catch(console.log)
+}
+
+function handleSendingOnlineMessages() {
+    for (let v in user_options.USER_OPTIONS) {
+        let msg = user_options.getOpt(v, "dm-when-online", "false")
+        if (msg !== "false") {
+            sendOnlineMessageToUser(v, msg)
+        }
+    }
+}
+
 common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
     if (!HEADLESS) {
-        defer(() => {
-            for (let v in user_options.USER_OPTIONS) {
-                if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
-                    common.client.users.fetch(v).then((u) => {
-                        u.createDM().then((channel) => {
-                            channel.send(
-                                user_options.getOpt(v, "dm-when-online", "ONLINE")
-                            ).catch(console.log)
-                        })
-                    }).catch(console.log)
-                }
-            }
-        })
+        defer(handleSendingOnlineMessages)
     }
     console.log("ONLINE")
 })
@@ -157,6 +165,7 @@ async function handlePingResponse(m: Message) {
         }
     }
 }
+
 async function handleEarnings(m: Message) {
     let deaths = pet.damageUserPetsRandomly(m.author.id)
     if (deaths.length)
