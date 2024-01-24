@@ -2772,10 +2772,10 @@ ${styles}
                 { name: "Arch", value: process.arch, inline: false },
                 { name: "PID", value: String(process.pid), inline: false },
                 { name: "Platform", value: process.platform, inline: false },
-                { name: "Heap memory (MiB)", value: String(process.memoryUsage().heapTotal / 1024 / 1024), inline: false }
+                { name: "Heap memory (MiB)", value: String(process.memoryUsage().heapUsed / 1024 / 1024), inline: false }
             ])
             return { embeds: [embed], status: StatusCode.RETURN }
-        } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024) }), status: StatusCode.RETURN }
+        } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapUsed / 1024 / 1024) }), status: StatusCode.RETURN }
     }, CAT, "Gets info about the process")]
 
     yield [

@@ -38,7 +38,7 @@ export class ProcessManager {
             }
             yield result
         }
-        this.PIDS.delete(pid)
+        this.killproc(pid)
         return pid
     }
 }
