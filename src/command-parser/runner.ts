@@ -155,7 +155,6 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
 
     if (opts['?']) {
         parsed_args = ["help"].concat(parsed_args)
-        console.log(parsed_args)
         cmdObject = commands.get("help") as CommandV2
         delete opts['?']
     }
