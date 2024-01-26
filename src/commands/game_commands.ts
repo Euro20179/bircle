@@ -824,7 +824,8 @@ export default function*(): Generator<[string, CommandV2]> {
             embed.setTitle("Game Over")
             let fields = []
             if (mode === "multi") {
-                let winner = Object.entries(users).sort((a, b) => a[1].score() - b[1].score()).slice(-1)[0]
+                let sorted_users = Object.entries(users).sort((a, b) => a[1].score() - b[1].score())
+                let winner = sorted_users.slice(-1)[0]
                 let amount = Object.values(bets).reduce((p, c) => p + c, 0)
                 embed.setDescription(`<@${winner[0]}> WINS ${amount}`)
                 economy.addMoney(winner[0], amount)
@@ -832,6 +833,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     if (user === winner[0]) continue;
                     economy.loseMoneyToBank(user, bets[user])
                 }
+                return crv(sorted_users.reduce((p, c) => `${p}\n${c[0]}: ${c[1]}`, ""))
             }
             for (let kv of Object.entries(users)) {
                 let [user, scoreSheet] = kv
@@ -847,6 +849,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let money_earned = economy.calculateAmountFromString(Object.keys(users).at(0) as string, `${amount_earned}%`)
                 economy.addMoney(Object.keys(users).at(0) as string, money_earned)
                 await handleSending(msg, { content: `You earned $${money_earned}`, status: StatusCode.INFO })
+                return crv(`Final score: ${score}`)
             }
             embed.addFields(fields)
 
