@@ -306,7 +306,7 @@ async function* runcmd({
     let line_no = 1
     let generator = lex.gen_tokens()
     do {
-        console.log(`lexing: ${line_no}`)
+        console.log(`lexing: ${line_no} ${new Date()}`)
         let tokens = []
         let cur_tok
         while (!((cur_tok = generator.next()).value instanceof lexer.TTSemi) && cur_tok.value) {
