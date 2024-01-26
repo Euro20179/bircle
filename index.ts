@@ -173,6 +173,7 @@ async function handleEarnings(m: Message) {
     if (hasItem(m.author.id, "capitalism hat")) {
         percent += .002
     }
+
     if (ap === 'cat') {
         percent += pets.PETACTIONS['cat']()
     }
@@ -264,45 +265,47 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         handleEarnings(m)
     }
 
-    if (!HEADLESS) {
-        let att = m.attachments.at(0)
-        if (att?.name?.endsWith(".bircle")) {
-            let res = await fetch(att.url)
-            m.attachments.delete(m.attachments.keyAt(0) as string)
+    if (HEADLESS) {
+        return
+    }
 
-            let args = await cmds.expandSyntax(m.content, m)
+    let att = m.attachments.at(0)
+    if (att?.name?.endsWith(".bircle")) {
+        let res = await fetch(att.url)
+        m.attachments.delete(m.attachments.keyAt(0) as string)
 
-            let runtime_opts = new cmds.RuntimeOptions()
-            runtime_opts.set("program-args", args)
+        let args = await cmds.expandSyntax(m.content, m)
 
-            let cmd = await res.text()
-            cmd = "(PREFIX)" + cmd
+        let runtime_opts = new cmds.RuntimeOptions()
+        runtime_opts.set("program-args", args)
 
-            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                { command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts },
-                att.name,
+        let cmd = await res.text()
+        cmd = "(PREFIX)" + cmd
 
-            )) {
-                await cmds.handleSending(m, result)
-            }
+        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+            { command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts },
+            att.name,
+
+        )) {
+            await cmds.handleSending(m, result)
         }
+    }
 
-        if (command_commons.isCmd(content, local_prefix)) {
-            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                { command: content, prefix: local_prefix, msg: m },
-                content,
-            )) {
-                await cmds.handleSending(m, result)
-            }
+    if (command_commons.isCmd(content, local_prefix)) {
+        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+            { command: content, prefix: local_prefix, msg: m },
+            content,
+        )) {
+            await cmds.handleSending(m, result)
         }
+    }
 
-        else if (content.startsWith(`L${local_prefix}`)) {
-            let c = m.content.slice(local_prefix.length + 1)
-            await command_commons.handleSending(m, (await execCommand(m, c)).rv)
-        }
-        else {
-            await command_commons.handleMatchCommands(m, m.content, true)
-        }
+    else if (content.startsWith(`L${local_prefix}`)) {
+        let c = m.content.slice(local_prefix.length + 1)
+        await command_commons.handleSending(m, (await execCommand(m, c)).rv)
+    }
+    else {
+        await command_commons.handleMatchCommands(m, m.content, true)
     }
 })
 
