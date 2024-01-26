@@ -9,11 +9,12 @@ import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHel
 import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import sharp from 'sharp'
-let canvas: typeof import('canvas')
-(async() => {
-    if(!process.argv0.includes("bun"))
-        canvas = await import('canvas')
-})()
+let canvas;
+// let canvas: typeof import('canvas')
+// (async() => {
+//     if(!process.argv0.includes("bun"))
+//         canvas = await import('canvas')
+// })()
 
 import { PREFIX } from '../globals'
 
