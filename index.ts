@@ -104,9 +104,9 @@ common.client.on(Events.ClientReady, async () => {
                         u.createDM().then((channel) => {
                             channel.send(
                                 user_options.getOpt(v, "dm-when-online", "ONLINE")
-                            ).catch(console.log)
+                            ).catch(console.error)
                         })
-                    }).catch(console.log)
+                    }).catch(console.error)
                 }
             }
         })
