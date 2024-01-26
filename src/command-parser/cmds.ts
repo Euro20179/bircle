@@ -355,7 +355,8 @@ async function handleSending(
     }
 
     if (!rv?.content) {
-        //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
+        //if content is empty string, delete it so it shows up as undefined to discord
+        //so it wont bother trying to send an empty string
         delete rv['content']
     }
     //if the content is > 2000 (discord limit), send a file instead
