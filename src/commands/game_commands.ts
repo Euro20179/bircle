@@ -390,12 +390,8 @@ export default function*(): Generator<[string, CommandV2]> {
             let new_rules = Boolean(opts['new-rules'])
 
             class ScoreSheet {
-                ones: number | undefined
-                twos: number | undefined
-                threes: number | undefined
-                fours: number | undefined
-                fives: number | undefined
-                sixes: number | undefined
+                nrs: [number, number, number, number, number, number]
+                nrs_applied: [number, number, number, number, number, number]
                 three_of_a_kind: number | undefined
                 four_of_a_kind: number | undefined
                 full_house: number[]
@@ -410,6 +406,8 @@ export default function*(): Generator<[string, CommandV2]> {
                     this.full_house = []
                     this.small_straight = []
                     this.large_straight = []
+                    this.nrs = [0, 0, 0, 0, 0, 0]
+                    this.nrs_applied = [0, 0, 0, 0, 0, 0]
                 }
 
                 #is_x_of_a_kind(dice: number[], size: number) {
@@ -462,6 +460,10 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
 
                 is_applied(type: string) {
+                    let nr = Number(type)
+                    if (!isNaN(nr)) {
+                        return this.nrs_applied[nr - 1] === 1
+                    }
                     let val = Reflect.get(this, type.replaceAll(" ", "_")) as unknown
                     if (typeof val !== 'object' || val === null) return val !== undefined
                     if (!new_rules && type !== "yahtzee" && "length" in val) {
@@ -476,31 +478,20 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
 
                 apply(type: string, dice: number[]) {
-                    let fn = Reflect.get(this, `apply_${type.replaceAll(" ", "_")}`)
-                    if (fn && typeof fn === 'function') {
-                        fn(dice)
+                    let nr = Number(type)
+                    if (!isNaN(nr)) {
+                        this.nrs[nr - 1] = dice.filter(v => v === nr).length * nr
+                        this.nrs_applied[nr - 1] = 1
+                    }
+                    else{
+                        let fn = Reflect.get(this, `apply_${type.replaceAll(" ", "_")}`)
+                        if (fn && typeof fn === 'function') {
+                            fn.bind(this)(dice)
+                        }
                     }
                 }
                 apply_chance(dice: number[]) {
                     this.chance = dice.reduce((p, c) => p + c, 0)
-                }
-                apply_ones(dice: number[]) {
-                    this.ones = dice.filter(v => v === 1).length
-                }
-                apply_twos(dice: number[]) {
-                    this.twos = dice.filter(v => v === 2).length * 2
-                }
-                apply_threes(dice: number[]) {
-                    this.threes = dice.filter(v => v === 3).length * 3
-                }
-                apply_fours(dice: number[]) {
-                    this.fours = dice.filter(v => v === 4).length * 4
-                }
-                apply_fives(dice: number[]) {
-                    this.fives = dice.filter(v => v === 5).length * 5
-                }
-                apply_sixes(dice: number[]) {
-                    this.sixes = dice.filter(v => v === 6).length * 6
                 }
                 apply_three_of_a_kind(dice: number[]) {
 
@@ -592,6 +583,9 @@ export default function*(): Generator<[string, CommandV2]> {
                     if (this.yahtzee.length === 0) {
                         return false
                     }
+                    if(this.nrs_applied.indexOf(0) !== -1){
+                        return false
+                    }
                     for (let item in this) {
                         let value = this[item]
                         if (value === undefined || (value && typeof value === 'object' && "length" in value && value.length === 0)) {
@@ -601,16 +595,24 @@ export default function*(): Generator<[string, CommandV2]> {
                     return true
                 }
                 score() {
-                    return Object.values(this).reduce((p, c) => {
-                        let final = p
-                        if (c?.length) {
-                            final += c.reduce((p: number, c: number) => p + c, 0)
+                    let total = this.nrs.map((v, i) => v * (i + 1)).reduce((p, c) => p + c, 0)
+                    for (let category of [
+                        this.three_of_a_kind,
+                        this.small_straight,
+                        this.large_straight,
+                        this.four_of_a_kind,
+                        this.yahtzee,
+                        this.chance,
+                        this.full_house
+                    ]){
+                        if(typeof category === 'number'){
+                            total += category
                         }
-                        else {
-                            final += c ?? 0
+                        else if(category){
+                            total += category.reduce((p: number, c: number) => p + c, 0)
                         }
-                        return final
-                    }, 0)
+                    }
+                    return total
                 }
                 async go(id: string, rollCount: number, diceRolls: number[]): Promise<any> {
                     this.score()
@@ -673,6 +675,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 toString() {
                     let st = ``
                     for (let kv of Object.entries(this)) {
+                        if(kv[0] === 'nrs_applied'){
+                            continue
+                        }
                         st += `**${kv[0]}**: ${kv[1] ?? "-"}\n`
                     }
                     return st
@@ -680,18 +685,12 @@ export default function*(): Generator<[string, CommandV2]> {
             }
 
             const aliases = {
-                "5": "fives",
-                "five": "fives",
-                "4": "fours",
-                "four": "fours",
-                "3": "threes",
-                "three": "threes",
-                "2": "twos",
-                "two": "twos",
-                "1": "ones",
-                "one": "ones",
-                "6": "sixes",
-                "six": "sixes",
+                "five": "5",
+                "four": "4",
+                "three": "3",
+                "two": "2",
+                "one": "1",
+                "six": "6",
                 "fh": "full house",
                 "sm": "small straight",
                 "ss": "small straight",
@@ -2469,7 +2468,7 @@ until you put a 0 in the box`)
             }
         })
     ]
-    
+
     yield [
         "hangman", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
