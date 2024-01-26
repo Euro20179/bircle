@@ -1,5 +1,5 @@
 import common from '../common'
-import { cmd, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from '../common_to_commands'
+import { cmd, createHelpArgument, createMatchCommand, crv, Interpreter, lastCommand, StatusCode } from '../common_to_commands'
 import { Parser } from '../parsing'
 import { fetchUserFromClient, getContentFromResult, isMsgChannel } from '../util'
 
@@ -8,6 +8,10 @@ import vars from '../vars'
 import { DMChannel, Message } from 'discord.js'
 
 import {PREFIX} from '../globals'
+
+import cmds from '../command-parser/cmds'
+
+const handleSending = cmds.handleSending
 
 export default function*() {
     yield [createMatchCommand(async ({ msg, match }) => {

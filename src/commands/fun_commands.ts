@@ -22,8 +22,6 @@ import {
     Embed,
     CacheType,
     ButtonInteraction,
-    TextInputBuilder,
-    TextInputStyle
 } from 'discord.js';
 
 import fetch = require('node-fetch')
@@ -75,7 +73,6 @@ import common_to_commands, {
     crv,
     generateDefaultRecurseBans,
     getCommands,
-    handleSending,
     PagedEmbed,
     promptUser,
     purgeSnipe,
@@ -95,7 +92,9 @@ import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
-import cmds, { SymbolTable } from '../command-parser/cmds';
+import cmds from '../command-parser/cmds';
+
+const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
@@ -590,7 +589,7 @@ export default function*(): Generator<[string, CommandV2]> {
             content: argList.slice(1).join(" ") + `\n${signature}`
                 || `${msg.member?.displayName || msg.author.username} says hi`,
             status: StatusCode.RETURN
-        }, user.send.bind(user.dmChannel), recursionCount)
+        }, user.send.bind(user.dmChannel))
         return { content: "Message sent", status: StatusCode.RETURN, delete: true }
     }, "Mail a user who has the enable-mail option set to true", {
         helpArguments: {

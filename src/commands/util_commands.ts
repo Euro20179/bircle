@@ -15,7 +15,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
+import common_to_commands, { StatusCode, lastCommand,  CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -29,6 +29,10 @@ import amountParser from '../amount-parser'
 
 import translate from '@iamtraction/google-translate'
 import { attach } from 'neovim'
+
+import cmds from '../command-parser/cmds'
+
+const handleSending = cmds.handleSending
 
 const langs = {
     auto: 'Automatic',

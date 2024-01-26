@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, clearSnipes, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
+import { aliasesV2, AliasV2, ccmdV2, clearSnipes, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
 import globals = require('../globals')
 import user_options = require('../user-options')
 import API = require('../api')
@@ -22,6 +22,8 @@ import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'
 import lexer from '../command-parser/lexer'
+
+const handleSending = cmds.handleSending
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {

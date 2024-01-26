@@ -8,7 +8,7 @@ import timer from '../timer'
 import vars from '../vars'
 
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, PagedEmbed, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, PagedEmbed, StatusCode } from '../common_to_commands'
 import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, fetchUserFromClientOrGuild, entriesOf, ArgList } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
@@ -17,6 +17,9 @@ import { DEVBOT, PREFIX } from '../globals'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
 import { buyItem, hasItem, useItem, getInventory, getItems } from '../shop'
+
+import cmds from '../command-parser/cmds'
+const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 

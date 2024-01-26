@@ -48,7 +48,7 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     }
     catch (err) {
         console.error(err)
-        await command_commons.handleSending(
+        await cmds.handleSending(
             msg, command_commons.crv(
                 `Command failure: **${cmd}**
 \`\`\`${command_commons.censor_error(err as Error)}\`\`\``,
@@ -192,7 +192,7 @@ async function handleEarnings(m: Message) {
                 "puffle-find",
                 "{user}'s {name} found: {stuff}"
             )
-            await command_commons.handleSending(m, {
+            await cmds.handleSending(m, {
                 content: format(findMessage, {
                     user: `<@${m.author.id}>`,
                     name: pet.hasPet(m.author.id, ap)?.name,
@@ -245,7 +245,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     if (!HEADLESS && m.content === `<@${common.client.user?.id}>`) {
-        await command_commons.handleSending(m, {
+        await cmds.handleSending(m, {
             content: `The prefix is: ${local_prefix}`,
             status: 0
         })

@@ -1,9 +1,12 @@
-import { Message, GuildMember, EmbedBuilder, CollectorFilter, ColorResolvable, ChannelType } from 'discord.js'
+import { Message, GuildMember, EmbedBuilder, CollectorFilter, ColorResolvable } from 'discord.js'
 
 import vars from './vars'
 
-import { cmd, handleSending, Interpreter, StatusCode } from "./common_to_commands"
+import { cmd, StatusCode } from "./common_to_commands"
+import cmds from './command-parser/cmds'
 import { efd, isMsgChannel, sleep } from './util'
+
+const handleSending = cmds.handleSending
 
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder | CommandReturn
 type errType = { content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?: boolean }
@@ -1180,7 +1183,6 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 code.push(args[i])
             }
             let loopCount = 0
-            let id = Math.floor(Math.random() * 100000000)
             forever: while (true) {
                 loopCount++
                 for (let i = 0; i < code.length; i++) {
@@ -1289,7 +1291,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 stack.push(value)
             }
             else if (stack[stack.length - 1] == "%sram") {
-                let sram = stack.pop()
+                stack.pop()
                 let item = stack.pop()
                 ram[arg as string] = item ?? 0
             }

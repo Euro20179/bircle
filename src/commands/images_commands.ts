@@ -5,11 +5,14 @@ import fetch = require('node-fetch')
 
 import { Stream } from 'stream'
 
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile,  StatusCode } from '../common_to_commands'
 import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import sharp from 'sharp'
-let canvas;
+import cmds from '../command-parser/cmds'
+const handleSending = cmds.handleSending
+
+let canvas: any;
 // let canvas: typeof import('canvas')
 // (async() => {
 //     if(!process.argv0.includes("bun"))
@@ -46,7 +49,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 return { content: "Image 2 is too large", status: StatusCode.ERR }
             }
 
-            let diffData = data1.data.map((v, idx) => {
+            let diffData = data1.data.map((v: any, idx: any) => {
                 let mod = idx % 4 == 3 ? 1 : 0
                 return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod ^ 1))
             })
@@ -130,7 +133,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let ctx = canv.getContext("2d")
             ctx.drawImage(image, 0, 0)
             let rgba_cycle = cycle<string>(["red", "green", "blue", "alpha"])
-            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
+            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v: any, idx: any) => {
                 let cur_channel = rgba_cycle.next().value as string
                 if (idx % 4 === 3)
                     return v
@@ -184,7 +187,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let ctx = canv.getContext("2d")
             ctx.drawImage(image, 0, 0)
             let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
-            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
+            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v: any, idx: any) => {
                 let cur_channel = rgba_cycle.next().value
                 if (idx % 4 === 3 && !channel.includes("alpha"))
                     return v

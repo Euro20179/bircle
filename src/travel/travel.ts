@@ -1,8 +1,8 @@
 import fs from 'fs'
 
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
-import { crv, generateDefaultRecurseBans, handleSending, promptUser, StatusCode } from "../common_to_commands"
-import { choice, isBetween, range, sleep } from "../util"
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, ComponentType, Message } from "discord.js"
+import { crv, generateDefaultRecurseBans, promptUser, StatusCode } from "../common_to_commands"
+import { choice, isBetween, sleep } from "../util"
 
 import pets from "../pets"
 import economy from "../economy"
@@ -15,6 +15,9 @@ import vars from '../vars'
 import { giveItem, hasItem, useItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
 import amountParser from '../amount-parser'
+
+import cmds from '../command-parser/cmds'
+const handleSending = cmds.handleSending
 
 class Activity {
     cost: string
@@ -204,7 +207,7 @@ class Russia extends Country {
         return crv("It was very cold and you almost froze to death")
     }
 
-    async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
+    async go({ }: CommandV2RunArg): Promise<CommandReturn> {
         if (Math.random() > .999) {
             let econ = economy.getEconomy()
             let moneySum = 0
@@ -512,7 +515,7 @@ class Iraq extends Country {
     init() {
         this.registerActivity("oil raid", "10", this.oilRaid.bind(this))
     }
-    async oilRaid(data: CommandV2RunArg) {
+    async oilRaid(_data: CommandV2RunArg) {
         if (Math.random() < .9) {
             return crv("The iraqi military comes and repurposes your skin -5 points")
         }

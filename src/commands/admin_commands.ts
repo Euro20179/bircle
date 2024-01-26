@@ -1,14 +1,14 @@
 import fs from 'fs'
 import vars from '../vars'
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require('../user-options')
 import pet from '../pets'
 import timer from '../timer'
-import { getItems, giveItem, saveItems } from '../shop'
+import { giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'
-import { Message, User } from 'discord.js'
+import { User } from 'discord.js'
 import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
 import achievements from '../achievements'
 import { server } from '../../website/server'
@@ -16,6 +16,9 @@ import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '..
 import amountParser from '../amount-parser'
 import { saveConfig, ADMINS, editConfig } from '../globals'
 import runner from '../command-parser/runner'
+
+import cmds from '../command-parser/cmds'
+const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 

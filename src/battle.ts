@@ -9,8 +9,12 @@ import fs = require("fs")
 import { getOpts } from './parsing'
 
 import economy from './economy'
-import { StatusCode, crv, handleSending } from './common_to_commands'
+import { StatusCode, crv } from './common_to_commands'
+import cmds from './command-parser/cmds'
+
 import { efd, isMsgChannel } from './util'
+
+const handleSending = cmds.handleSending
 
 let BATTLEGAME: boolean = false;
 
@@ -33,7 +37,7 @@ export type BattleResponses = {
 }
 
 function replacePlaceholdersInBattleResponse(response: string, players: string[]) {
-    return response.replaceAll(/\{user(\d+|all)\}/g, (v, pn) => {
+    return response.replaceAll(/\{user(\d+|all)\}/g, (_v, pn) => {
         if (pn === 'all') {
             let text = ""
             for (let player of players) {
@@ -259,7 +263,6 @@ function pickBattleResponse(responses: BattleResponses): [
     keyof BattleResponses,
     BattleResponse | undefined
 ] {
-    let r = Math.random()
     let types = Object.keys(responses)
     let t: keyof BattleResponses = types[
         Math.floor(Math.random() * types.length)
@@ -483,7 +486,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         }),
         "anger euro": new Item({
             numberCost: 3,
-            async onUse(m, e) {
+            async onUse(_m, _e) {
                 if (!isMsgChannel(msg.channel)) return false
                 await msg.channel.send("STOPPING")
                 return false
@@ -888,7 +891,7 @@ async function battle(msg: Message, args: ArgumentList) {
     }
     if (winningType == 'dist')
         winningType = 'distribute'
-    let nBet = economy.calculateAmountFromString(msg.author.id, bet, { min: (t, a) => t * 0.002 })
+    let nBet = economy.calculateAmountFromString(msg.author.id, bet, { min: (t, _a) => t * 0.002 })
 
     if (!nBet || !economy.canBetAmount(msg.author.id, nBet) || nBet < 0) {
         return { content: "Not a valid bet", status: StatusCode.ERR }
@@ -910,7 +913,7 @@ async function battle(msg: Message, args: ArgumentList) {
         if (!isMsgChannel(msg.channel)) return
         if (players[m.author.id]) return
         let bet = m.content.split(" ")[1]
-        let nBet = economy.calculateAmountFromString(m.author.id, bet, { min: (t, a) => t * 0.002 })
+        let nBet = economy.calculateAmountFromString(m.author.id, bet, { min: (t, _a) => t * 0.002 })
         if (!nBet || !economy.canBetAmount(m.author.id, nBet) || nBet < 0) {
             await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
             return
@@ -929,7 +932,7 @@ async function battle(msg: Message, args: ArgumentList) {
         }
         await msg.channel.send(`${m.author} has joined the battle with a $${nBet} bet`)
     })
-    collector.on("end", async (collection, reason) => {
+    collector.on("end", async (_collection, _reason) => {
         let playerCount = Object.keys(players).length
         if (playerCount < 2) {
             if (!isMsgChannel(msg.channel)) return

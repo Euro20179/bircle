@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
-import { handleSending, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
+import { StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
 
 import globals = require('../globals')
 import economy from '../economy'
@@ -23,7 +23,12 @@ import connect4, { Board } from '../connect4'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
 
-const { useItem, hasItem } = require("../shop")
+import cmds from '../command-parser/cmds'
+
+import shop from '../shop'
+
+const handleSending = cmds.handleSending
+
 
 export default function*(): Generator<[string, CommandV2]> {
     yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
@@ -1701,8 +1706,8 @@ until you put a 0 in the box`)
 
             let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
 
-            if (hasItem(msg.author.id, "conspiracy")) {
-                useItem(msg.author.id, "conspiracy")
+            if (shop.hasItem(msg.author.id, "conspiracy")) {
+                shop.useItem(msg.author.id, "conspiracy")
                 economy.addMoney(msg.author.id, bet * 3)
                 delete globals.BLACKJACK_GAMES[msg.author.id]
                 return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
@@ -1851,7 +1856,7 @@ until you put a 0 in the box`)
 
                 let turnOptions = ["hit", "stand", "double bet"]
 
-                if (hasItem(msg.author.id, "reset")) {
+                if (shop.hasItem(msg.author.id, "reset")) {
                     embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                     turnOptions.push("reset")
                 }
@@ -1893,9 +1898,9 @@ until you put a 0 in the box`)
                     giveRandomCard(cards, playersCards)
                 }
 
-                if (choice === 'reset' && hasItem(msg.author.id, "reset") && !usedReset) {
+                if (choice === 'reset' && shop.hasItem(msg.author.id, "reset") && !usedReset) {
 
-                    useItem(msg.author.id, "reset")
+                    shop.useItem(msg.author.id, "reset")
 
                     cards = []
                     for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
