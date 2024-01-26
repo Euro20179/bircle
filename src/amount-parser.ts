@@ -335,7 +335,9 @@ class Lexer {
     }
 }
 
-type EnvironBase = Record<string, ((total: number, k: string) => number) | number | string | Type<TT>>
+type EnvironBase = Record<
+    string, ((total: number, k: string) => number) | number | string | Type<TT>
+>
 
 class SymbolTable extends Map {
     parent?: SymbolTable
@@ -868,7 +870,9 @@ ${'\t'.repeat(indent)})`
 class VariableBinOpAssignNode extends Node {
     constructor(
         public name: Token<TT.ident>,
-        public op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>,
+        public op: Token<
+            TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq
+        >,
         public value: Node
     ) {
         super()
@@ -1163,7 +1167,23 @@ ${'\t'.repeat(indent)})`
 }
 
 class BinOpNode extends Node {
-    constructor(public left: Node, public operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>, public right: Node) {
+    constructor(
+        public left: Node,
+        public operator: Token<
+              TT.mul 
+			| TT.div 
+			| TT.plus 
+			| TT.minus 
+			| TT.pow 
+			| TT.root 
+			| TT.le 
+			| TT.ge 
+			| TT.lt 
+			| TT.gt 
+			| TT.eq
+        >,
+        public right: Node
+    ) {
         super()
     }
     visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {

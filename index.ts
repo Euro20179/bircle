@@ -50,7 +50,8 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         console.error(err)
         await command_commons.handleSending(
             msg, command_commons.crv(
-                `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\``,
+                `Command failure: **${cmd}**
+\`\`\`${command_commons.censor_error(err as Error)}\`\`\``,
                 { status: StatusCode.ERR }
             )
         )
@@ -294,6 +295,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
                 await cmds.handleSending(m, result)
             }
         }
+
         else if (content.startsWith(`L${local_prefix}`)) {
             let c = m.content.slice(local_prefix.length + 1)
             await command_commons.handleSending(m, (await execCommand(m, c)).rv)

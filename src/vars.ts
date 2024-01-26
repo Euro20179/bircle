@@ -79,11 +79,11 @@ let defaultVars: Record<string, Variable<"function" | "number">> = {
     carson: new Variable("function", () => "The all legendary Carson Williams"),
     money: new Variable(
         "function",
-        msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))
+        msg => String(msg.author.economyData.money)
     ),
     "$": new Variable(
         "function",
-        msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))
+        msg => String(msg.author.economyData.money)
     ),
     "__global_currency_sign": new Variable("function", () => common.GLOBAL_CURRENCY_SIGN),
     _: new Variable('function', msg => getVar(msg, "_!", msg.author.id))

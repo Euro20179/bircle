@@ -112,9 +112,11 @@ async function* handlePipe(
 ): AsyncGenerator<CommandReturn> {
     if (stdin) {
         symbols.set("stdin:%", stdin.content ?? "")
+        symbols.set("stdin:status", stdin.status)
     }
     else {
         symbols.delete("stdin:%")
+        symbols.delete("stdin:status")
     }
 
     let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg, runtime_opts)
@@ -275,6 +277,7 @@ async function* runcmd({
     runtime_opts,
     pid_label
 }: RunCmdOptions): AsyncGenerator<CommandReturn> {
+    console.log(`Running cmd: ${command} ${new Date()}`)
     console.assert(pid_label !== undefined, "Pid label is undefined")
 
     runtime_opts ??= new RuntimeOptions()
@@ -306,7 +309,6 @@ async function* runcmd({
     let line_no = 1
     let generator = lex.gen_tokens()
     do {
-        console.log(`lexing: ${line_no} ${new Date()}`)
         let tokens = []
         let cur_tok
         while (!((cur_tok = generator.next()).value instanceof lexer.TTSemi) && cur_tok.value) {
