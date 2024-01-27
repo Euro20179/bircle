@@ -1,10 +1,9 @@
 import fs from 'fs'
-
 import { User } from "discord.js";
 
 import { Client, GatewayIntentBits } from "discord.js"
 
-const VERSION = { major: 9, minor: 0, bug: 11, part: "", beta: false, alpha: false }
+const VERSION = { major: 9, minor: 0, bug: 12, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
