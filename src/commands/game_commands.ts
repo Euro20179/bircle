@@ -623,6 +623,9 @@ export default function*(): Generator<[string, CommandV2]> {
                         if (m.author.id !== id) {
                             return false
                         }
+                        if(m.content.toUpperCase() === "STOP"){
+                            return true
+                        }
                         let choiceArgs = m.content.split(/\s+/)
 
                         if (!(options.includes(choiceArgs[0].toLowerCase()) || Object.keys(aliases).includes(choiceArgs[0].toLowerCase()))) {
@@ -649,6 +652,10 @@ export default function*(): Generator<[string, CommandV2]> {
 
                     if (!choiceMessage) {
                         return { noSend: true, status: StatusCode.RETURN }
+                    }
+
+                    if(choiceMessage.content.toLowerCase() === 'stop'){
+                        return false
                     }
 
                     let choiceArgs = choiceMessage.content.split(/\s+/)
@@ -727,7 +734,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let bets: { [key: string]: number } = {}
             users[msg.author.id] = new ScoreSheet()
             if (mode === "single") {
-                let bet = Number(args[1])
+                let bet = economy.calculateAmountFromString(msg.author.id, args[1], { min: total => total * 0.001 })
                 if (!bet || bet < 0) {
                     return { content: "No bet", status: StatusCode.ERR }
                 }
@@ -813,8 +820,9 @@ export default function*(): Generator<[string, CommandV2]> {
                     diceRolls.push(Math.floor(Math.random() * (7 - 1) + 1))
                 }
 
-                await users[going].go(going, 1, diceRolls)
-
+                if(!(await users[going].go(going, 1, diceRolls))){
+                    return crv("Stopped early")
+                }
 
                 users[going]
                 turnNo++;

@@ -22,6 +22,41 @@ export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
 
+//these pair of functions exist because using a for loop on a generator that *returns* a value
+//doesn't use the return value from the return statement and breaks before the loop can do
+//something with the return value
+//example:
+//```javascript
+//function* yield_and_return(){
+//  yield 1
+//  yield 2
+//  return 3
+//}
+//
+//for(let item of yield_and_return()){
+//  console.log(item)
+//}
+////this will not console.log 3, it breaks as soon as it hits return
+//```
+
+function* iterGenerator<T>(generator: Generator<T>){
+    let prev;
+    do {
+        prev = generator.next()
+        //in case there is a stray return; that doesn't return anything
+        if(prev.value !== undefined)
+            yield prev.value
+    } while(!prev.done)
+}
+async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>){
+    let prev;
+    do {
+        prev = await generator.next()
+        //in case there is a stray return; that doesn't return anything
+        if(prev.value !== undefined)
+            yield prev.value
+    } while(!prev.done)
+}
 
 function romanToBase10(roman: string) {
     const to10 = {
@@ -1248,5 +1283,7 @@ export {
     countOf,
     prettyJSON,
     escapeRegex,
+    iterGenerator,
+    iterAsyncGenerator
 }
 

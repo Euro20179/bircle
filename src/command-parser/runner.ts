@@ -3,7 +3,7 @@ import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
 import { AliasV2, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
 import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import { TT } from './lexer'
-import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary } from "../util";
+import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary, iterAsyncGenerator } from "../util";
 
 import user_options from "../user-options"
 import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
@@ -56,9 +56,9 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
     let runObj = cmdObject.run.bind([cmd, cmdObject])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
     let l: CommandReturn[] = []
     try {
-        for await (let item of runObj) {
-            yield item
-        }
+
+        yield* iterAsyncGenerator(runObj)
+
         if (cmdObject.use_result_cache) {
             CMD_CACHE.set(raw_args.join(" "), l)
         }

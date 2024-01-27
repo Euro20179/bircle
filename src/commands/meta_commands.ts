@@ -1753,7 +1753,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "stop", ccmdV2(async function*({ args }) {
+        "stop", ccmdV2(async function*({ args, pid_label }) {
             if (args.length) {
                 for (let pid of args) {
                     if (globals.PROCESS_MANAGER.killproc(pid))
@@ -1761,9 +1761,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }
             }
             for (let pid of globals.PROCESS_MANAGER.getprocids()) {
+                //dont kill itself
+                if(globals.PROCESS_MANAGER.getproclabel(pid) === pid_label){
+                    continue
+                }
                 globals.PROCESS_MANAGER.killproc(pid)
             }
-            yield crv("stopping all")
+            return crv("stopping all")
         }, "Stop all spams, and running commands")
     ]
 

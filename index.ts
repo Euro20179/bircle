@@ -393,4 +393,3 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
 })
 
 common.client.login(globals.getConfigValue("secrets.token"))
-
