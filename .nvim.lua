@@ -10,6 +10,7 @@ function BircleUpdate()
         local line_of_code = "const VERSION = { major: " .. major .. ", minor: " .. minor .. ", bug: " .. bug .. ", part: \"" .. extra .. "\", beta: false, alpha: false }"
         vim.cmd[[:edit src/common.ts]]
         vim.cmd("g/^const VERSION.*/norm cc" .. line_of_code)
+        vim.cmd[[:w]]
         vim.system({"./make-changelog", input})
     end)
 end
