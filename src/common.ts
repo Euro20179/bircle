@@ -3,7 +3,7 @@ import { User } from "discord.js";
 
 import { Client, GatewayIntentBits } from "discord.js"
 
-const VERSION = { major: 9, minor: 0, bug: 12, part: "", beta: false, alpha: false }
+const VERSION = { major: 9, minor: 0, bug: 13, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
