@@ -1248,7 +1248,8 @@ class FunctionNode extends Node {
             'setrel': 1,
             sin: 1,
             cos: 1,
-            number: 1
+            number: 1,
+            signof: 1
         }
         if (this.name in argCount && values.length < argCount[this.name as keyof typeof argCount]) {
             throw new FunctionError(`${this.name} expects ${argCount[this.name as keyof typeof argCount]} items, but got ${values.length}`)
@@ -1257,6 +1258,10 @@ class FunctionNode extends Node {
             case 'eval': return createTypeFromJSType(
                 runRelativeCalculator(program.relativeTo, values[0].access())
             )
+            case 'signof': {
+                let val = values[0].access()
+                return new NumberType(val < 0 ? -1 : 1)
+            }
             case 'min': return new NumberType(min(values.map(v => v.access())) as number)
             case 'max': return new NumberType(max(values.map(v => v.access())) as number)
             case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
