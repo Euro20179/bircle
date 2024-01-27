@@ -460,16 +460,16 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
 
                 is_applied(type: string) {
-                    let nr = Number(type)
-                    if (!isNaN(nr)) {
-                        return this.nrs_applied[nr - 1] === 1
-                    }
                     let val = Reflect.get(this, type.replaceAll(" ", "_")) as unknown
                     if (typeof val !== 'object' || val === null) return val !== undefined
                     if (!new_rules && type !== "yahtzee" && "length" in val) {
                         if (val?.length) {
                             return true
                         }
+                    }
+                    let nr = Number(type)
+                    if (!isNaN(nr)) {
+                        return this.nrs_applied[nr - 1] === 1
                     }
                     if (Array.isArray(val) && (val?.length && !val?.includes(0) || val?.length === 0)) {
                         return false
