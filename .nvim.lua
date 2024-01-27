@@ -12,6 +12,7 @@ function BircleUpdate()
         vim.cmd("g/^const VERSION.*/norm cc" .. line_of_code)
         vim.cmd[[:w]]
         vim.system({"./make-changelog", input})
+        vim.cmd.term("git push origin main")
     end)
 end
 
