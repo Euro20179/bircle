@@ -1,7 +1,5 @@
 ///<reference path="src/types.d.ts" />
-import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js'
-
-import cmds from './src/command-parser/cmds'
+import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js' import cmds from './src/command-parser/cmds'
 
 import { REST } from '@discordjs/rest'
 
@@ -237,20 +235,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
 
     let local_prefix = m.author.getBOpt("prefix", globals.PREFIX)
 
-    if (!HEADLESS
-        && !m.author.bot
-        && (m.mentions.members?.size || 0) > 0
-        && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
-        handlePingResponse(m)
-    }
-
-    if (!HEADLESS && m.content === `<@${common.client.user?.id}>`) {
-        await cmds.handleSending(m, {
-            content: `The prefix is: ${local_prefix}`,
-            status: 0
-        })
-    }
-
     let content = m.content
 
     if (!m.author.bot) {
@@ -260,13 +244,25 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
     }
 
-
     if (timer.has_x_s_passed(m.author.id, "%can-earn", 60) && !m.author.bot) {
         handleEarnings(m)
     }
 
-    if (HEADLESS) {
+    if(HEADLESS) {
         return
+    }
+
+    if (!m.author.bot
+        && (m.mentions.members?.size || 0) > 0
+        && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
+        handlePingResponse(m)
+    }
+
+    if (m.content === `<@${common.client.user?.id}>`) {
+        await cmds.handleSending(m, {
+            content: `The prefix is: ${local_prefix}`,
+            status: 0
+        })
     }
 
     let att = m.attachments.at(0)
