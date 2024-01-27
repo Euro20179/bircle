@@ -677,7 +677,8 @@ export default function*(): Generator<[string, CommandV2]> {
                         }
                         return await this.go(id, rollCount + 1, diceRolls)
                     }
-                    return this.apply(choice, diceRolls)
+                    this.apply(choice, diceRolls)
+                    return true
                 }
                 toString() {
                     let st = ``
