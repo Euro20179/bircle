@@ -136,27 +136,28 @@ async function handlePingResponse(m: Message) {
     for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
         let member = m.mentions.members?.at(i)
         let pingresponse = user_options.getOpt(member?.user.id as string, "pingresponse", null)
-        if (pingresponse) {
-            pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-            let old_id = m.author.id
-            m.author.id = member!.user.id
-            const gPrefix = globals.PREFIX;
-            if (common_to_commands.isCmd(pingresponse, gPrefix)) {
-
-                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: pingresponse, prefix: gPrefix, msg: m },
-                    `${pingresponse} - ${m.author.id}`,
-                )) {
-                    await cmds.handleSending(m, result)
-                }
-            }
-            else {
-                m.channel.send(pingresponse)
-            }
-            m.author.id = old_id
+        if (!pingresponse) {
+            continue
         }
+        pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
+        let old_id = m.author.id
+        m.author.id = member!.user.id
+        const gPrefix = globals.PREFIX;
+        if (common_to_commands.isCmd(pingresponse, gPrefix)) {
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                { command: pingresponse, prefix: gPrefix, msg: m },
+                `${pingresponse} - ${m.author.id}`,
+            )) {
+                await cmds.handleSending(m, result)
+            }
+        }
+        else {
+            m.channel.send(pingresponse)
+        }
+        m.author.id = old_id
     }
 }
+
 async function handleEarnings(m: Message) {
     let deaths = pet.damageUserPetsRandomly(m.author.id)
     if (deaths.length)
@@ -249,7 +250,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         handleEarnings(m)
     }
 
-    if(HEADLESS) {
+    if (HEADLESS) {
         return
     }
 
