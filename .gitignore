@@ -70,6 +70,7 @@ log.txt
 
 make-changelog
 *.js
+*.js.map
 *.map
 docs
 
@@ -85,6 +86,7 @@ garbage-files/*
 TODO
 history
 yarn.lock
+bun.lockb
 CONFIG.json
 economy-old.json
 
