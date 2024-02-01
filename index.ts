@@ -161,14 +161,10 @@ async function handlePingResponse(m: Message) {
 function handleMinuteInterest(activePet: string | false, m: Message) {
     let percent = economy.calculateBaseInterest({
         puffle_chat_count: Number(hasItem(m.author.id, "puffle chat")),
-        has_capitalism_hat: hasItem(m.author.id, "capitalism hat") ? true : false
+        has_capitalism_hat: hasItem(m.author.id, "capitalism hat") ? true : false,
+        has_cat: activePet === 'cat'
     })
-    if (activePet === 'cat') {
-        pet.PETACTIONS['cat'](percent)
-    }
-    else {
-        economy.earnMoney(m.author.id, percent)
-    }
+    economy.earnMoney(m.author.id, percent)
 }
 
 async function handleEarnings(m: Message) {

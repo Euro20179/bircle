@@ -104,18 +104,11 @@ export const APICmds: {
     },
     percentPerMinute: {
         exec: async ({ id }: { id: string }) => {
-            let base_amount = 1.001
-            if (pet.getActivePet(id) === "cat") {
-                base_amount += 0.001
-            }
-            if (shop.hasItem(id, 'capitalism hat')) {
-                base_amount += 0.002
-            }
-            let puffle_chat = shop.hasItem(id, "puffle chat")
-            if (puffle_chat) {
-                base_amount += .0001 * puffle_chat
-            }
-            return String(base_amount)
+            return economy.calculateBaseInterest({
+                has_cat: pet.getActivePet(id) === 'cat',
+                has_capitalism_hat: shop.hasItem(id, 'capitalism hat') ? true : false,
+                puffle_chat_count: Number(shop.hasItem(id, "puffle chat"))
+            })
         },
         requirements: ["id"]
     },

@@ -21,13 +21,17 @@ function isRetired(id: string) {
 
 type BaseInterestOptions  = {
     puffle_chat_count?: number,
-    has_capitalism_hat?: boolean
+    has_capitalism_hat?: boolean,
+    has_cat?: boolean
 }
 
 function calculateBaseInterest(options: BaseInterestOptions){
     let percent = 1.001 + (0.0001 * (options.puffle_chat_count || 0))
     if(options.has_capitalism_hat){
         percent += 0.002
+    }
+    if(options.has_cat){
+        percent += 0.001
     }
     return percent
 }

@@ -8,7 +8,7 @@ import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary, iterAs
 import user_options from "../user-options"
 import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
-import { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
+import globals, { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
 
 import events from './events'
 
@@ -116,9 +116,9 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         cmdObject = commands.get(cmd) || getAliasesV2()[cmd]
     }
 
-    if(cmdObject && "permCheck"in cmdObject && cmdObject.permCheck !== undefined && !cmdObject.permCheck(msg)){
+    if (cmdObject && "permCheck" in cmdObject && cmdObject.permCheck !== undefined && !cmdObject.permCheck(msg)) {
         yield { content: "You failed the permissions check for this command", status: StatusCode.ERR }
-            return
+        return
     }
 
     let disabled = runtime_options.get("disable", false)

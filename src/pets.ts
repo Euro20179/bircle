@@ -12,9 +12,6 @@ let PETSHOP: PetData = {}
 let PETINVENTORY: { [id: string]: UserPetData } = {}
 
 let PETACTIONS: { [key: string]: Function } = {
-    cat: (id: string, percent: number) => {
-        economy.earnMoney(id, percent + 0.001)
-    },
     puffle: async (m: Message) => {
         let stuff: { money: number, items: string[] } = { money: 0, items: [] }
         if (Math.random() <= .02) { // 1% chance
