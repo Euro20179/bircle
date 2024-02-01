@@ -19,21 +19,42 @@ function isRetired(id: string) {
     return ECONOMY[id]?.retired
 }
 
-type BaseInterestOptions  = {
+type BaseInterestOptions = {
     puffle_chat_count?: number,
     has_capitalism_hat?: boolean,
     has_cat?: boolean
 }
 
-function calculateBaseInterest(options: BaseInterestOptions){
+function calculateBaseInterest(options: BaseInterestOptions) {
     let percent = 1.001 + (0.0001 * (options.puffle_chat_count || 0))
-    if(options.has_capitalism_hat){
+    if (options.has_capitalism_hat) {
         percent += 0.002
     }
-    if(options.has_cat){
+    if (options.has_cat) {
         percent += 0.001
     }
     return percent
+}
+
+type CalculateTaxPercentOptions = {
+    max: number,
+    taxPercent?: number | false
+    taxerIsRetired?: boolean,
+    hasTiger?: boolean
+}
+function calculateTaxPercent(id: string, { max, taxPercent, taxerIsRetired, hasTiger }: CalculateTaxPercentOptions) {
+    let total = playerEconomyLooseTotal(id)
+    taxerIsRetired ??= false
+    if (taxPercent ?? false === false) {
+        if (taxerIsRetired) {
+            taxPercent = randInt(0.01, 0.02)
+        } else taxPercent = randInt(0.001, 0.008)
+    }
+    if (hasTiger) {
+        taxPercent = randInt(-0.003, 0.006)
+    }
+    let amountTaxed = Math.min(total * (taxPercent || 0.001), max)
+    return amountTaxed
 }
 
 function setUserStockSymbol(id: string, data: { name: string, info: Stock }) {
@@ -207,18 +228,12 @@ function randInt(min: number, max: number) {
 
 function taxPlayer(id: string, max: number, taxPercent: number | boolean = false, taxerIsRetired = false) {
     timer.restartTimer(id, "%last-taxed")
-    let total = playerEconomyLooseTotal(id)
-    if (taxPercent === false) {
-        if (taxerIsRetired)
-            taxPercent = randInt(0.01, 0.02)
-        else taxPercent = randInt(0.001, 0.008)
-    }
-    if (pet.getActivePet(id) == 'tiger') {
-        taxPercent = pet.PETACTIONS['tiger']()
-    }
-    let amountTaxed = total * <number>taxPercent
-    if (amountTaxed > max)
-        amountTaxed = max
+    let amountTaxed = calculateTaxPercent(id, {
+        max,
+        taxPercent: taxPercent as number | false,
+        taxerIsRetired,
+        hasTiger: pet.getActivePet(id) === 'tiger'
+    })
     ECONOMY[id].money -= amountTaxed
     return { amount: amountTaxed, percent: taxPercent as number }
 }
@@ -252,11 +267,11 @@ function economyLooseGrandTotal(countNegative = true) {
         loanTotal = 0
     for (const [player, data] of Object.entries(ECONOMY)) {
         let nw = playerLooseNetWorth(player)
-        if(nw < 0 && !countNegative) continue;
+        if (nw < 0 && !countNegative) continue;
 
         moneyTotal += data.money
 
-        if(data.stocks) {
+        if (data.stocks) {
             for (const stockData of valuesOf(data.stocks))
                 stockTotal += stockData.shares * stockData.buyPrice
         }
@@ -303,7 +318,7 @@ function canBetAmount(id: string, amount: number) {
 }
 
 function setMoney(id: string, amount: number) {
-    if(!ECONOMY[id]) {
+    if (!ECONOMY[id]) {
         createPlayer(id)
     }
     ECONOMY[id].money = amount
@@ -532,6 +547,7 @@ export default {
     isRetired,
     retirePlayer,
     randInt,
-    calculateBaseInterest
+    calculateBaseInterest,
+    calculateTaxPercent
     // tradeItems
 }
