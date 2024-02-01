@@ -42,9 +42,10 @@ type RuntimeOption =
     | "verbose"
     | "no-run"
     | "disable"
-    | "no-send" //this is similar to silent, but instead of yielding { noSend: true, status: 0 }
+    | "no-send"//this is similar to silent, but instead of yielding { noSend: true, status: 0 }
                 //it just adds noSend: true to whatever object it got
-type RuntimeOptionValue = {
+
+    type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
     skip: boolean,
@@ -59,7 +60,7 @@ type RuntimeOptionValue = {
     ["program-args"]: string[]
     ["no-run"]: boolean,
     disable: { categories?: CommandCategory[], commands?: string[] } | false
-    "no-send": boolean
+    "no-send": boolean,
 }
 
 export class RuntimeOptions {

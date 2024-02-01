@@ -2492,8 +2492,8 @@ The order these are given does not matter, excpet for field, which will be added
 
     yield ["qalc", createCommandV2(async ({ msg, args: argList, opts, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-        if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.IN_QALC.includes(msg.author.id)) {
-            globals.IN_QALC.push(msg.author.id)
+        if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.userUsingCommand(msg.author.id, "qalc")) {
+            globals.startCommand(msg.author.id, "qalc")
             const cmd = spawn("qalc", argList)
             cmd.stdout.on("data", data => {
                 let text = data.toString("utf-8").replaceAll(/\[[\d;]+m/g, "")
@@ -2503,13 +2503,13 @@ The order these are given does not matter, excpet for field, which will be added
                 handleSending(msg, crv(data.toString("utf-8")), sendCallback)
             })
             cmd.on("close", () => {
-                globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
+                globals.endCommand(msg.author.id, "qalc")
             })
             cmd.on("exit", () => {
                 if (timeout) {
                     clearTimeout(timeout)
                 }
-                globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
+                globals.endCommand(msg.author.id, "qalc")
             })
             const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
             const TO_INTERVAL = 30000
