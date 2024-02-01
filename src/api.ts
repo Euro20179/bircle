@@ -2,7 +2,7 @@ import { Message, CollectorFilter } from "discord.js"
 import economy from './economy'
 import pet from './pets'
 import timer from './timer'
-import shop from "./shop"
+import shop, { hasItem } from "./shop"
 import { cmd, getAliasesV2 } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"
@@ -36,6 +36,16 @@ export const APICmds: {
         requirements: ["id"],
         exec: async ({ id }: { id: string }) =>
             economy.canTax(id, Number(shop.hasItem(id, "tax evasion") || 0) * 60)
+    },
+    taxAmount: {
+        requirements: ["id"],
+        exec: async({ id }: { id: string }) => {
+            return economy.calculateTaxPercent(id, {
+                max: hasItem(id, "tax shield") ? economy.getEconomy()[id]?.money : Infinity,
+                taxPercent: false,
+                hasTiger: pet.getActivePet(id) === 'tiger'
+            })
+        }
     },
     playerEconomyLooseTotal: {
         requirements: ["id"],
