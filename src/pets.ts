@@ -38,8 +38,6 @@ let PETACTIONS: { [key: string]: Function } = {
         }
         return false
     },
-    dog: (start?: number) => (start ?? 0) + 50,
-    bird: (amount: number) => amount * 2
 }
 
 function randInt(min: number, max: number) {
