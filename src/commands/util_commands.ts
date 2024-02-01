@@ -2671,7 +2671,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     yield [
         "read-lines", ccmdV2(async function*({ args, stdin, opts }) {
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
-            let lines = text.split("\n")
+            let lines = text.trim().split("\n")
             let waitTime = opts.getNumber("w", 1000)
             if (waitTime < 700) {
                 waitTime = 1000
