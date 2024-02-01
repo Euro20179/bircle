@@ -116,6 +116,11 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         cmdObject = commands.get(cmd) || getAliasesV2()[cmd]
     }
 
+    if(cmdObject && "permCheck"in cmdObject && cmdObject.permCheck !== undefined && !cmdObject.permCheck(msg)){
+        yield { content: "You failed the permissions check for this command", status: StatusCode.ERR }
+            return
+    }
+
     let disabled = runtime_options.get("disable", false)
     if (disabled && (disabled.commands?.includes(cmd) || disabled.categories?.includes(cmdObject?.category))) {
         yield { content: "This command has been banned in this context", status: StatusCode.ERR }
