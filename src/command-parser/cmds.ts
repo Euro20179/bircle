@@ -223,11 +223,9 @@ async function* runcmdline({
     pipe_indexes.push(tokens.length)
 
     let pipe_token_chains = []
-    let last_pipe_idx = 0
+    let last_pipe_idx = -1 //offset by 1 to account for the pipe token
     for (let idx of pipe_indexes) {
         pipe_token_chains.push(tokens.splice(0, idx - last_pipe_idx))
-        //remove the pipe token
-        tokens.splice(0, 1)
         last_pipe_idx = idx
     }
 
