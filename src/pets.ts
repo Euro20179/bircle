@@ -12,8 +12,8 @@ let PETSHOP: PetData = {}
 let PETINVENTORY: { [id: string]: UserPetData } = {}
 
 let PETACTIONS: { [key: string]: Function } = {
-    cat: () => {
-        return .001 //increases chat bonus by .01%
+    cat: (id: string, percent: number) => {
+        economy.earnMoney(id, percent + 0.001)
     },
     puffle: async (m: Message) => {
         let stuff: { money: number, items: string[] } = { money: 0, items: [] }

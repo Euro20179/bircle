@@ -158,31 +158,31 @@ async function handlePingResponse(m: Message) {
     }
 }
 
+function handleMinuteInterest(activePet: string | false, m: Message) {
+    let percent = economy.calculateBaseInterest({
+        puffle_chat_count: Number(hasItem(m.author.id, "puffle chat")),
+        has_capitalism_hat: hasItem(m.author.id, "capitalism hat") ? true : false
+    })
+    if (activePet === 'cat') {
+        pet.PETACTIONS['cat'](percent)
+    }
+    else {
+        economy.earnMoney(m.author.id, percent)
+    }
+}
+
 async function handleEarnings(m: Message) {
+    if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
+        economy.createPlayer(m.author.id, 100)
+    }
+
     let deaths = pet.damageUserPetsRandomly(m.author.id)
     if (deaths.length)
         await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
 
     let ap = pet.getActivePet(m.author.id)
 
-    let percent = 1.001
-    let pcount = Number(hasItem(m.author.id, "puffle chat"))
-
-    percent += .0001 * pcount
-
-    if (hasItem(m.author.id, "capitalism hat")) {
-        percent += .002
-    }
-
-    if (ap === 'cat') {
-        percent += pets.PETACTIONS['cat']()
-    }
-
-    if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
-        economy.createPlayer(m.author.id, 100)
-    }
-
-    economy.earnMoney(m.author.id, percent)
+    handleMinuteInterest(ap, m)
 
     if (ap == 'puffle') {
         let stuff = await pet.PETACTIONS['puffle'](m)

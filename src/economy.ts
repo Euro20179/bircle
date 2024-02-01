@@ -19,6 +19,18 @@ function isRetired(id: string) {
     return ECONOMY[id]?.retired
 }
 
+type BaseInterestOptions  = {
+    puffle_chat_count?: number,
+    has_capitalism_hat?: boolean
+}
+
+function calculateBaseInterest(options: BaseInterestOptions){
+    let percent = 1.001 + (0.0001 * (options.puffle_chat_count || 0))
+    if(options.has_capitalism_hat){
+        percent += 0.002
+    }
+    return percent
+}
 
 function setUserStockSymbol(id: string, data: { name: string, info: Stock }) {
     let userEconData = ECONOMY[id]
@@ -515,6 +527,7 @@ export default {
     getSandCounter,
     isRetired,
     retirePlayer,
-    randInt
+    randInt,
+    calculateBaseInterest
     // tradeItems
 }
