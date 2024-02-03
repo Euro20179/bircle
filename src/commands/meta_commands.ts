@@ -216,7 +216,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         let dne: string[] = []
         for (let pid of args) {
             (
-                globals.PROCESS_MANAGER.killproc(pid)
+                globals.PROCESS_MANAGER.killproc(Number(pid))
                     ? killed
                     : dne
             ).push(pid)
