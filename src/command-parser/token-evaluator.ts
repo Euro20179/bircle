@@ -114,7 +114,8 @@ class TokenEvaluator {
             //this allows for %{} syntax to make the dofirst replace with nothing
             this.advance()
             if (!(this.cur_parsing_tok instanceof lexer.TTDoFirstRepl)) {
-                await this.eval_token(new lexer.TTDoFirstRepl(":", this.i, this.i))
+                this.add_to_cur_tok(text)
+                // await this.eval_token(new lexer.TTDoFirstRepl(":", this.i, this.i))
             }
             this.back()
             // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
