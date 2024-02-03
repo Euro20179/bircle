@@ -674,6 +674,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 economy.addMoney(msg.author.id, -5)
                 return crv("Your grandchild visits and you give them $5")
             },
+            "tickle time": async() => {
+                return crv("You got tickled :face_with_hand_over_mouth:")
+            },
             "getting a retirement massage": async () => crv(choice([
                 "Now that's relaxing",
                 "That really chilled out my bone structure",
