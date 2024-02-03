@@ -10,7 +10,7 @@ import API = require('../api')
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from '../util'
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, iterAsyncGenerator } from '../util'
 
 
 import { Guild, EmbedBuilder, User } from 'discord.js'
@@ -908,6 +908,48 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             name: createHelpArgument("A variable name<br>can be used like any other bot variable in the commands", true),
             "x..y": createHelpArgument("x is the start, y is the end", true),
             "{ commands }": createHelpArgument("The commands to run in {}, seperated by ; and a blank line", true)
+        })
+    ]
+
+    yield [
+        "foreach", ccmdV2(async function*({ msg, args, runtime_opts, sendCallback, pid_label }){
+            const var_name = args.splice(0, 1)[0]
+            if(args.splice(0, 1)[0] !== '(') {
+                return { content: "Expected '('", status: StatusCode.ERR }
+            }
+
+            let items = []
+            let item = args.splice(0, 1)[0]
+            while(item !== ')' && args.length){
+                items.push(item)
+                item = args.splice(0, 1)[0]
+            }
+
+            if(!args.length){
+                return { content: "could not parse items", status: StatusCode.ERR }
+            }
+
+            const scriptWithoutBraces = parseBracketPair(args[0], "{}")
+
+            // let indexOfBrace = args.indexOf("%DO%")
+            // for(let i = 1; i < indexOfBrace; i++){
+            //     items.push(args[i])
+            // }
+            // args.splice(0, 2 + items.length)
+            let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
+            for(let item of items){
+                vars.setVarEasy(`%:${var_name}`, item, msg.author.id)
+                for(let line of scriptLines){
+                    for await(let result of globals.PROCESS_MANAGER.spawn_cmd({
+                        command: line, prefix: "", msg, sendCallback, runtime_opts
+                    }, `${pid_label}:${item}`)){
+                        yield result
+                        await new Promise(res => setTimeout(res, 1000))
+                    }
+                }
+            }
+        }, "Does code for each item in a list", {
+            docs: `<h3>Syntax</h3><code>foreach NAME ( item1 item2 ... ) {<br>&nbsp;line1;<br>&nbsp;line2<br>}</code><br>Yes the spaces in (  ) are necessary<br>The last line of code should not end with ";"`
         })
     ]
 
