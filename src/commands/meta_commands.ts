@@ -912,20 +912,20 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "foreach", ccmdV2(async function*({ msg, args, runtime_opts, sendCallback, pid_label }){
+        "foreach", ccmdV2(async function*({ msg, args, runtime_opts, sendCallback, pid_label }) {
             const var_name = args.splice(0, 1)[0]
-            if(args.splice(0, 1)[0] !== '(') {
+            if (args.splice(0, 1)[0] !== '(') {
                 return { content: "Expected '('", status: StatusCode.ERR }
             }
 
             let items = []
             let item = args.splice(0, 1)[0]
-            while(item !== ')' && args.length){
+            while (item !== ')' && args.length) {
                 items.push(item)
                 item = args.splice(0, 1)[0]
             }
 
-            if(!args.length){
+            if (!args.length) {
                 return { content: "could not parse items", status: StatusCode.ERR }
             }
 
@@ -937,12 +937,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             // }
             // args.splice(0, 2 + items.length)
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
-            for(let item of items){
+            for (let item of items) {
                 vars.setVarEasy(`%:${var_name}`, item, msg.author.id)
-                for(let line of scriptLines){
-                    for await(let result of globals.PROCESS_MANAGER.spawn_cmd({
+                for (let line of scriptLines) {
+                    for await (let result of globals.PROCESS_MANAGER.spawn_cmd({
                         command: line, prefix: "", msg, sendCallback, runtime_opts
-                    }, `${pid_label}:${item}`)){
+                    }, `${pid_label}:${item}`)) {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
                     }
@@ -1504,7 +1504,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     yield result
                 }
             }
-            return { content: "?", status: StatusCode.ERR }
+            else {
+                return { content: "?", status: StatusCode.ERR }
+            }
 
         }, "Run commands conditionally", {
             docs: "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent"
@@ -1804,7 +1806,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             for (let pid of globals.PROCESS_MANAGER.getprocids()) {
                 //dont kill itself
-                if(globals.PROCESS_MANAGER.getproclabel(pid) === pid_label){
+                if (globals.PROCESS_MANAGER.getproclabel(pid) === pid_label) {
                     continue
                 }
                 globals.PROCESS_MANAGER.killproc(pid)
