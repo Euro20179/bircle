@@ -3873,6 +3873,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         "role-info", ccmdV2(async ({ argShapeResults }) => {
 
             let role = argShapeResults['role'] as Role
+            let fmt = argShapeResults['fmt'] as string
+            if(fmt){
+                return crv(
+                    format(fmt, {
+                        i: role.id,
+                        e: role.unicodeEmoji || "",
+                        c: role.createdAt.toTimeString()
+                    })
+                )
+            }
             let embed = new EmbedBuilder()
             embed.setTitle(role.name)
             embed.setColor(role.color)
@@ -3882,7 +3892,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
         }, "Gets information about a role", {
             argShape: async function*(args, msg) {
-                yield msg.guild ? [await args.expectRole(msg.guild, truthy), "role"] : [BADVALUE, 'to be in a guild']
+                yield msg.guild ? [await args.expectRole(msg.guild, 1), "role"] : [BADVALUE, 'to be in a guild']
+                yield [args.expectString(() => true), "fmt", true]
+            },
+            docs: "Format specifiers:<ul><li>i: role id</li><li>e: role emoji</li><li>c: role created at</li></ul>",
+            helpArguments: {
+                role: createHelpArgument("The role to get info of"),
+                fmt: createHelpArgument("The format specifier")
             }
         })]
 
