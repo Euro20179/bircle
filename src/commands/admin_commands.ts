@@ -1,15 +1,15 @@
 import fs from 'fs'
 import vars from '../vars'
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, registerCommand, StatusCode } from '../common_to_commands'
+import common_to_commands, { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require('../user-options')
 import pet from '../pets'
 import timer from '../timer'
 import { giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'
-import { User } from 'discord.js'
-import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
+import { Guild, PermissionsBitField, User } from 'discord.js'
+import { fetchRoleFromServer, fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
 import achievements from '../achievements'
 import { server } from '../../website/server'
 import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
@@ -21,6 +21,62 @@ import cmds from '../command-parser/cmds'
 const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
+
+    yield [
+        "GIVE_ROLES", ccmdV2(async function({ msg, args }) {
+            let user = args.splice(0, 1)[0]
+            let member = await fetchUser(msg.guild as Guild, user)
+            if (!member) {
+                return common_to_commands.cre(`Invalid user: ${user}`)
+            }
+            let roles = []
+            for (let roleName of args) {
+                let role = await fetchRoleFromServer(msg.guild as Guild, roleName)
+                if (!role) {
+                    continue
+                }
+                roles.push(role)
+            }
+            console.log(roles)
+            let adders = []
+            for (let role of roles) {
+                adders.push(member.roles.add(role))
+            }
+            await Promise.all(adders)
+            return crv(`Gave ${member} some roles`)
+        }, "Give a user some roles", {
+            permCheck: m => m.member?.permissions.has(PermissionsBitField.Flags.ManageGuild) ?? false,
+            helpArguments: {
+                "user": createHelpArgument("the user to give roles to"),
+                "...roles": createHelpArgument("The roles to give")
+            }
+        })
+    ]
+
+    yield [
+        "COPY_ROLES", ccmdV2(async function({ msg, args }) {
+            let copy_user = args.splice(0, 1)[0]
+            let to_user = args.splice(0, 1)[0]
+            let copy_member = await fetchUser(msg.guild as Guild, copy_user)
+            let to_member = await fetchUser(msg.guild as Guild, to_user)
+            if(!copy_member){
+                return common_to_commands.cre(`${copy_user} is not a valid user`)
+            }
+            if(!to_member){
+                return common_to_commands.cre(`${to_user} is not a valid user`)
+            }
+            for(let role of copy_member.roles.cache){
+                if(to_member.roles.cache.has(role[0]))
+                    continue
+                to_member.roles.add(role[1]).catch(err => {
+                    handleSending(msg, common_to_commands.cre(err))
+                })
+            }
+            return crv(`Gave ${to_user} some roles`)
+        }, "Copy roles from one member to another", {
+            permCheck: m => m.member?.permissions.has(PermissionsBitField.Flags.ManageGuild) ?? false,
+        })
+    ]
 
     yield [
         'CONFIG', ccmdV2(async function({ args }) {
@@ -218,10 +274,10 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "DELETE_TIMER", ccmdV2(async function({msg, args}){
+        "DELETE_TIMER", ccmdV2(async function({ msg, args }) {
             let timerToReset = args[0]
-            if(!timerToReset){
-                return crv("No timer to reset given", {status: StatusCode.ERR})
+            if (!timerToReset) {
+                return crv("No timer to reset given", { status: StatusCode.ERR })
             }
             timer.deleteTimer(msg.author.id, timerToReset)
             return crv(`Reset timer: ${timerToReset}`)

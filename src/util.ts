@@ -39,23 +39,23 @@ export type UnixTime = Tagger<number>
 ////this will not console.log 3, it breaks as soon as it hits return
 //```
 
-function* iterGenerator<T>(generator: Generator<T>){
+function* iterGenerator<T>(generator: Generator<T>) {
     let prev;
     do {
         prev = generator.next()
         //in case there is a stray return; that doesn't return anything
-        if(prev.value !== undefined)
+        if (prev.value !== undefined)
             yield prev.value
-    } while(!prev.done)
+    } while (!prev.done)
 }
-async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>){
+async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
     let prev;
     do {
         prev = await generator.next()
         //in case there is a stray return; that doesn't return anything
-        if(prev.value !== undefined)
+        if (prev.value !== undefined)
             yield prev.value
-    } while(!prev.done)
+    } while (!prev.done)
 }
 
 function romanToBase10(roman: string) {
@@ -383,7 +383,7 @@ function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
     }
 }
 
-function randomColor(){
+function randomColor() {
     return randomHexColorCode()
 }
 
@@ -435,6 +435,24 @@ async function fetchUserFromClient(client: Client, find: string) {
         }
     }
     return user
+}
+
+async function fetchRoleFromServer(guild: Guild, find: string) {
+    find = find.toLowerCase()
+    let role = guild.roles.cache.find(
+        r => r.name.toLowerCase() === find ||
+            r.id === find ||
+            `<@&${r.id}>` === find
+    )
+    if (!role) {
+        await guild.roles.fetch()
+        role = guild.roles.cache.find(
+            r => r.name.toLowerCase() === find ||
+                r.id === find ||
+                `<@&${r.id}>` === find
+        )
+    }
+    return role
 }
 
 /**
@@ -1284,6 +1302,7 @@ export {
     prettyJSON,
     escapeRegex,
     iterGenerator,
-    iterAsyncGenerator
+    iterAsyncGenerator,
+    fetchRoleFromServer
 }
 
