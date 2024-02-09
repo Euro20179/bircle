@@ -376,13 +376,7 @@ export default function*(): Generator<[string, CommandV2]> {
     yield [
         "END", ccmdV2(async function({ msg, sendCallback }) {
             await handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
-            economy.saveEconomy()
-            saveItems()
-            saveConfig()
-            vars.saveVars()
-            timer.saveTimers()
-            pet.savePetData()
-            user_options.saveUserOptions()
+            common.saveDb()
             server.close()
             common.client.destroy()
             process.exit()

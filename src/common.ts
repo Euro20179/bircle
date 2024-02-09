@@ -2,6 +2,14 @@ import fs from 'fs'
 import { User } from "discord.js";
 
 import { Client, GatewayIntentBits } from "discord.js"
+import economy from './economy';
+import { saveItems } from './shop';
+import { saveConfig } from './globals';
+import vars from './vars';
+import timer from './timer';
+import pets from './pets';
+
+import user_options from './user-options'
 
 const VERSION = { major: 9, minor: 0, bug: 20, part: "", beta: false, alpha: false  }
 
@@ -23,6 +31,16 @@ let BLACKLIST: { [key: string]: string[] } = {}
 let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
 
 let ENDPOINTS: { [key: string]: string[] } = {}
+
+function saveDb() {
+        economy.saveEconomy()
+        saveItems()
+        saveConfig()
+        vars.saveVars()
+        timer.saveTimers()
+        pets.savePetData()
+        user_options.saveUserOptions()
+}
 
 
 function loadMatchCommands() {
@@ -185,6 +203,7 @@ export default {
     saveEndPointsDB,
     usersEndpoints,
     addEndpointToUser,
-    removeEndPointFromUser
+    removeEndPointFromUser,
+    saveDb
 }
 

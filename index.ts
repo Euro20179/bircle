@@ -15,7 +15,7 @@ import { slashCmds } from './src/slashCommands'
 
 import command_commons, { StatusCode } from './src/common_to_commands'
 
-import globals from './src/globals'
+import globals, { saveConfig } from './src/globals'
 import { defer, isMsgChannel } from './src/util'
 import { format, getOptsUnix } from './src/parsing'
 import { getOpt } from './src/user-options'
@@ -120,11 +120,13 @@ common.client.on(Events.MessageDelete, async (m) => {
 })
 
 function saveDb() {
-    economy.saveEconomy()
-    saveItems()
-    pet.savePetData()
-    vars.saveVars()
-    timer.saveTimers()
+            economy.saveEconomy()
+            saveItems()
+            saveConfig()
+            vars.saveVars()
+            timer.saveTimers()
+            pet.savePetData()
+            user_options.saveUserOptions()
 }
 
 setInterval(() => {
