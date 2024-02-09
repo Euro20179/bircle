@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
-import lexer, { TT } from './lexer'
+import lexer, { TT, Lexer } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
@@ -43,9 +43,9 @@ type RuntimeOption =
     | "no-run"
     | "disable"
     | "no-send"//this is similar to silent, but instead of yielding { noSend: true, status: 0 }
-                //it just adds noSend: true to whatever object it got
+//it just adds noSend: true to whatever object it got
 
-    type RuntimeOptionValue = {
+type RuntimeOptionValue = {
     silent: boolean,
     remote: boolean,
     skip: boolean,
@@ -91,9 +91,9 @@ export class RuntimeOptions {
             delete this.options[option]
     }
 
-    copy(){
+    copy() {
         let copy = new RuntimeOptions()
-        for(let key in this.options){
+        for (let key in this.options) {
             //@ts-ignore
             copy[key] = this.options[key]
         }
@@ -143,7 +143,7 @@ async function* handlePipe(
         sendCallback,
         pid_label as string
     )) {
-        if(runtime_opts.get("no-send", false)){
+        if (runtime_opts.get("no-send", false)) {
             item.noSend = true
         }
         //although this could technically be done in the command_runner it's simply easier to do it here
@@ -192,7 +192,7 @@ export type RunCmdOptions = {
 }
 
 type RunCmdLineOptions = {
-    line_tokens: TT<any>[],
+    token_generator: Generator<TT<any>>,
     msg: Message,
     sendCallback?: RunCmdOptions['sendCallback'],
     symbols: SymbolTable,
@@ -202,7 +202,7 @@ type RunCmdLineOptions = {
 }
 
 async function* runcmdline({
-    line_tokens: tokens,
+    token_generator,
     msg,
     sendCallback,
     runtime_opts,
@@ -210,6 +210,15 @@ async function* runcmdline({
     symbols,
     line_no
 }: RunCmdLineOptions): AsyncGenerator<CommandReturn> {
+    let tokens = []
+    let cur_tok
+    while (!((cur_tok = token_generator.next()).value instanceof lexer.TTSemi) && cur_tok.value) {
+        tokens.push(cur_tok.value)
+        if (cur_tok.done) {
+            break
+        }
+    }
+
     symbols.set("LINENO", String(line_no))
 
     if (runtime_opts.get("verbose", false)) {
@@ -310,16 +319,8 @@ async function* runcmd({
     let line_no = 1
     let generator = lex.gen_tokens()
     do {
-        let tokens = []
-        let cur_tok
-        while (!((cur_tok = generator.next()).value instanceof lexer.TTSemi) && cur_tok.value) {
-            tokens.push(cur_tok.value)
-            if (cur_tok.done) {
-                break
-            }
-        }
         yield* runcmdline({
-            line_tokens: tokens,
+            token_generator: generator,
             msg,
             sendCallback,
             runtime_opts,

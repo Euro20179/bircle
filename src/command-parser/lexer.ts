@@ -165,7 +165,7 @@ type LexerOptions = {
     enable_1_arg_string?: boolean
 }
 
-class Lexer {
+export class Lexer {
     private i = -1
     private curChar = ""
     private IFS = " \t"
