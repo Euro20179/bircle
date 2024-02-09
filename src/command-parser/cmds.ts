@@ -132,6 +132,8 @@ async function* handlePipe(
         mod.set_runtime_opt(runtime_opts)
     }
 
+    let pipe_to = pipeChain.slice(1)
+
     for await (let item of runner.command_runner(
         new_tokens,
         msg,
@@ -161,7 +163,7 @@ async function* handlePipe(
             yield* handlePipe(
                 item,
                 pipeChain[0],
-                pipeChain.slice(1),
+                pipe_to,
                 msg,
                 symbols,
                 runtime_opts,
