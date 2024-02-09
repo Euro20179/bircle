@@ -1,12 +1,9 @@
 import fs from 'fs'
-import vars from '../vars'
 import common from '../common'
 import common_to_commands, { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
-import user_options = require('../user-options')
-import pet from '../pets'
 import timer from '../timer'
-import { giveItem, saveItems } from '../shop'
+import { giveItem } from '../shop'
 import user_country from '../travel/user-country'
 import { Guild, PermissionsBitField, User } from 'discord.js'
 import { fetchRoleFromServer, fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
@@ -18,7 +15,6 @@ import { saveConfig, ADMINS, editConfig } from '../globals'
 import runner from '../command-parser/runner'
 
 import cmds from '../command-parser/cmds'
-const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
@@ -68,7 +64,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 if(to_member.roles.cache.has(role[0]))
                     continue
                 to_member.roles.add(role[1]).catch(err => {
-                    handleSending(msg, common_to_commands.cre(err))
+                    cmds.handleSending(msg, common_to_commands.cre(err))
                 })
             }
             return crv(`Gave ${to_user} some roles`)
@@ -147,8 +143,8 @@ export default function*(): Generator<[string, CommandV2]> {
                         fs.rmSync(`./garbage-files/${file}`)
                 }
                 if (deleteAll)
-                    await handleSending(msg, crv(`Deleted all files`), sendCallback)
-                else await handleSending(msg, crv(`Deleted all of your files`), sendCallback)
+                    await cmds.handleSending(msg, crv(`Deleted all files`), sendCallback)
+                else await cmds.handleSending(msg, crv(`Deleted all of your files`), sendCallback)
             })
             return crv("Emptying files", { status: StatusCode.INFO })
         }, "Empties the garbage-files folder", {
@@ -375,7 +371,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "END", ccmdV2(async function({ msg, sendCallback }) {
-            await handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
+            await cmds.handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
             common.saveDb()
             server.close()
             common.client.destroy()

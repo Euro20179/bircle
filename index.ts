@@ -15,7 +15,7 @@ import { slashCmds } from './src/slashCommands'
 
 import command_commons, { StatusCode } from './src/common_to_commands'
 
-import globals, { saveConfig } from './src/globals'
+import globals from './src/globals'
 import { defer, isMsgChannel } from './src/util'
 import { format, getOptsUnix } from './src/parsing'
 import { getOpt } from './src/user-options'
@@ -25,11 +25,9 @@ import timer from './src/timer'
 import economy from './src/economy'
 import { Message, } from 'discord.js'
 
-import { saveItems, hasItem } from './src/shop'
+import { hasItem } from './src/shop'
 
 import user_options from './src/user-options'
-
-import vars from './src/vars'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
@@ -119,18 +117,8 @@ common.client.on(Events.MessageDelete, async (m) => {
     }
 })
 
-function saveDb() {
-            economy.saveEconomy()
-            saveItems()
-            saveConfig()
-            vars.saveVars()
-            timer.saveTimers()
-            pet.savePetData()
-            user_options.saveUserOptions()
-}
-
 setInterval(() => {
-    saveDb();
+    common.saveDb();
 }, 30000)
 
 async function handlePingResponse(m: Message) {
