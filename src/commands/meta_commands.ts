@@ -204,8 +204,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield ["env", ccmdV2(async ({ interpreter, symbols }) => {
         return symbols
-        ? crv(Object.entries(symbols.symbols).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
-        : crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
+            ? crv(Object.entries(symbols.symbols).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
+            : crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
     }, "Gets the interpreter env")]
 
     yield ['ps', ccmdV2(async function() {
@@ -237,7 +237,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         },
     })]
 
-    yield ["export", ccmdV2(async ({ args, symbols }) => {
+    yield ["export", ccmdV2(async ({ args, symbols, opts }) => {
         let [name, ...val] = args
         let value = val.join(" ")
         if (value[0] === "=") {
@@ -253,8 +253,14 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         if (symbols)
             symbols.set(name, value)
 
-        return crv(`${name} = ${value}`)
-    }, "Sets a variable for the current runtime")]
+        return opts.getBool("s", false)
+            ? { noSend: true, status: StatusCode.RETURN }
+            : crv(`${name} = ${value}`)
+    }, "Sets a variable for the current runtime", {
+        helpOptions: {
+            s: createHelpOption("Send nothing after creating the variable")
+        }
+    })]
 
     yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;
