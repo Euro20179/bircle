@@ -37,7 +37,6 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
                 roles.push(role)
             }
-            console.log(roles)
             let adders = []
             for (let role of roles) {
                 adders.push(member.roles.add(role))
@@ -111,7 +110,7 @@ export default function*(): Generator<[string, CommandV2]> {
         "eval", ccmdV2(async function({ args }) {
             return crv(JSON.stringify(eval(args.join(" "))))
         }, "Run javascript", {
-            permCheck: m => ADMINS.includes.includes(m.author.id)
+            permCheck: m => ADMINS.includes(m.author.id)
         })
     ]
 
