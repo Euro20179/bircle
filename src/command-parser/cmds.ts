@@ -241,7 +241,7 @@ async function* runcmdline({
                 sendCallback,
                 pid_label as string
             )) {
-                //this is done here because recursion should be handled per line (;; seperated commands), not per the ENTIRE command, or per pipe
+                //this is done here because recursion should be handled per line (;; separated commands), not per the ENTIRE command, or per pipe
                 if (result.recurse
                     && result.content
                     && isCmd(result.content, PREFIX)
@@ -290,7 +290,7 @@ async function* runcmd({
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
 
     if (runtime_opts.get("recursion", 0) > runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
-        return { content: "Recursion limit reached", status: StatusCode.ERR }
+        return common_to_commands.cre("Recursion limit reached")
     }
 
 

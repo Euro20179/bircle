@@ -30,7 +30,6 @@ import { saveItems, hasItem } from './src/shop'
 import user_options from './src/user-options'
 
 import vars from './src/vars'
-import pets from './src/pets'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'

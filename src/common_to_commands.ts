@@ -1530,6 +1530,15 @@ export function crv(content: string, options?: { [K in keyof CommandReturn]?: Co
     }
 }
 
+function cre(content: string, options?: { [K in keyof CommandReturn] ?: CommandReturn[K] }, status = StatusCode.ERR): CommandReturn {
+    return {
+        content,
+        status: options?.status ?? status,
+        mimetype: options?.mimetype ?? "plain/text",
+        ...options
+    }
+}
+
 export function crvFile(fp: string, name: string, description?: string, delete_: boolean = false) {
     return { attachment: fp, name, description, delete: delete_ }
 }
@@ -1675,4 +1684,5 @@ export default {
     clearSnipes,
     handleUserMatchCommands,
     handleMatchCommands,
+    cre,
 }
