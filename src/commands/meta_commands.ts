@@ -1698,7 +1698,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let start = performance.now()
             for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                 { command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
-                "TIMEIT"
+                "TIMEIT",
+                opts.getBool("E", false) ? 2 : 1
             )) {
                 if (!opts.getBool("n", false))
                     await cmds.handleSending(msg, result)
@@ -1709,6 +1710,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             helpArguments: {
                 "...command": createHelpArgument("The command to run", true)
             }, helpOptions: {
+                "E": createHelpOption("Use the experimental command runner"),
                 "n": createHelpOption("Prevent from sending result of command to chat"),
                 "no-chat": createHelpOption("Dont include the time it takes to send to chat")
             },
