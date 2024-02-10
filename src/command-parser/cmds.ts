@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
-import lexer, { TT, Lexer } from './lexer'
+import lexer, { TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
@@ -30,6 +30,7 @@ export class SymbolTable {
 
 type RuntimeOption =
     "silent"
+    | "stdin"
     | "remote"
     | "skip"
     | "typing"
@@ -48,6 +49,7 @@ type RuntimeOption =
 
 type RuntimeOptionValue = {
     silent: boolean,
+    stdin: CommandReturn,
     remote: boolean,
     skip: boolean,
     typing: boolean,
@@ -77,9 +79,9 @@ export class RuntimeOptions {
             this.set("recursion", 0)
         }
     }
-    get<T extends RuntimeOption>(
+    get<T extends RuntimeOption, Y = RuntimeOptionValue[T]>(
         option: T,
-        default_: RuntimeOptionValue[T]
+        default_: RuntimeOptionValue[T] | Y
     ): RuntimeOptionValue[T] {
         return this.options[option] as RuntimeOptionValue[T] ?? default_
     }
@@ -96,14 +98,13 @@ export class RuntimeOptions {
         let copy = new RuntimeOptions()
         for (let key in this.options) {
             //@ts-ignore
-            copy[key] = this.options[key]
+            copy.options[key] = this.options[key]
         }
         return copy
     }
 }
 
 async function* handlePipe(
-    stdin: CommandReturn | undefined,
     tokens: TT<any>[],
     pipeChain: TT<any>[][],
     msg: Message,
@@ -112,6 +113,7 @@ async function* handlePipe(
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     pid_label?: string
 ): AsyncGenerator<CommandReturn> {
+    let stdin = runtime_opts.get("stdin", null)
     if (stdin) {
         symbols.set("stdin:%", stdin.content ?? "")
         symbols.set("stdin:status", stdin.status)
@@ -160,9 +162,10 @@ async function* handlePipe(
                 modifier.unset_runtime_opt(runtime_opts)
             }
 
+            runtime_opts.set("stdin", item)
+
             //pipe this result to the next pipe in the chain
             yield* handlePipe(
-                item,
                 pipeChain[0],
                 pipe_to,
                 msg,
@@ -190,6 +193,7 @@ export type RunCmdOptions = {
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     runtime_opts?: RuntimeOptions,
     pid_label?: string,
+    symbols?: SymbolTable,
 }
 
 type RunCmdLineOptions = {
@@ -244,7 +248,6 @@ async function* runcmdline({
     try {
         if (!runtime_opts.get("no-run", false)) {
             for await (let result of handlePipe(
-                undefined,
                 pipe_token_chains[0],
                 pipe_token_chains.slice(1),
                 msg,
@@ -265,7 +268,7 @@ async function* runcmdline({
                         result.recurse.commands ??= []
                         runtime_opts.set('disable', result.recurse)
                     }
-                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
                     runtime_opts.set('disable', old_disable)
                     continue
                 }
@@ -284,8 +287,7 @@ async function* runcmdlinev2({
     runtime_opts,
     pid_label,
     symbols,
-    line_no
-
+    line_no,
 }: {
     tokens: TT<any>[][],
     msg: Message,
@@ -293,7 +295,7 @@ async function* runcmdlinev2({
     symbols: SymbolTable,
     runtime_opts: RuntimeOptions,
     line_no: number,
-    pid_label?: string
+    pid_label?: string,
 }) {
     symbols.set("LINENO", String(line_no))
     if (runtime_opts.get("verbose", false)) {
@@ -303,7 +305,6 @@ async function* runcmdlinev2({
     try {
         if (!runtime_opts.get("no-run", false)) {
             for await (let result of handlePipe(
-                undefined,
                 tokens[0],
                 tokens.slice(1),
                 msg,
@@ -323,7 +324,7 @@ async function* runcmdlinev2({
                         result.recurse.commands ??= []
                         runtime_opts.set("disable", result.recurse)
                     }
-                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts })
+                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
                     runtime_opts.set("disable", old_disable)
                     continue
                 }
@@ -342,7 +343,7 @@ async function* runcmdv2({
     msg,
     sendCallback,
     runtime_opts,
-    pid_label
+    pid_label,
 }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.log(`Running cmd: ${command} ${new Date()} with runcmdV2`)
     console.assert(pid_label !== undefined, "Pid label is undefined")
@@ -374,6 +375,7 @@ async function* runcmdv2({
 
     let cmd = parser.createCommandFromTokens(lex.gen_tokens())
 
+
     let lineNo = 1
     for (let cmdLine of cmd) {
         yield* runcmdlinev2({
@@ -383,7 +385,7 @@ async function* runcmdv2({
             line_no: lineNo,
             pid_label,
             symbols,
-            runtime_opts
+            runtime_opts,
         })
     }
 
@@ -399,7 +401,8 @@ async function* runcmd({
     msg,
     sendCallback,
     runtime_opts,
-    pid_label
+    pid_label,
+    symbols
 }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.log(`Running cmd: ${command} ${new Date()}`)
     console.assert(pid_label !== undefined, "Pid label is undefined")
@@ -419,7 +422,7 @@ async function* runcmd({
     }
 
 
-    let symbols = new SymbolTable()
+    symbols ??= new SymbolTable()
 
     let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
 
@@ -509,14 +512,14 @@ async function handleSending(
     return newMsg
 }
 
-async function expandSyntax(bircle_string: string, msg: Message) {
+async function expandSyntax(bircle_string: string, msg: Message, symbols?: SymbolTable, runtime_opts?: RuntimeOptions) {
     let tokens = new lexer.Lexer(bircle_string, {
         is_command: false,
         pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     }).lex()
 
-    let symbolTable = new SymbolTable()
-    let runtimeOpts = new RuntimeOptions()
+    let symbolTable = symbols ?? new SymbolTable()
+    let runtimeOpts = runtime_opts ?? new RuntimeOptions()
 
     let ev = new tokenEvaluator.TokenEvaluator(tokens, symbolTable, msg, runtimeOpts)
     let new_toks = await ev.evaluate()

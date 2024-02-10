@@ -94,7 +94,7 @@ class TokenEvaluator {
             }
         }
         else if (token instanceof lexer.TTJSExpr) {
-            let text = (await cmds.expandSyntax(token.data, this.msg)).join(" ")
+            let text = (await cmds.expandSyntax(token.data, this.msg, this.symbols, this.runtime_opts)).join(" ")
             let new_text = String(safeEval(text, {}, {}))
             this.add_to_cur_tok(new_text)
             // this.new_tokens.push(new lexer.TTString(new_text, token.start, token.end))
@@ -103,7 +103,7 @@ class TokenEvaluator {
             //(PREFIX) could be really anything, it just has to be something
             let text = ""
             let runtime_copy = this.runtime_opts.copy()
-            for await (let result of cmds.runcmd({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: runtime_copy })) {
+            for await (let result of cmds.runcmdv2({ command: `(PREFIX)${token.data}`, prefix: "(PREFIX)", msg: this.msg, runtime_opts: runtime_copy, symbols: this.symbols })) {
                 text += result ? getContentFromResult(result, "\n") : ""
             }
             //let TTDoFirstRepl add to text, if the user doesnt provide one the lexer inserts a default of %{} before the doFirst
@@ -121,13 +121,13 @@ class TokenEvaluator {
             // this.new_tokens.push(new lexer.TTString(JSON.stringify(tokens), token.start, token.end))
         }
         else if (token instanceof lexer.TTCommand) {
-            let syntax = await cmds.expandSyntax(token.data, this.msg)
+            let syntax = await cmds.expandSyntax(token.data, this.msg, this.symbols, this.runtime_opts)
             this.add_to_cur_tok(syntax.join(" "))
             this.complete_cur_tok()
             this.cur_arg--
         }
         else if (token instanceof lexer.TTSyntax) {
-            let text = await cmds.expandSyntax(token.data, this.msg)
+            let text = await cmds.expandSyntax(token.data, this.msg, this.symbols, this.runtime_opts)
             this.add_to_cur_tok(text.join(" "))
         }
         else if (token instanceof lexer.TTString) {
