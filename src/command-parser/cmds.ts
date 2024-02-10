@@ -389,6 +389,8 @@ async function* runcmdv2({
         })
     }
 
+    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
+
     return { noSend: true, status: 0 }
 }
 
@@ -447,6 +449,9 @@ async function* runcmd({
         })
         line_no++
     } while (!lex.done)
+
+    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
+
     return { noSend: true, status: 0 }
 }
 

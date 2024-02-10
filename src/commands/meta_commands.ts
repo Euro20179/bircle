@@ -1040,7 +1040,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "[", ccmdV2(async function({ args, opts, sendCallback, msg, runtime_opts }) {
+        "[", ccmdV2(async function({ args, opts, sendCallback, msg, runtime_opts, symbols }) {
             let end_of_check = args.indexOf("]")
             if (end_of_check === -1) {
                 end_of_check = args.indexOf("then")
@@ -1061,7 +1061,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 let lastrv;
                 if (command) {
                     for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                        { command: "(PREFIX)" + command, prefix: "(PREFIX)", sendCallback, runtime_opts, msg },
+                        { command: command, prefix: "", sendCallback, runtime_opts, msg, symbols },
                         "[(SUB)"
                     )
                     ) {
@@ -1721,7 +1721,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
 
     yield [
-        "do", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts }) {
+        "do", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts, symbols }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -1743,21 +1743,20 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return
             }
             while (times--) {
-                runtime_opts.set("recursion", runtime_opts.get("recursion_limit", globals.RECURSION_LIMIT) - 1)
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                     {
                         command: "(PREFIX)" + format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }),
                         prefix: "(PREFIX)",
                         msg,
                         sendCallback,
-                        runtime_opts
+                        runtime_opts,
+                        symbols
                     },
                     "DO",
                 )) {
                     yield result
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
-                runtime_opts.set("recursion", runtime_opts.get("recursion", 1) - 1)
             }
             yield {
                 content: "done",
