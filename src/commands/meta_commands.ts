@@ -1693,24 +1693,30 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "timeit", ccmdV2(async function({ msg, args, sendCallback, opts, runtime_opts }) {
-            let start = performance.now()
-            for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                { command: "(PREFIX)" + args.join(" ").trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
-                "TIMEIT",
-                opts.getBool("E", false) ? 2 : 1
-            )) {
-                if (!opts.getBool("n", false))
-                    await cmds.handleSending(msg, result)
+        "timeit", ccmdV2(async function({ msg, args, sendCallback, opts, runtime_opts, symbols }) {
+            let version = opts.getBool("E", false) ? 2 : 1
+            let cmd = args.join(" ").trim()
+            let count = Math.min(opts.getNumber("c", 1), 2000)
+            let i = 0
+            let total = 0
+            while (i++ != count) {
+                let start = performance.now()
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                    { command: cmd, prefix: "", msg, sendCallback, runtime_opts, symbols },
+                    "TIMEIT",
+                    version
+                )) {
+                }
+                let end = performance.now()
+                total += end - start
             }
-            let end = performance.now()
-            return { content: `${end - start}ms`, status: StatusCode.RETURN }
+            return { content: `${total / count}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
                 "...command": createHelpArgument("The command to run", true)
             }, helpOptions: {
+                "c": createHelpOption("The amount of times to run the command, max of 2000"),
                 "E": createHelpOption("Use the experimental command runner"),
-                "n": createHelpOption("Prevent from sending result of command to chat"),
                 "no-chat": createHelpOption("Dont include the time it takes to send to chat")
             },
             short_opts: "n",
