@@ -1,6 +1,6 @@
 ///<reference path="src/types.d.ts" />
 import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js'
-import cmds from './src/command-parser/cmds'
+import cmds, { RuntimeOptions, SymbolTable } from './src/command-parser/cmds'
 
 import { REST } from '@discordjs/rest'
 
@@ -31,6 +31,9 @@ import user_options from './src/user-options'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
+import lexer, { TT } from './src/command-parser/lexer'
+import tokenEvaluator from './src/command-parser/token-evaluator'
+import parser from './src/command-parser/parser'
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
@@ -278,6 +281,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
             { command: content, prefix: local_prefix, msg: m },
             content,
+            1
         )) {
             await cmds.handleSending(m, result)
         }
@@ -285,6 +289,14 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     else if (content.startsWith(`L${local_prefix}`)) {
         let c = m.content.slice(local_prefix.length + 1)
         await command_commons.handleSending(m, (await execCommand(m, c)).rv)
+    }
+    else if(content.startsWith(`E${local_prefix}`)){
+        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+            { command: content, prefix: `E${local_prefix}`, msg: m },
+            content,
+        )) {
+            await cmds.handleSending(m, result)
+        }
     }
     else {
         await command_commons.handleMatchCommands(m, m.content, true)

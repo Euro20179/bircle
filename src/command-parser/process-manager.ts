@@ -10,30 +10,33 @@ export class ProcessManager {
         return this.PIDS.get(pid)
     }
     killproc(pid: number) {
-        if(this.PIDS.has(pid)){
+        if (this.PIDS.has(pid)) {
             this.PIDS.delete(pid)
             return true
         }
         return false
     }
 
-    getproclabel(pid: number){
+    getproclabel(pid: number) {
         return this.PIDLabels.get(pid)
     }
 
-    getprocids(){
+    getprocids() {
         return this.PIDS.keys()
     }
 
-    async* spawn_cmd(args: RunCmdOptions, label?: string){
+    async* spawn_cmd(args: RunCmdOptions, label?: string, version = 2) {
         label ??= args.command
         args.pid_label = label
-        let result_generator = cmds.runcmd(args)
+        let result_generator =
+            version === 2
+                ? cmds.runcmd(args)
+                : cmds.runcmdv2(args)
         let pid = this.PIDS.size + 1
         this.PIDS.set(pid, result_generator)
         this.PIDLabels.set(pid, label || args.command)
-        for await(let result of result_generator){
-            if(!this.running(pid)){
+        for await (let result of result_generator) {
+            if (!this.running(pid)) {
                 break
             }
             yield result

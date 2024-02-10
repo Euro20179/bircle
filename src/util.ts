@@ -1303,6 +1303,6 @@ export {
     escapeRegex,
     iterGenerator,
     iterAsyncGenerator,
-    fetchRoleFromServer
+    fetchRoleFromServer,
 }
 
