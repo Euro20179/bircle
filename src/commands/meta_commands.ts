@@ -908,7 +908,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
                     }
-                    runtime_opts.set("recursion", runtime_opts.get("recursion", 1) - 1)
                 }
             }
             return { noSend: true, status: StatusCode.RETURN }
