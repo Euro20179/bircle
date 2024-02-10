@@ -95,7 +95,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         msg.delete().catch(console.error)
     }
 
-    let cmd = tokens[0].data as string
+    let cmd = tokens[0].data.trimStart() as string
 
     if (common.BLACKLIST[msg.author.id]?.includes(cmd)) {
         yield { content: "You are blacklisted from this command", status: StatusCode.ERR }
