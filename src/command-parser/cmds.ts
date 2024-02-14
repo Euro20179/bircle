@@ -300,37 +300,49 @@ async function* runcmdlinev2({
 }) {
     symbols.set("LINENO", String(line_no))
     if (runtime_opts.get("verbose", false)) {
-        yield { content: "Work in progress", status: StatusCode.INFO }
+        let text = ""
+        for(let pipe_line of tokens){
+            let pipe_line_text = ""
+            for(let token of pipe_line){
+                pipe_line_text += token.data
+            }
+            text += pipe_line_text.trim() + " >pipe> "
+        }
+        text = text.slice(0, text.length - " >pipe> ".length)
+        yield { content: text, status: StatusCode.INFO }
+        // console.log(tokens)
+        // yield { content: "Work in progress", status: StatusCode.INFO }
     }
 
     try {
-        if (!runtime_opts.get("no-run", false)) {
-            for await (let result of handlePipe(
-                tokens[0],
-                tokens.slice(1),
-                msg,
-                symbols,
-                runtime_opts,
-                sendCallback,
-                pid_label
-            )) {
-                if (result.recurse
-                    && result.content
-                    && isCmd(result.content, PREFIX)
-                    && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
-                ) {
-                    let old_disable = runtime_opts.get('disable', false)
-                    if (typeof result.recurse === 'object') {
-                        result.recurse.categories ??= []
-                        result.recurse.commands ??= []
-                        runtime_opts.set("disable", result.recurse)
-                    }
-                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
-                    runtime_opts.set("disable", old_disable)
-                    continue
+        if (runtime_opts.get("no-run", false)) {
+            return
+        }
+        for await (let result of handlePipe(
+            tokens[0],
+            tokens.slice(1),
+            msg,
+            symbols,
+            runtime_opts,
+            sendCallback,
+            pid_label
+        )) {
+            if (result.recurse
+                && result.content
+                && isCmd(result.content, PREFIX)
+                && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
+            ) {
+                let old_disable = runtime_opts.get('disable', false)
+                if (typeof result.recurse === 'object') {
+                    result.recurse.categories ??= []
+                    result.recurse.commands ??= []
+                    runtime_opts.set("disable", result.recurse)
                 }
-                yield result
+                yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
+                runtime_opts.set("disable", old_disable)
+                continue
             }
+            yield result
         }
     }
     catch (err: any) {

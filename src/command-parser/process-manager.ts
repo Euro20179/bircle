@@ -43,8 +43,8 @@ export class ProcessManager {
         args.pid_label = label
         let result_generator =
             version === 2
-                ? cmds.runcmd(args)
-                : cmds.runcmdv2(args)
+                ? cmds.runcmdv2(args)
+                : cmds.runcmd(args)
         let pid = this.PIDS.size + 1
         this.PIDS.set(pid, result_generator)
         this.PIDLabels.set(pid, label || args.command)
