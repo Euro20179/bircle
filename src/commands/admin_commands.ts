@@ -274,8 +274,12 @@ export default function*(): Generator<[string, CommandV2]> {
             if (!timerToReset) {
                 return crv("No timer to reset given", { status: StatusCode.ERR })
             }
-            timer.deleteTimer(msg.author.id, timerToReset)
-            return crv(`Reset timer: ${timerToReset}`)
+            let user = await fetchUserFromClientOrGuild(args[1] || msg.author.id, msg.guild)
+            if(!user){
+                return common_to_commands.cre(`Could not find user: ${args[1]}`)
+            }
+            timer.deleteTimer(user.id, timerToReset)
+            return crv(`Reset timer: ${timerToReset} for user: ${user.username}`)
         }, "Resets your travel timer", {
             permCheck: m => ADMINS.includes(m.author.id)
         })
