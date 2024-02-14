@@ -27,7 +27,7 @@ export class ProcessManager {
     }
 
     getprocidFromLabel(label: string){
-        for(let [k, v] of this.PIDLabels.values()){
+        for(let [k, v] of this.PIDLabels.entries()){
             if(v === label){
                 return Number(k)
             }

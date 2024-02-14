@@ -22,6 +22,7 @@ import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'
 import lexer from '../command-parser/lexer'
+import timer from '../timer'
 
 const handleSending = cmds.handleSending
 
@@ -885,7 +886,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "for", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts, pid_label }) {
+        "for", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts, pid_label, symbols }) {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
@@ -906,7 +907,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
                     for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts }, `${pid_label}:${i}`, { parentPID }
+                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols }, `${pid_label}:${i}`, { parentPID }
                     )) {
                         yield result
                         // await new Promise(res => setTimeout(res, 1000))
@@ -922,7 +923,53 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "loop", ccmdV2(async function({ msg, args, symbols, sendCallback }) {
+        "send", ccmdV2(async function({ msg, args, stdin }) {
+            if (!timer.has_x_s_passed(msg.author.id, "%send-timer", 1, true)) {
+                return { noSend: true, status: StatusCode.ERR }
+            }
+            let text = stdin ? getContentFromResult(stdin, '\n') : args.join(" ")
+            await cmds.handleSending(msg, crv(text))
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Send a message to chat")
+    ]
+
+    yield [
+        "loop", ccmdV2(async function({ msg, args, symbols, sendCallback, pid_label, runtime_opts }) {
+            const var_name = args[0]
+            const range = args[1]
+            let [startS, endS] = range.split("..")
+            let [start, end] = [Number(startS), Number(endS)]
+            const scriptWithBraces = args.slice(2).join(" ").trim()
+            const scriptWithoutBraces = parseBracketPair(scriptWithBraces, "{}")
+            if (isNaN(start)) {
+                start = 0
+            }
+            if (isNaN(end)) {
+                end = start + 1
+            }
+            let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
+
+            let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
+
+            sendCallback = async (data) => {
+                symbols.set("LOOP_REPLY", getContentFromResult(data))
+                return msg
+            }
+
+            console.log(parentPID)
+
+            for (let i = start; i < end; i++) {
+                symbols.set(var_name, String(i))
+                for (let line of scriptLines) {
+                    for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                        { command: line, prefix: "", msg, sendCallback, runtime_opts, symbols },
+                        `${pid_label}:${i}`,
+                        { parentPID }
+                    )) {
+                        symbols.set("LOOP_REPLY", getContentFromResult(result, "\n"))
+                    }
+                }
+            }
             //there will be no builtin sleep mechanism (or if there needs to be, maybe make it like 10ms or smth, to make sure the cpu doesnt die)
             //nor will there be a hard coded max
             //the output of each command is redirected into the REPLY environment variable, instead of sent to chat
@@ -939,7 +986,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "foreach", ccmdV2(async function*({ msg, args, runtime_opts, sendCallback, pid_label }) {
+        "foreach", ccmdV2(async function*({ msg, args, runtime_opts, sendCallback, pid_label, symbols }) {
             const var_name = args.splice(0, 1)[0]
             if (args.splice(0, 1)[0] !== '(') {
                 return { content: "Expected '('", status: StatusCode.ERR }
@@ -960,17 +1007,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
 
-            // let indexOfBrace = args.indexOf("%DO%")
-            // for(let i = 1; i < indexOfBrace; i++){
-            //     items.push(args[i])
-            // }
-            // args.splice(0, 2 + items.length)
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
             for (let item of items) {
                 vars.setVarEasy(`%:${var_name}`, item, msg.author.id)
                 for (let line of scriptLines) {
                     for await (let result of globals.PROCESS_MANAGER.spawn_cmd({
-                        command: line, prefix: "", msg, sendCallback, runtime_opts
+                        command: line, prefix: "", msg, sendCallback, runtime_opts, symbols
                     }, `${pid_label}:${item}`, { parentPID })) {
                         yield result
                         await new Promise(res => setTimeout(res, 1000))
