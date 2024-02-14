@@ -365,7 +365,7 @@ async function* runcmdv2({
     runtime_opts ??= new RuntimeOptions()
 
     //this is a special case modifier that basically has to happen here
-    if (command.startsWith("n:")) {
+    if (command.startsWith(`${prefix}n:`)) {
         runtime_opts.set("skip", true)
         command = command.slice(2)
     }
