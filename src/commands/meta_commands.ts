@@ -1108,9 +1108,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "[", ccmdV2(async function({ args, opts, sendCallback, msg, runtime_opts, symbols, pid_label }) {
+            let endKeyword = "]"
             let end_of_check = args.indexOf("]")
             if (end_of_check === -1) {
                 end_of_check = args.indexOf("then")
+                endKeyword = "then"
             }
             if (end_of_check < 0) {
                 return { content: `You must end the check with ] or then`, status: StatusCode.ERR }
@@ -1118,7 +1120,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             let testText = args.slice(0, end_of_check)
 
-            let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}").trim()
+            let commandToRun = parseBracketPair(args.slice(args.indexOf(endKeyword)).join(" "), "{}").trim()
             let elseCommand = ""
             if (args.lastIndexOf("else") > 0) {
                 elseCommand = parseBracketPair(args.slice(args.lastIndexOf("else")).join(" "), "{}").trim()
