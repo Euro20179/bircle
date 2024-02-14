@@ -31,9 +31,6 @@ import user_options from './src/user-options'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
-import lexer, { TT } from './src/command-parser/lexer'
-import tokenEvaluator from './src/command-parser/token-evaluator'
-import parser from './src/command-parser/parser'
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));

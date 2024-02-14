@@ -118,8 +118,6 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv(`You must wait ${3 - (lap)} minutes`)
             }
 
-            timer.createOrRestartTimer(msg.author.id, "%exchange")
-
             let res;
             try {
                 res = await fetch.default(`http://${ip}/total`)
@@ -156,6 +154,8 @@ export default function*(): Generator<[string, CommandV2]> {
             if (response.status === 400) {
                 return crv(`Transaction denied (less than 1 dollar after transfer)`)
             }
+
+            timer.createOrRestartTimer(msg.author.id, "%exchange")
 
             economy.loseMoneyToBank(msg.author.id, nAmount)
 
