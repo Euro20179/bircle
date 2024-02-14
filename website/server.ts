@@ -430,11 +430,6 @@ function _apiSubPath(_req: http.IncomingMessage, res: http.ServerResponse, subPa
                 break
             }
 
-            //******************************
-            /*YOU WERE FIXING WARNINGS, YOU GOT RID OF ALL OF THEM HERE*/
-            //******************************
-
-
             let inChannel = urlParams?.get("channel-id")
             common.client.channels.fetch(String(inChannel)).then((channel) => {
                 if (!channel || channel.type !== ChannelType.GuildText) {

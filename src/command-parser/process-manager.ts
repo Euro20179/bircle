@@ -1,3 +1,4 @@
+import { StatusCode } from "../common_to_commands"
 import cmds, { RunCmdOptions } from "./cmds"
 
 export class ProcessManager {
@@ -25,7 +26,19 @@ export class ProcessManager {
         return this.PIDS.keys()
     }
 
-    async* spawn_cmd(args: RunCmdOptions, label?: string, version = 2) {
+    getprocidFromLabel(label: string){
+        for(let [k, v] of this.PIDLabels.values()){
+            if(v === label){
+                return Number(k)
+            }
+        }
+    }
+
+    async* spawn_cmd(args: RunCmdOptions, label?: string, options?: {parentPID?: number, version?: number}) {
+        let version = options?.version ?? 2
+        if (options?.parentPID && !this.getproc(options.parentPID)){
+            return { noSend: true, status: StatusCode.ERR }
+        }
         label ??= args.command
         args.pid_label = label
         let result_generator =

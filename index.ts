@@ -278,7 +278,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
             { command: content, prefix: local_prefix, msg: m },
             content,
-            1
+            { version: 1 }
         )) {
             await cmds.handleSending(m, result)
         }
