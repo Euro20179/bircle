@@ -2937,14 +2937,15 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!", ccmdV2(async function*({ msg, rawOpts: opts, runtime_opts, pid_label, symbols }) {
+        "!!", ccmdV2(async function({ msg, rawOpts: opts }) {
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
-                yield { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
+                return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
-                yield { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
+                return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
-            let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
-            yield* globals.PROCESS_MANAGER.spawn_cmd({ command: lastCommand[msg.author.id], prefix: user_options.getOpt(msg.author.id, "prefix", globals.PREFIX), runtime_opts, msg, symbols }, "!!", { parentPID })
+            return crv(lastCommand[msg.author.id], {
+                recurse: true
+            })
         }, "Run the last command that was run", {
             helpOptions: {
                 p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])

@@ -190,7 +190,8 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         }
         events.commandEventListener.emit(events.cmdOver, {
             msg,
-            finalRv: rv
+            finalRv: rv,
+            cmd
         })
         return
     }
@@ -204,7 +205,8 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         }
         events.commandEventListener.emit(events.cmdOver, {
             msg,
-            finalRv: rv
+            finalRv: rv,
+            cmd
         })
         return
     }

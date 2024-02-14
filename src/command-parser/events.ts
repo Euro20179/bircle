@@ -23,7 +23,8 @@ type CmdRunEvent = {
 
 type CmdOverEvent = {
     msg: Message,
-    finalRv: CommandReturn
+    finalRv: CommandReturn,
+    cmd: string
 }
 
 type CmdResultEvent = {
@@ -39,7 +40,10 @@ commandEventListener.on(cmdResult, function(event: CmdResultEvent){
 })
 
 commandEventListener.on(cmdOver, function(event: CmdOverEvent){
-    lastCommand[event.msg.author.id] = event.msg.content
+    const excluded_cmds = ["!!"]
+    if(!excluded_cmds.includes(event.cmd)){
+        lastCommand[event.msg.author.id] = event.msg.content
+    }
     vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
 })
 
