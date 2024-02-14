@@ -115,6 +115,7 @@ async function* handlePipe(
 ): AsyncGenerator<CommandReturn> {
     let stdin = runtime_opts.get("stdin", null)
     if (stdin) {
+        symbols.set("stdin:content", stdin.content ?? "")
         symbols.set("stdin:%", stdin.content ?? "")
         symbols.set("stdin:status", stdin.status)
     }
