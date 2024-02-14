@@ -357,6 +357,7 @@ async function* runcmdv2({
     sendCallback,
     runtime_opts,
     pid_label,
+    symbols,
 }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.log(`Running cmd: ${command} ${new Date()} with runcmdV2`)
     console.assert(pid_label !== undefined, "Pid label is undefined")
@@ -375,7 +376,7 @@ async function* runcmdv2({
     }
 
 
-    let symbols = new SymbolTable()
+    symbols ??= new SymbolTable()
 
     let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
 
