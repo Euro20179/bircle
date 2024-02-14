@@ -33,7 +33,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         return crv("Snipes cleared")
     }, "Clears all snipes")]
 
-    yield ['runas', ccmdV2(async function*({ msg, args, runtime_opts }) {
+    yield ['runas', ccmdV2(async function*({ msg, args, runtime_opts, symbols }) {
         let oldId = msg.author
         let user = await fetchUserFromClient(common.client, args[0])
         if (!user) {
@@ -41,7 +41,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
         msg.author = user
         let c = args.slice(1).join(" ")
-        for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: c, prefix: "", runtime_opts }, "runas(SUB)")) {
+        for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: c, prefix: "", runtime_opts, symbols }, "runas(SUB)")) {
             yield result
         }
         msg.author = oldId
@@ -287,11 +287,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     })]
 
     yield [
-        "```bircle", createCommandV2(async function*({ msg, args, runtime_opts }) {
+        "```bircle", createCommandV2(async function*({ msg, args, runtime_opts, symbols }) {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg })) {
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg, symbols})) {
                     yield result
                 }
             }
@@ -300,12 +300,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "(", createCommandV2(async ({ msg, rawArgs: args }) => {
+        "(", createCommandV2(async ({ msg, rawArgs: args, symbols }) => {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
             let rv: CommandReturn = { noSend: true, status: 0 }
-            for await (let res of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg }, "( (SUB)")) {
+            for await (let res of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg , symbols}, "( (SUB)")) {
                 rv = res
             }
             return { content: JSON.stringify(rv), status: StatusCode.RETURN }
@@ -824,10 +824,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "del", createCommandV2(async function*({ msg, args, opts, runtime_opts }) {
+        "del", createCommandV2(async function*({ msg, args, opts, runtime_opts, symbols }) {
             if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
 
-            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), msg, runtime_opts, prefix: "(PREFIX)" }, "del(SUB)")) {
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), msg, runtime_opts, prefix: "(PREFIX)", symbols }, "del(SUB)")) {
                 yield result
             }
             return { noSend: true, delete: true, status: StatusCode.RETURN }
@@ -839,7 +839,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "analyze-cmd", createCommandV2(async ({ msg, rawOpts: opts, args, runtime_opts }) => {
+        "analyze-cmd", createCommandV2(async ({ msg, rawOpts: opts, args, runtime_opts, symbols }) => {
             let results = []
 
             let text = args.join(" ").trim()
@@ -848,7 +848,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             text = text.slice(command.length + 2)
 
             let rv: CommandReturn = { noSend: true, status: 0 }
-            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + command, prefix: "(PREFIX)", msg, runtime_opts }, "analyze-cmd(SUB)")) {
+            for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + command, prefix: "(PREFIX)", msg, runtime_opts, symbols }, "analyze-cmd(SUB)")) {
                 rv = result
             }
             for (let line of text.split("\n")) {
@@ -1025,7 +1025,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "switch", ccmdV2(async function*({ args, msg, sendCallback, runtime_opts, pid_label }) {
+        "switch", ccmdV2(async function*({ args, msg, sendCallback, runtime_opts, pid_label, symbols }) {
 
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
 
@@ -1082,7 +1082,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                             shouldContinueTesting = false;
                         }
                         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                            { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                            { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
                             "switch(SUB)",
                             { parentPID }
                         )) {
@@ -1232,14 +1232,14 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if-cmd", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts, pid_label }) {
+        "if-cmd", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts, pid_label, symbols }) {
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
 
 
             async function runIf(c: string, operator: string, value: string) {
                 let rv
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: "(PREFIX)" + c, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                    { command: "(PREFIX)" + c, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
                     "if-cmd(SUB)",
                     { parentPID }
                 )) {
@@ -1370,7 +1370,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     line = line.trim()
                     if (!line || line.startsWith("}")) continue
                     for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
                         "if-cmd(SUB)",
                         { parentPID }
                     )) {
@@ -1386,7 +1386,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
                         if (!elif.block.trim() || elif.block.trim().startsWith("}")) continue
                         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                            { command: "(PREFIX)" + elif.block.trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                            { command: "(PREFIX)" + elif.block.trim(), prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
                             "if-cmd(SUB)",
                             { parentPID }
                         )) {
@@ -1402,7 +1402,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         line = line.trim()
                         if (!line || line.startsWith("}")) continue
                         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                            { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                            { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
                             "if-cmd(SUB)",
                             { parentPID }
                         )) {
@@ -1442,7 +1442,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if", ccmdV2(async function*({ msg, rawArgs: args, runtime_opts, pid_label }) {
+        "if", ccmdV2(async function*({ msg, rawArgs: args, runtime_opts, pid_label, symbols }) {
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
 
             let [condition, cmdToCheck] = args.join(" ").split(";")
@@ -1498,7 +1498,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }
                 let rv: CommandReturn = { status: 0, noSend: true }
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: command_to_run, prefix: globals.PREFIX, runtime_opts, msg },
+                    { command: command_to_run, prefix: globals.PREFIX, runtime_opts, msg, symbols },
                     "if(SUB)",
                     { parentPID }
                 )) {
@@ -1577,7 +1577,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg },
+                    { command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg, symbols },
                     "if(SUB)",
                     { parentPID }
                 )) {
@@ -1586,7 +1586,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             else if (elseCmd) {
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: "(PREFIX)" + elseCmd.trim(), prefix: "(PREFIX)", runtime_opts, msg },
+                    { command: "(PREFIX)" + elseCmd.trim(), prefix: "(PREFIX)", runtime_opts, msg, symbols },
                     "if(SUB)",
                     { parentPID }
                 )) {
@@ -2032,7 +2032,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "run", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts, pid_label }) {
+        "run", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts, pid_label, symbols }) {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -2115,7 +2115,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     line = line.slice(globals.PREFIX.length)
                 }
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts },
+                    { command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
                     "RUN",
                     { parentPID }
                 )) {
@@ -2127,10 +2127,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "silent", ccmdV2(async function({ args, msg, runtime_opts, pid_label }) {
+        "silent", ccmdV2(async function({ args, msg, runtime_opts, pid_label, symbols }) {
             runtime_opts.set("silent", true)
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
-            let gen = globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), prefix: "(PREFIX)", runtime_opts, msg }, "silent(SUB)", { parentPID })
+            let gen = globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), prefix: "(PREFIX)", runtime_opts, msg, symbols }, "silent(SUB)", { parentPID })
             while (!(await gen.next()).done);
             return { noSend: true, status: StatusCode.RETURN }
         }, "Run a command silently")
@@ -2937,14 +2937,14 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!", ccmdV2(async function*({ msg, rawOpts: opts, runtime_opts, pid_label }) {
+        "!!", ccmdV2(async function*({ msg, rawOpts: opts, runtime_opts, pid_label, symbols }) {
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
                 yield { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
                 yield { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
-            yield* globals.PROCESS_MANAGER.spawn_cmd({ command: lastCommand[msg.author.id], prefix: user_options.getOpt(msg.author.id, "prefix", globals.PREFIX), runtime_opts, msg }, "!!", { parentPID })
+            yield* globals.PROCESS_MANAGER.spawn_cmd({ command: lastCommand[msg.author.id], prefix: user_options.getOpt(msg.author.id, "prefix", globals.PREFIX), runtime_opts, msg, symbols }, "!!", { parentPID })
         }, "Run the last command that was run", {
             helpOptions: {
                 p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])
@@ -3063,7 +3063,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "shell", ccmdV2(async function({ msg, runtime_opts }) {
+        "shell", ccmdV2(async function({ msg, runtime_opts, symbols }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             if (globals.userUsingCommand(msg.author.id, "shell")) {
                 return { content: "You are already using this command", status: StatusCode.ERR }
@@ -3085,7 +3085,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: m.content, prefix: "", runtime_opts })) {
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ msg, command: m.content, prefix: "", runtime_opts, symbols })) {
                     await cmds.handleSending(msg, result)
                 }
             })
