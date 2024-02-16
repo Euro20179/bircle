@@ -17,7 +17,7 @@ import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
-import { SymbolTable } from './command-parser/cmds';
+import cmds, { SymbolTable } from './command-parser/cmds';
 
 function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
     //@ts-ignore
@@ -330,7 +330,7 @@ export const CommandCategory = {
 export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter?: AwaitMessagesOptions['filter'] }): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
     if (prompt)
-        await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+        await cmds.handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
     let msgs = await msg.channel.awaitMessages({ filter: options?.filter || (m => m.author.id === msg.author.id), time: options?.timeout || 30000, max: 1 })
     let m = msgs.at(0)
     if (!m) {
