@@ -518,7 +518,9 @@ export default function*(): Generator<[string, CommandV2]> {
         // })
         //
         // return { noSend: true, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
+    }, CommandCategory.FUN, "Use the openai chatbot", undefined, {
+        c: createHelpOption("Start a chat session")
+    }, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans, runtime_opts }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {

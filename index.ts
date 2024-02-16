@@ -378,6 +378,7 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
             if (cmd.name === interaction.commandName) {
                 globals.addToCmdUse(`/${interaction.commandName}`)
                 cmd.run(interaction as ChatInputCommandInteraction)
+                break
             }
         }
     }
