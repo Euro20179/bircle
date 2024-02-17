@@ -11,6 +11,7 @@ import common from "../common";
 import globals from '../globals';
 
 import events from './events'
+import configManager from '../config-manager';
 
 const CMD_CACHE: Map<string, CommandReturn[]> = new Map()
 
@@ -29,7 +30,7 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
         rawArgs: raw_args,
         args,
         sendCallback: sendCallback ?? msg.channel.send.bind(msg.channel),
-        recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", globals.RECURSION_LIMIT) - 1),
+        recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", configManager.RECURSION_LIMIT) - 1),
         commandBans: undefined,
         opts: new Options(opts),
         rawOpts: opts,
@@ -181,7 +182,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
                 rawArgs: raw_args,
                 args,
                 opts: opts,
-                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", globals.RECURSION_LIMIT) - 1),
+                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", configManager.RECURSION_LIMIT) - 1),
                 symbols
             })) {
             rv = result

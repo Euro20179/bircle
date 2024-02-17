@@ -1814,7 +1814,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "do", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts, symbols, pid_label }) {
-            if (recursion >= globals.RECURSION_LIMIT) {
+            if (recursion >= configManager.RECURSION_LIMIT) {
                 return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
             let times = parseInt(args[0])
@@ -2036,7 +2036,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "run", ccmdV2(async function*({ msg, rawArgs: args, sendCallback, recursionCount: recursion, runtime_opts, pid_label, symbols }) {
-            if (recursion >= globals.RECURSION_LIMIT) {
+            if (recursion >= configManager.RECURSION_LIMIT) {
                 return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
             }
             let file = msg.attachments.at(0)

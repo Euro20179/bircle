@@ -8,6 +8,8 @@ export let DEVBOT = BOT_CONFIG.general?.mode === "dev" ? true : false
 export let PREFIX = BOT_CONFIG.general.prefix
 export const ADMINS = BOT_CONFIG.general.admins
 
+export const RECURSION_LIMIT = BOT_CONFIG.general.recursion_limit ?? 20
+
 export function editConfig(path: string, newValue: any) {
     let WORKING_OBJ: any = BOT_CONFIG
     let items = path.split(".")
@@ -44,7 +46,8 @@ export default {
     DEVBOT,
     PREFIX,
     ADMINS,
+    RECURSION_LIMIT,
     editConfig,
     getConfigValue,
-    saveConfig
+    saveConfig,
 }

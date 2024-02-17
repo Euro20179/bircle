@@ -1,7 +1,6 @@
 import fs from 'fs'
 
 import { ProcessManager } from "./command-parser/process-manager"
-import useTracker from './use-tracker'
 
 export const PROCESS_MANAGER = new ProcessManager()
 
@@ -29,8 +28,6 @@ export function userUsingCommand(id: string, command: string) {
     return USER_IN_COMMANDS[id]?.includes(command) ? true : false
 }
 
-export const RECURSION_LIMIT = 20
-
 function loadScallyWagTokens() {
     let SCALLYWAG_TOKENS
     if (fs.existsSync("./command-results/scallywag-tokens.json")) {
@@ -56,7 +53,6 @@ export default {
     startCommand,
     endCommand,
     userUsingCommand,
-    RECURSION_LIMIT,
     saveScallywagTokens,
     SCALLYWAG_TOKENS,
     PROCESS_MANAGER

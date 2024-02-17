@@ -3,8 +3,7 @@ import economy from './economy'
 import pet from './pets'
 import timer from './timer'
 import shop, { hasItem } from "./shop"
-import { cmd, getAliasesV2 } from "./common_to_commands"
-import { RECURSION_LIMIT } from "./globals"
+import { getAliasesV2 } from "./common_to_commands"
 import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"
 import cmds from "./command-parser/cmds"
 

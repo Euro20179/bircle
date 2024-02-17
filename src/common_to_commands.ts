@@ -1420,7 +1420,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         delete rv['content']
     }
     //only do this if content
-    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, configManager.PREFIX.length) === configManager.PREFIX) {
+    else if (recursion < configManager.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, configManager.PREFIX.length) === configManager.PREFIX) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
         let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(configManager.PREFIX.length), recursion: recursion + 1, disable: rv.recurse === true ? undefined : rv.recurse })

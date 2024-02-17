@@ -10,7 +10,7 @@ import configManager from '../config-manager'
 import userOptions, { getOpt } from '../user-options'
 import parser from './parser'
 
-import { RECURSION_LIMIT } from '../globals'
+import { RECURSION_LIMIT } from '../config-manager'
 
 const PREFIX = configManager.PREFIX
 
