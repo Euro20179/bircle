@@ -17,7 +17,6 @@ import { Guild, EmbedBuilder, User } from 'discord.js'
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
-import fetch from 'node-fetch'
 import htmlRenderer from '../html-renderer'
 import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'

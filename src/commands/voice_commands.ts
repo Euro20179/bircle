@@ -1,6 +1,5 @@
 import fs from 'fs'
 import ytdl from 'ytdl-core'
-import fetch from 'node-fetch'
 
 
 import { CommandCategory, createCommandV2, StatusCode } from '../common_to_commands'
@@ -61,14 +60,14 @@ async function play_link({ link, filename }: { link: string, filename: string })
         })
     }
     else {
-        fetch.default(link).then(data => {
-            data.buffer().then(value => {
+        fetch(link).then(data => {
+            data.arrayBuffer().then(value => {
                 if (value.byteLength >= 1024 * 1024 * 20) {
                     if(!play_next_in_queue_or_destroy_connection(vc_queue)){
                         return
                     }
                 }
-                fs.writeFile(fn, value, () => {
+                fs.writeFile(fn, Buffer.from(value), () => {
                     let resource = createAudioResource(fn)
                     player.play(resource)
                     connection?.subscribe(player)

@@ -1,5 +1,4 @@
 import fs from 'fs'
-import fetch from "node-fetch"
 
 import pet from "./pets"
 import timer from "./timer"
@@ -461,7 +460,7 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     let data: { change: number, price: number, "%change": string, volume: string, name: string } = { change: 0, price: 0, "%change": "0%", volume: "0", name: quote.toUpperCase() }
     let html
     try {
-        html = await (await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(quote)}`)).text()
+        html = await (await fetch(`https://finance.yahoo.com/quote/${encodeURI(quote)}`)).text()
     }
     catch (err) {
         if (fail)
