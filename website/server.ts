@@ -9,7 +9,7 @@ import user_options from '../src/user-options'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient, isSafeFilePath } from '../src/util'
 
 import common from '../src/common'
-import { CLIENT_SECRET, CLIENT_ID, getConfigValue } from '../src/globals'
+import { CLIENT_SECRET, CLIENT_ID, getConfigValue, editConfig } from '../src/globals'
 import pets from '../src/pets'
 import timer from '../src/timer'
 import { getInventory } from '../src/shop'
@@ -132,7 +132,7 @@ function _handlePost(req: http.IncomingMessage, res: http.ServerResponse) {
     })
 }
 
-function _apiSubPath(_req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
+function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
     let [apiEndPoint] = subPaths
     subPaths = subPaths.splice(1)
     res.setHeader("Content-Type", "application/json")
@@ -302,6 +302,7 @@ function _apiSubPath(_req: http.IncomingMessage, res: http.ServerResponse, subPa
                 res.end("Permission denied")
                 break;
             }
+            editConfig("secrets.twin-bot-ip", req.socket.remoteAddress || getConfigValue("secrets.twin-bot-ip"))
             let userId = subPaths[0]
             if (!userId) {
                 res.writeHead(400)
