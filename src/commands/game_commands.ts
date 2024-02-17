@@ -252,17 +252,20 @@ export default function*(): Generator<[string, CommandV2]> {
 </p>`
     })]
 
-    yield ["know-your-meme", createCommandV2(async ({ msg, sendCallback, opts }) => {
+    yield ["know-your-meme", ccmdV2(async function({ msg, sendCallback, opts }) {
+
+        let state = this[1].state ?? {}
+        this[1].state = state
 
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
         const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
 
         async function game() {
-            if (globals.KNOW_YOUR_MEME_PLAYERS.length < 2) {
-                globals.KNOW_YOUR_MEME_PLAYERS = []
+            if (state.KNOW_YOUR_MEME_PLAYERS.length < 2) {
+                state.KNOW_YOUR_MEME_PLAYERS = []
                 await handleSending(msg, { content: "Game not starting with 1 player", status: StatusCode.ERR }, sendCallback)
-                globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
+                state.KNOW_YOUR_MEME_TIMEOUT = undefined;
                 return 0
             }
             const prompts = fs.readFileSync("./command-results/kym", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":")).map(v => v.trim()).filter(v => v)
@@ -271,7 +274,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 await handleSending(msg, { content: `round: ${i + 1} is starting`, status: StatusCode.INFO }, sendCallback)
                 const prompt = prompts[Math.floor(Math.random() * prompts.length)]
                 await handleSending(msg, { content: `The prompt is: ${prompt}`, status: StatusCode.INFO }, sendCallback)
-                for (let user of globals.KNOW_YOUR_MEME_PLAYERS) {
+                for (let user of state.KNOW_YOUR_MEME_PLAYERS) {
                     try {
                         await user.send(`The prompt is: ${prompt}`)
                     }
@@ -280,7 +283,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     }
                 }
 
-                let gifs = (await Promise.all(globals.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({ max: 1, filter: m => m.content ? true : false, time: 30000 }))))
+                let gifs = (await Promise.all(state.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({ max: 1, filter: m => m.content ? true : false, time: 30000 }))))
                     .map(gif => gif?.first())
 
                 let votes: { [key: number]: number } = {}
@@ -362,25 +365,25 @@ export default function*(): Generator<[string, CommandV2]> {
                 let mostCommon = Object.entries(votes).sort((a, b) => a[1] - b[1])[0]
                 await handleSending(msg, { content: `gif: ${Number(mostCommon[0]) + 1} has won with ${mostCommon[1]} vote`, status: StatusCode.RETURN })
             }
-            globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
-            globals.KNOW_YOUR_MEME_PLAYERS = []
+            state.KNOW_YOUR_MEME_TIMEOUT = undefined;
+            state.KNOW_YOUR_MEME_PLAYERS = []
         }
 
-        if (!globals.KNOW_YOUR_MEME_PLAYERS.find(u => u.id === msg.author.id)) {
-            globals.KNOW_YOUR_MEME_PLAYERS.push(msg.author)
+        if (!state.KNOW_YOUR_MEME_PLAYERS.find((u: User) => u.id === msg.author.id)) {
+            state.KNOW_YOUR_MEME_PLAYERS.push(msg.author)
         }
         else {
             return { content: "You are already in a game", status: StatusCode.ERR }
         }
-        if (!globals.KNOW_YOUR_MEME_TIMEOUT) {
-            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 30000)
+        if (!state.KNOW_YOUR_MEME_TIMEOUT) {
+            state.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 30000)
         }
         return { content: "You joined the game", status: StatusCode.INFO }
-
-
-    }, CommandCategory.GAME, "Know your meme", undefined, {
-        rounds: createHelpOption("Number of rounds", undefined, "1"),
-        r: createHelpOption("Number of rounds", undefined, "1")
+    }, "Know your meme", {
+        helpOptions: {
+            rounds: createHelpOption("Number of rounds", undefined, "1"),
+            r: createHelpOption("Number of rounds", undefined, "1")
+        }
     })]
 
     yield [

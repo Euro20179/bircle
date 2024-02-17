@@ -22,13 +22,8 @@ export let EDS: { [id: string]: boolean } = {}
 
 export let HEIST_PLAYERS: string[] = []
 
-export let HEIST_TIMEOUT: Timeout | null = null
+export let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 export let HEIST_STARTED = false
-
-export let YAHTZEE_WAITING_FOR_PLAYERS = false
-
-export let KNOW_YOUR_MEME_TIMEOUT: NodeJS.Timeout | undefined;
-export let KNOW_YOUR_MEME_PLAYERS: User[] = []
 
 //an array of commands that the user is running
 export let USER_IN_COMMANDS: { [id: string]: string[] } = {}
@@ -187,9 +182,6 @@ export default {
     HEIST_PLAYERS,
     HEIST_TIMEOUT,
     HEIST_STARTED,
-    YAHTZEE_WAITING_FOR_PLAYERS,
-    KNOW_YOUR_MEME_TIMEOUT,
-    KNOW_YOUR_MEME_PLAYERS,
     USER_IN_COMMANDS,
     startCommand,
     endCommand,
