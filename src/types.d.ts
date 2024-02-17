@@ -156,7 +156,8 @@ declare global {
         argShape?: (args: ArgList, msg: Message) => AsyncGenerator<[any | typeof BADVALUE, string, true?, any?]>,
         can_run_on_web?: boolean,
         short_opts?: string,
-        long_opts?: [string, ":"?][]
+        long_opts?: [string, ":"?][],
+        state?: any
     }
 
     interface SlashCommand {
