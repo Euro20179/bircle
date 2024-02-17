@@ -4,7 +4,7 @@ import pet from "./pets"
 import timer from "./timer"
 
 import amount_parser from './amount-parser'
-import { valuesOf } from "./util"
+import { randInt, valuesOf } from "./util"
 
 
 type Stock = { buyPrice: number, shares: number }
@@ -219,10 +219,6 @@ function playerEconomyLooseTotal(id: string) {
         }
     }
     return money
-}
-
-function randInt(min: number, max: number) {
-    return Math.random() * (max - min) + min
 }
 
 function taxPlayer(id: string, max: number, taxPercent: number | boolean = false, taxerIsRetired = false) {
@@ -545,7 +541,6 @@ export default {
     getSandCounter,
     isRetired,
     retirePlayer,
-    randInt,
     calculateBaseInterest,
     calculateTaxPercent
     // tradeItems

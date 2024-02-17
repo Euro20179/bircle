@@ -1,5 +1,5 @@
 import { max, min } from "lodash"
-import { isBetween, isNumeric, choice } from "./util"
+import { isBetween, isNumeric, choice, randInt } from "./util"
 import units, { LengthUnit } from "./units"
 
 let unit_names: string[] = []
@@ -7,11 +7,6 @@ for (let key in units) {
     unit_names.push(units[key as keyof typeof units].shorthand)
     unit_names.push(units[key as keyof typeof units].longname)
 }
-
-function randInt(min: number, max: number) {
-    return Math.random() * (max - min) + min
-}
-
 
 class FunctionError extends Error {
     constructor(msg: string) {

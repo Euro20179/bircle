@@ -1244,8 +1244,12 @@ function emitsEvent<T extends (...args: any[]) => any>(fn: T) {
     }
 }
 
+function randInt(min: number, max: number) {
+    return Math.random() * (max - min) + min
+}
 
 export {
+    randInt,
     strToCommandCat,
     fetchUser,
     fetchChannel,
