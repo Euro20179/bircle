@@ -16,6 +16,7 @@ import { slashCmds } from './src/slashCommands'
 import command_commons, { StatusCode } from './src/common_to_commands'
 
 import globals from './src/globals'
+import useTracker from './src/use-tracker'
 import { defer, isMsgChannel } from './src/util'
 import { format, getOptsUnix } from './src/parsing'
 import { getOpt } from './src/user-options'
@@ -56,7 +57,7 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         )
         return { rv: { noSend: true, status: 0 }, interpreter: undefined }
     }
-    globals.writeCmdUse()
+    useTracker.emoteUsage.saveUsage()
     return rv
 }
 
@@ -230,7 +231,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!m.author.bot) {
         //checks for emotes
         for (let match of content.matchAll(/<a?:([^:]+):([\d]+)>/g)) {
-            globals.addToEmoteUse(match[2])
+            useTracker.emoteUsage.addToUsage(match[2])
         }
     }
 
@@ -369,7 +370,7 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
         }
         for (let cmd of slashCmds) {
             if (cmd.name === interaction.commandName) {
-                globals.addToCmdUse(`/${interaction.commandName}`)
+                useTracker.cmdUsage.addToUsage(`/${interaction.commandName}`)
                 cmd.run(interaction as ChatInputCommandInteraction)
                 break
             }

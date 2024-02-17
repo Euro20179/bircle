@@ -19,6 +19,7 @@ import parse_escape from './parse_escape';
 import parse_format from './parse_format';
 import cmds, { SymbolTable } from './command-parser/cmds';
 import globals from './globals';
+import useTracker from './use-tracker';
 
 function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
     //@ts-ignore
@@ -467,10 +468,10 @@ export class AliasV2 {
 
         //this.name does not get added to cmdUse in the events if it's legacy
         if(legacy){
-            globals.addToCmdUse(this.name)
+            useTracker.cmdUsage.addToUsage(this.name)
         }
         await this.expand(args, opts, ((a, preArgs) => {
-            globals.addToCmdUse(a)
+            useTracker.cmdUsage.addToUsage(a)
             lastCmd = a
             tempExec = `${preArgs}`
         }))
@@ -480,7 +481,7 @@ export class AliasV2 {
         }
 
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
-        globals.removeFromCmdUse(lastCmd)
+        useTracker.cmdUsage.removeFromUsage(lastCmd)
 
         const optsThatNeedStandardizing = [
             ["pipe-symbol", ">pipe>"],
@@ -1252,7 +1253,7 @@ export class Interpreter {
         }
         //if it is aliasV2 it will double count
         if (!this.aliasV2)
-            globals.addToCmdUse(cmd)
+            useTracker.cmdUsage.addToUsage(cmd)
 
         return this.applyFinalityToRv(cmd, args, rv)
     }

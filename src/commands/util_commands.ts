@@ -6,6 +6,7 @@ import cheerio from 'cheerio'
 import { Stream } from 'stream'
 
 import globals from '../globals'
+import useTracker from '../use-tracker'
 import economy from '../economy'
 import pet from '../pets'
 import timer from '../timer'
@@ -4200,7 +4201,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     yield [
         "emote-use", ccmdV2(async function({ msg, opts }) {
             let serverOnly = opts.getBool('S', false)
-            let data = globals.generateEmoteUseFile()
+            let data = useTracker.emoteUsage.generateUsageText()
                 .split("\n")
                 .map(v => v.split(":"))
                 .filter(v => v[0])

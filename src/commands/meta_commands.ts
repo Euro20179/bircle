@@ -5,6 +5,7 @@ import vars, { VarType } from '../vars'
 
 import { aliasesV2, AliasV2, ccmdV2, clearSnipes, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
 import globals from '../globals'
+import useTracker from '../use-tracker'
 import user_options from '../user-options'
 import API from '../api'
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
@@ -2640,8 +2641,7 @@ ${styles}
 
     yield [
         "RESET_CMDUSE", ccmdV2(async function() {
-            fs.writeFileSync("data/cmduse", "")
-            globals.CMDUSE = globals.loadCmdUse()
+            useTracker.cmdUsage.reset()
             return { content: "cmd use reset", status: StatusCode.RETURN }
         }, "Resets cmduse", {
             permCheck: m => configManager.ADMINS.includes(m.author.id)
@@ -2649,7 +2649,7 @@ ${styles}
     ]
 
     yield ["cmd-use", ccmdV2(async function({ rawOpts: opts }) {
-        let data = globals.generateCmdUseFile()
+        let data = useTracker.cmdUsage.generateUsageText()
             .split("\n")
             .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
             .filter(v => v[0] && !isNaN(Number(v[1]))) // remove empty strings

@@ -4,7 +4,7 @@ import { ArgList, Options, getContentFromResult } from "../util";
 import { Message } from "discord.js";
 import { RuntimeOptions } from "./cmds";
 import vars from "../vars";
-import { addToCmdUse } from "../globals";
+import useTracker from "../use-tracker";
 
 const commandEventListener = new EventEmitter()
 
@@ -35,7 +35,7 @@ type CmdResultEvent = {
 }
 
 commandEventListener.on(cmdRun, function(event: CmdRunEvent){
-    addToCmdUse(event.cmd)
+    useTracker.cmdUsage.addToUsage(event.cmd)
 })
 
 commandEventListener.on(cmdResult, function(event: CmdResultEvent){
