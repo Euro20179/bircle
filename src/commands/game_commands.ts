@@ -254,7 +254,10 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield ["know-your-meme", ccmdV2(async function({ msg, sendCallback, opts }) {
 
-        let state = this[1].state ?? {}
+        let state = this[1].state ?? {
+            KNOW_YOUR_MEME_PLAYERS: [],
+            KNOW_YOUR_MEME_TIMEOUT: undefined
+        }
         this[1].state = state
 
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
@@ -1203,19 +1206,27 @@ yield[
 ]
 
 yield[
-    "heist", ccmdV2(async ({ msg, rawOpts: opts, sendCallback }) => {
-        if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
+    "heist", ccmdV2(async function({ msg, rawOpts: opts, sendCallback }) {
+
+        let state = this[1].state ?? {
+            HEIST_PLAYERS: [],
+            HEIST_STARTED: false,
+            HEIST_TIMEOUT: null
+        }
+        this[1].state = state
+
+        if (state.HEIST_PLAYERS.includes(msg.author.id)) {
             return { content: "U dingus u are already in the game", status: StatusCode.ERR }
         }
         if ((economy.getEconomy()[msg.author.id]?.money || 0) <= 0) {
             return { content: "U dont have money", status: StatusCode.ERR }
         }
-        if (globals.HEIST_STARTED) {
+        if (state.HEIST_STARTED) {
             return { content: "The game  has already started", status: StatusCode.ERR }
         }
-        globals.HEIST_PLAYERS.push(msg.author.id)
+        state.HEIST_PLAYERS.push(msg.author.id)
         let timeRemaining = 30000
-        if (globals.HEIST_TIMEOUT === null) {
+        if (state.HEIST_TIMEOUT === null) {
             let int = setInterval(async () => {
                 timeRemaining -= 1000
                 if (timeRemaining % 8000 == 0)
@@ -1223,11 +1234,11 @@ yield[
             }, 1000)
             let data: { [key: string]: number } = {} //player_id: amount won
             let data_floor: { [key: string]: number } = {} // player_id: amount won (non-percentage based)
-            globals.HEIST_TIMEOUT = setTimeout(async () => {
-                globals.HEIST_STARTED = true
+            state.HEIST_TIMEOUT = setTimeout(async () => {
+                state.HEIST_STARTED = true
                 clearInterval(int)
-                await handleSending(msg, { content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
-                for (let player of globals.HEIST_PLAYERS) {
+                await handleSending(msg, { content: `Commencing heist with ${state.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
+                for (let player of state.HEIST_PLAYERS) {
                     data[player] = 0
                     data_floor[player] = 0
                     vars.setVar("__heist", "0", player)
@@ -1317,7 +1328,7 @@ yield[
                         stats.locationsVisited[current_location] = {}
                     }
                     stats.adventureOrder.push([current_location, stage])
-                    let shuffledPlayers = globals.HEIST_PLAYERS.shuffleArray()
+                    let shuffledPlayers = state.HEIST_PLAYERS.shuffleArray()
                     let amount = Math.random() * 0.5
                     let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                     let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
@@ -1341,7 +1352,7 @@ yield[
                                     continue
                                 }
                                 let number = Number(match[1])
-                                if (number > globals.HEIST_PLAYERS.length)
+                                if (number > state.HEIST_PLAYERS.length)
                                     return false
                                 enough_players = true
                             }
@@ -1562,9 +1573,9 @@ yield[
                         }
                     }
                 }
-                globals.HEIST_PLAYERS = []
-                globals.HEIST_TIMEOUT = null
-                globals.HEIST_STARTED = false
+                state.HEIST_PLAYERS = []
+                state.HEIST_TIMEOUT = null
+                state.HEIST_STARTED = false
                 if (Object.hasEnumerableKeys(data)) {
                     let useEmbed = false
                     let e = new EmbedBuilder()

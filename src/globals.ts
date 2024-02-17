@@ -20,10 +20,6 @@ export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 export let EDS: { [id: string]: boolean } = {}
 
-export let HEIST_PLAYERS: string[] = []
-
-export let HEIST_TIMEOUT: NodeJS.Timeout | null = null
-export let HEIST_STARTED = false
 
 //an array of commands that the user is running
 export let USER_IN_COMMANDS: { [id: string]: string[] } = {}
@@ -179,9 +175,6 @@ export default {
     BUTTONS,
     POLLS,
     EDS,
-    HEIST_PLAYERS,
-    HEIST_TIMEOUT,
-    HEIST_STARTED,
     USER_IN_COMMANDS,
     startCommand,
     endCommand,
