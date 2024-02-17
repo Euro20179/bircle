@@ -58,6 +58,9 @@ async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
     } while (!prev.done)
 }
 
+/**
+    * @description Converts roman numerals to base 10
+*/
 function romanToBase10(roman: string) {
     const to10 = {
         "I": 1,

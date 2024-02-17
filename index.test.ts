@@ -37,7 +37,7 @@ const cmdTest = (cmd: string, ans: string) => {
         let rv: CommandReturn | null = null
         await getChannel()
         let fakeMsg = getFakeMsg(cmd)
-        for await (let res of cmds.runcmd({
+        for await (let res of cmds.runcmdv2({
             command: cmd, prefix: "",
             msg: fakeMsg,
             sendCallback: async() => fakeMsg,

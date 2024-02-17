@@ -1778,7 +1778,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "timeit", ccmdV2(async function({ msg, args, sendCallback, opts, runtime_opts, symbols, pid_label }) {
-            let version = opts.getBool("E", false) ? 2 : 1
             let cmd = args.join(" ").trim()
             let count = Math.min(opts.getNumber("c", 1), 2000)
             let i = 0
@@ -1790,7 +1789,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                     { command: cmd, prefix: "", msg, sendCallback, runtime_opts, symbols },
                     "TIMEIT",
-                    { version, parentPID }
+                    { parentPID }
                 )) {
                 }
                 let end = performance.now()
@@ -1802,7 +1801,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 "...command": createHelpArgument("The command to run", true)
             }, helpOptions: {
                 "c": createHelpOption("The amount of times to run the command, max of 2000"),
-                "E": createHelpOption("Use the experimental command runner"),
                 "no-chat": createHelpOption("Dont include the time it takes to send to chat")
             },
             short_opts: "n",

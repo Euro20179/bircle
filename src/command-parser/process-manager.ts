@@ -2,7 +2,7 @@ import { StatusCode } from "../common_to_commands"
 import cmds, { RunCmdOptions } from "./cmds"
 
 export class ProcessManager {
-    private PIDS: Map<number, ReturnType<typeof cmds.runcmd>> = new Map()
+    private PIDS: Map<number, ReturnType<typeof cmds.runcmdv2>> = new Map()
     private PIDLabels: Map<number, string> = new Map()
     running(pid: number) {
         return this.PIDS.get(pid) ? true : false
@@ -34,17 +34,13 @@ export class ProcessManager {
         }
     }
 
-    async* spawn_cmd(args: RunCmdOptions, label?: string, options?: {parentPID?: number, version?: number}) {
-        let version = options?.version ?? 2
+    async* spawn_cmd(args: RunCmdOptions, label?: string, options?: {parentPID?: number}) {
         if (options?.parentPID && !this.getproc(options.parentPID)){
             return { noSend: true, status: StatusCode.ERR }
         }
         label ??= args.command
         args.pid_label = label
-        let result_generator =
-            version === 2
-                ? cmds.runcmdv2(args)
-                : cmds.runcmd(args)
+        let result_generator = cmds.runcmdv2(args)
         let pid = this.PIDS.size + 1
         this.PIDS.set(pid, result_generator)
         this.PIDLabels.set(pid, label || args.command)

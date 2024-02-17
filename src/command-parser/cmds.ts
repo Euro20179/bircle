@@ -197,90 +197,6 @@ export type RunCmdOptions = {
     symbols?: SymbolTable,
 }
 
-type RunCmdLineOptions = {
-    token_generator: Generator<TT<any>>,
-    msg: Message,
-    sendCallback?: RunCmdOptions['sendCallback'],
-    symbols: SymbolTable,
-    runtime_opts: RuntimeOptions,
-    line_no: number,
-    pid_label?: string
-}
-
-async function* runcmdline({
-    token_generator,
-    msg,
-    sendCallback,
-    runtime_opts,
-    pid_label,
-    symbols,
-    line_no
-}: RunCmdLineOptions): AsyncGenerator<CommandReturn> {
-    let tokens = []
-    let cur_tok
-    while (!((cur_tok = token_generator.next()).value instanceof lexer.TTSemi) && cur_tok.value) {
-        tokens.push(cur_tok.value)
-        if (cur_tok.done) {
-            break
-        }
-    }
-
-    symbols.set("LINENO", String(line_no))
-
-    if (runtime_opts.get("verbose", false)) {
-        yield { content: tokens.map(v => v.data).join(" "), status: StatusCode.INFO }
-    }
-
-    let pipe_indexes = []
-    for (let i = 0; i < tokens.length; i++) {
-        if (tokens[i] instanceof lexer.TTPipe) {
-            pipe_indexes.push(i)
-        }
-    }
-    pipe_indexes.push(tokens.length)
-
-    let pipe_token_chains = []
-    let last_pipe_idx = -1 //offset by 1 to account for the pipe token
-    for (let idx of pipe_indexes) {
-        pipe_token_chains.push(tokens.splice(0, idx - last_pipe_idx))
-        last_pipe_idx = idx
-    }
-
-    try {
-        if (!runtime_opts.get("no-run", false)) {
-            for await (let result of handlePipe(
-                pipe_token_chains[0],
-                pipe_token_chains.slice(1),
-                msg,
-                symbols,
-                runtime_opts,
-                sendCallback,
-                pid_label as string
-            )) {
-                //this is done here because recursion should be handled per line (;; separated commands), not per the ENTIRE command, or per pipe
-                if (result.recurse
-                    && result.content
-                    && isCmd(result.content, PREFIX)
-                    && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
-                ) {
-                    let old_disable = runtime_opts.get('disable', false)
-                    if (typeof result.recurse === 'object') {
-                        result.recurse.categories ??= []
-                        result.recurse.commands ??= []
-                        runtime_opts.set('disable', result.recurse)
-                    }
-                    yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
-                    runtime_opts.set('disable', old_disable)
-                    continue
-                }
-                yield result
-            }
-        }
-    } catch (err: any) {
-        yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }
-    }
-}
-
 async function* runcmdlinev2({
     tokens,
     msg,
@@ -338,7 +254,7 @@ async function* runcmdlinev2({
                     result.recurse.commands ??= []
                     runtime_opts.set("disable", result.recurse)
                 }
-                yield* runcmd({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
+                yield* runcmdv2({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
                 runtime_opts.set("disable", old_disable)
                 continue
             }
@@ -402,67 +318,6 @@ async function* runcmdv2({
             runtime_opts,
         })
     }
-
-    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
-
-    return { noSend: true, status: 0 }
-}
-
-//TODO:
-//missing support for:
-//banned_commands
-async function* runcmd({
-    command,
-    prefix,
-    msg,
-    sendCallback,
-    runtime_opts,
-    pid_label,
-    symbols
-}: RunCmdOptions): AsyncGenerator<CommandReturn> {
-    console.log(`Running cmd: ${command} ${new Date()}`)
-    console.assert(pid_label !== undefined, "Pid label is undefined")
-
-    runtime_opts ??= new RuntimeOptions()
-
-    //this is a special case modifier that basically has to happen here
-    if (command.startsWith("n:")) {
-        runtime_opts.set("skip", true)
-        command = command.slice(2)
-    }
-
-    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
-
-    if (runtime_opts.get("recursion", 0) > runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
-        return common_to_commands.cre("Recursion limit reached")
-    }
-
-
-    symbols ??= new SymbolTable()
-
-    let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
-
-    let lex = new lexer.Lexer(command, {
-        prefix,
-        skip_parsing: runtime_opts.get("skip", false),
-        pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
-        enable_1_arg_string: enable_arg_string === 'true' ? true : false
-    })
-
-    let line_no = 1
-    let generator = lex.gen_tokens()
-    do {
-        yield* runcmdline({
-            token_generator: generator,
-            msg,
-            sendCallback,
-            runtime_opts,
-            pid_label,
-            symbols,
-            line_no
-        })
-        line_no++
-    } while (!lex.done)
 
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
 
@@ -551,7 +406,6 @@ async function expandSyntax(bircle_string: string, msg: Message, symbols?: Symbo
 }
 
 export default {
-    runcmd,
     handleSending,
     SymbolTable,
     RuntimeOptions,

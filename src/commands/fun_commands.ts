@@ -562,7 +562,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let rv: CommandReturn = { noSend: true, status: 0 }
                 let old_disable = runtime_opts.get('disable', false)
                 runtime_opts.set("disable", generateDefaultRecurseBans())
-                for await(let result of cmds.runcmd({
+                for await(let result of cmds.runcmdv2({
                     command: signature,
                     runtime_opts,
                     msg,

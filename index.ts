@@ -286,15 +286,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         let c = m.content.slice(local_prefix.length + 1)
         await command_commons.handleSending(m, (await execCommand(m, c)).rv)
     }
-    else if(content.startsWith(`V1${local_prefix}`)){
-        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-            { command: content, prefix: `V1${local_prefix}`, msg: m },
-            content,
-            { version: 1 }
-        )) {
-            await cmds.handleSending(m, result)
-        }
-    }
     else {
         await command_commons.handleMatchCommands(m, m.content, true)
     }

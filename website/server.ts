@@ -685,9 +685,9 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         }
 
         (async function(){
-            for await (let item of cmds.runcmd({
-                command: "(PREFIX)" + command,
-                prefix: "(PREFIX)",
+            for await (let item of cmds.runcmdv2({
+                command: command,
+                prefix: "",
                 msg
             })){
                 handleReturn({interpreter: undefined, rv: item})
