@@ -10,8 +10,6 @@ export const CLIENT_ID = BOT_CONFIG.secrets['client-id']
 export const GUILD_ID = BOT_CONFIG.secrets['guild']
 export const CLIENT_SECRET = BOT_CONFIG.secrets['client-secret']
 
-export let SPAM_ALLOWED = true
-
 export let DEVBOT = BOT_CONFIG.general?.mode === "dev" ? true : false
 
 export let PREFIX = BOT_CONFIG.general.prefix
@@ -180,7 +178,6 @@ export default {
     CLIENT_ID,
     GUILD_ID,
     CLIENT_SECRET,
-    SPAM_ALLOWED,
     DEVBOT,
     PREFIX,
     ADMINS,
