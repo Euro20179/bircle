@@ -8,11 +8,12 @@ import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary, iterAs
 import user_options from "../user-options"
 import cmds, { RuntimeOptions, SymbolTable } from "./cmds";
 import common from "../common";
-import globals, { PROCESS_MANAGER, RECURSION_LIMIT } from '../globals';
+import globals from '../globals';
 
 import events from './events'
 
 const CMD_CACHE: Map<string, CommandReturn[]> = new Map()
+
 async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, args: ArgList, raw_args: ArgumentList, opts: Opts, runtime_options: RuntimeOptions, symbols: SymbolTable, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
     if (cmdObject.use_result_cache) {
         let generator = CMD_CACHE.get(raw_args.join(" "))
@@ -28,7 +29,7 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
         rawArgs: raw_args,
         args,
         sendCallback: sendCallback ?? msg.channel.send.bind(msg.channel),
-        recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", RECURSION_LIMIT) - 1),
+        recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", globals.RECURSION_LIMIT) - 1),
         commandBans: undefined,
         opts: new Options(opts),
         rawOpts: opts,
@@ -54,20 +55,17 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
         }
     }
     let runObj = cmdObject.run.bind([cmd, cmdObject])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+
     let l: CommandReturn[] = []
     try {
-
         yield* iterAsyncGenerator(runObj)
-
-        if (cmdObject.use_result_cache) {
-            CMD_CACHE.set(raw_args.join(" "), l)
-        }
     } catch (err) {
         let res = await runObj
         yield res
-        if (cmdObject.use_result_cache) {
-            CMD_CACHE.set(raw_args.join(" "), [res])
-        }
+        l.push(res)
+    }
+    if (cmdObject.use_result_cache) {
+        CMD_CACHE.set(raw_args.join(" "), l)
     }
 }
 
@@ -77,7 +75,7 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
     let runtime_opts = new cmds.RuntimeOptions()
     runtime_opts.set("program-args", args)
 
-    for await (let result of PROCESS_MANAGER.spawn_cmd(
+    for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
         { command: data, prefix: "(PREFIX)", msg, runtime_opts },
         `${name}.bircle`,
     )) {
@@ -183,7 +181,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
                 rawArgs: raw_args,
                 args,
                 opts: opts,
-                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", RECURSION_LIMIT) - 1),
+                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", globals.RECURSION_LIMIT) - 1),
                 symbols
             })) {
             rv = result

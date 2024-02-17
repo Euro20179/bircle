@@ -1,6 +1,6 @@
 ///<reference path="src/types.d.ts" />
 import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js'
-import cmds, { RuntimeOptions, SymbolTable } from './src/command-parser/cmds'
+import cmds from './src/command-parser/cmds'
 
 import { REST } from '@discordjs/rest'
 
@@ -268,7 +268,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
             { command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts },
             att.name,
-
         )) {
             await cmds.handleSending(m, result)
         }
