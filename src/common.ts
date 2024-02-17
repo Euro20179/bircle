@@ -4,7 +4,7 @@ import { User } from "discord.js";
 import { Client, GatewayIntentBits } from "discord.js"
 import economy from './economy';
 import { saveItems } from './shop';
-import { saveConfig } from './globals';
+import { saveConfig } from './config-manager';
 import vars from './vars';
 import timer from './timer';
 import pets from './pets';

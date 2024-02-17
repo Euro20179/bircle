@@ -7,7 +7,7 @@ import user_options from '../user-options'
 import vars from '../vars'
 import { DMChannel, Message } from 'discord.js'
 
-import {PREFIX} from '../globals'
+import {PREFIX} from '../config-manager'
 
 import cmds from '../command-parser/cmds'
 

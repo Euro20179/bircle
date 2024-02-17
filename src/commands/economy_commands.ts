@@ -13,7 +13,7 @@ import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, fetchUserFromCl
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
-import { DEVBOT, PREFIX } from '../globals'
+import { DEVBOT, PREFIX } from '../config-manager'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
 import { buyItem, hasItem, useItem, getInventory, getItems } from '../shop'

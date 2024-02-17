@@ -11,7 +11,7 @@ import achievements from '../achievements'
 import { server } from '../../website/server'
 import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
 import amountParser from '../amount-parser'
-import { saveConfig, ADMINS, editConfig } from '../globals'
+import { saveConfig, ADMINS, editConfig } from '../config-manager'
 import runner from '../command-parser/runner'
 
 import cmds from '../command-parser/cmds'

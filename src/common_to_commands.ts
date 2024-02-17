@@ -5,7 +5,7 @@ import vars from './vars';
 
 import events from './events';
 
-import globals from "./globals"
+import configManager from "./config-manager"
 import user_options, { UserOption } from "./user-options"
 import common from './common';
 import { Parser, Token, T, WebModifier, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier, CommandModifier } from './parsing';
@@ -18,6 +18,7 @@ import { cloneDeep } from 'lodash';
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
 import cmds, { SymbolTable } from './command-parser/cmds';
+import globals from './globals';
 
 function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
     //@ts-ignore
@@ -976,8 +977,8 @@ export class Interpreter {
         let rv = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
 
-        if (rv && rv.recurse && rv.content && isCmd(rv.content, globals.PREFIX) && this.recursion < 20) {
-            rv = await runCmd(rv.content.slice(globals.PREFIX.length))
+        if (rv && rv.recurse && rv.content && isCmd(rv.content, configManager.PREFIX) && this.recursion < 20) {
+            rv = await runCmd(rv.content.slice(configManager.PREFIX.length))
             data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         }
 
@@ -1182,7 +1183,7 @@ export class Interpreter {
 
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (cmd.startsWith(globals.PREFIX)) {
+            if (cmd.startsWith(configManager.PREFIX)) {
                 cmd = `\\${cmd}`
             }
             rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
@@ -1418,10 +1419,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         delete rv['content']
     }
     //only do this if content
-    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, globals.PREFIX.length) === globals.PREFIX) {
+    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, configManager.PREFIX.length) === configManager.PREFIX) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(globals.PREFIX.length), recursion: recursion + 1, disable: rv.recurse === true ? undefined : rv.recurse })
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(configManager.PREFIX.length), recursion: recursion + 1, disable: rv.recurse === true ? undefined : rv.recurse })
 
         rv = ret.rv
 

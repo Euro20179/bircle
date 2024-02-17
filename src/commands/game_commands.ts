@@ -26,6 +26,7 @@ import amountParser from '../amount-parser'
 import cmds from '../command-parser/cmds'
 
 import shop from '../shop'
+import configManager from '../config-manager'
 
 const handleSending = cmds.handleSending
 
@@ -286,7 +287,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     }
                 }
 
-                let gifs = (await Promise.all(state.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({ max: 1, filter: m => m.content ? true : false, time: 30000 }))))
+                let gifs = (await Promise.all(state.KNOW_YOUR_MEME_PLAYERS.map((user: any) => user.dmChannel?.awaitMessages({ max: 1, filter: (m: any) => m.content ? true : false, time: 30000 }))))
                     .map(gif => gif?.first())
 
                 let votes: { [key: number]: number } = {}
@@ -991,7 +992,7 @@ yield[
         let reqMoney = args.expectString(1)
         if (reqMoney === BADVALUE) {
             globals.endCommand(msg.author.id, "roulette")
-            return crv(`Usage: \`${globals.PREFIX}roulette <bet> <guess>\``)
+            return crv(`Usage: \`${configManager.PREFIX}roulette <bet> <guess>\``)
         }
 
         let min = economy.calculateAmountFromNetWorth(msg.author.id, "0.02%")
@@ -1043,7 +1044,7 @@ yield[
 
         if (guess === BADVALUE) {
             globals.endCommand(msg.author.id, "roulette")
-            return crv(`Usage: \`${globals.PREFIX}roulette <bet> <guess>\``)
+            return crv(`Usage: \`${configManager.PREFIX}roulette <bet> <guess>\``)
         }
 
         let bets: { [key: string]: [number, string] } = { [msg.author.id]: [money, guess] }

@@ -1,5 +1,5 @@
-import { PREFIX } from "../globals"
 import { RuntimeOptions } from "./cmds"
+import configManager from "../config-manager"
 
 /*
     The way I'm planning this to work is first it goes through the lexer which creates a list of tokens
@@ -182,7 +182,7 @@ export class Lexer {
     }
 
     private prefix() {
-        return this.options.prefix ?? PREFIX
+        return this.options.prefix ?? configManager.PREFIX
     }
 
     private pipe_sign() {

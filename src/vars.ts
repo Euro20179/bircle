@@ -5,7 +5,7 @@ import common from './common'
 import economy from "./economy"
 import { allowedOptions, getOpt } from "./user-options"
 
-import {PREFIX} from './globals'
+import {PREFIX} from './config-manager'
 import { StatusCode } from './common_to_commands'
 
 export type VarName = `${string}:${string}` | string

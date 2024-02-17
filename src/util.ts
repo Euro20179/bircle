@@ -14,7 +14,7 @@ import { AliasV2, CommandCategory } from "./common_to_commands"
 import events from './events'
 
 import { formatMoney, getOpt } from "./user-options"
-import { getConfigValue } from "./globals"
+import { getConfigValue } from "./config-manager"
 import { parseRangeString } from "./parsing"
 
 import units from './units'

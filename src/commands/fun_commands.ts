@@ -91,6 +91,7 @@ import amountParser from '../amount-parser';
 import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
 import cmds from '../command-parser/cmds';
+import configManager from '../config-manager';
 
 const handleSending = cmds.handleSending
 
@@ -394,11 +395,11 @@ export default function*(): Generator<[string, CommandV2]> {
     })]
 
     yield ["chat", createCommandV2(async ({ msg, opts, args, sendCallback }) => {
-        if (!globals.getConfigValue("general.enable-chat")) {
+        if (!configManager.getConfigValue("general.enable-chat")) {
             return crv("This command is not enabled", { status: StatusCode.ERR })
         }
         const sys_msg = opts.getString("sys", "You are a helpful ai.")
-        const baseurl = globals.getConfigValue("general.chat-url")
+        const baseurl = configManager.getConfigValue("general.chat-url")
         let messages: any[] = []
         let temp = opts.getNumber("t", 0.8)
         let ctx = opts.getNumber("ctx", 2048)
@@ -555,7 +556,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, globals.PREFIX.length) === globals.PREFIX) {
+        if (signature.slice(0, configManager.PREFIX.length) === configManager.PREFIX) {
             if(runtime_opts){
                 let rv: CommandReturn = { noSend: true, status: 0 }
                 let old_disable = runtime_opts.get('disable', false)
@@ -564,7 +565,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     command: signature,
                     runtime_opts,
                     msg,
-                    prefix: globals.PREFIX
+                    prefix: configManager.PREFIX
                 })){
                     rv = result
                 }
@@ -574,11 +575,11 @@ export default function*(): Generator<[string, CommandV2]> {
             else{
                 signature = getContentFromResult((await cmd({
                     msg,
-                    command_excluding_prefix: signature.slice(globals.PREFIX.length),
+                    command_excluding_prefix: signature.slice(configManager.PREFIX.length),
                     recursion: recursionCount,
                     disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() }
                 })).rv as CommandReturn)
-                if (signature.startsWith(globals.PREFIX)) {
+                if (signature.startsWith(configManager.PREFIX)) {
                     signature = "\\" + signature
                 }
             }
@@ -1094,7 +1095,7 @@ export default function*(): Generator<[string, CommandV2]> {
         "count", ccmdV2(async ({ msg, args, recursionCount: rec, commandBans: disable, runtime_opts, symbols, pid_label }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode }
 
-            if (msg.channel.id !== globals.BOT_CONFIG.general['counting-channel']) {
+            if (msg.channel.id !== configManager.BOT_CONFIG.general['counting-channel']) {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
             }
 
@@ -1116,7 +1117,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 count_text = "{count}"
             }
             count_text = format(count_text, { count: `.${numeric}.` })
-            if (common_to_commands.isCmd(count_text, globals.PREFIX)) {
+            if (common_to_commands.isCmd(count_text, configManager.PREFIX)) {
 
                 let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
 
@@ -1124,7 +1125,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 for await(rv of globals.PROCESS_MANAGER.spawn_cmd({
                     msg,
                     command: count_text,
-                    prefix: globals.PREFIX,
+                    prefix: configManager.PREFIX,
                     runtime_opts,
                     symbols
                 }, "count(SUB)", { parentPID }));
@@ -1248,7 +1249,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 requestedUsers[0] = msg.author.id
             }
             let embeds = []
-            const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${globals.GUILD_ID}`
+            const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${configManager.GUILD_ID}`
             let data
             try {
                 data = await fetch(url)
@@ -3045,7 +3046,7 @@ Valid formats:
                 return countries[text as keyof typeof countries] ? text : BADVALUE
             }) as keyof typeof countries | typeof BADVALUE
             if (userGoingTo === BADVALUE) {
-                return crv(`You must select a valid location: use \`${globals.PREFIX}travel -l\` to see all locations`, { status: StatusCode.ERR })
+                return crv(`You must select a valid location: use \`${configManager.PREFIX}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
 
             timer.createOrRestartTimer(msg.author.id, "%travel")

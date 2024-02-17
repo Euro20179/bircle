@@ -6,9 +6,13 @@ import tokenEvaluator from './token-evaluator'
 import { isMsgChannel, mimeTypeToFileExtension } from '../util'
 import common_to_commands, { StatusCode, isCmd } from '../common_to_commands'
 
-import { PREFIX, RECURSION_LIMIT } from '../globals'
+import configManager from '../config-manager'
 import userOptions, { getOpt } from '../user-options'
 import parser from './parser'
+
+import { RECURSION_LIMIT } from '../globals'
+
+const PREFIX = configManager.PREFIX
 
 export class SymbolTable {
     symbols: Record<string, string>

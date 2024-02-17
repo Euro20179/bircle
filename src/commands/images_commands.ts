@@ -17,7 +17,7 @@ let canvas: any;
 //         canvas = await import('canvas')
 // })()
 
-import { PREFIX } from '../globals'
+import { PREFIX } from '../config-manager'
 
 import vars from '../vars'
 
@@ -820,7 +820,7 @@ The commands below, only work after **path** has been run:
             }
             let img_data = await fetch(String(img_link))
             let fn = cmdFileName`polygon ${msg.author.id} png`
-            fs.writeFileSync(fn, await img_data.buffer())
+            fs.writeFileSync(fn, Buffer.from(await img_data.arrayBuffer()))
             let img = await canvas.loadImage(fn)
             fs.rmSync(fn)
             let canv = new canvas.Canvas(img.width, img.height)

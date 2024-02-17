@@ -31,9 +31,12 @@ import user_options from './src/user-options'
 
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
+
+import configManager from './src/config-manager'
+
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
-const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
+const rest = new REST({ version: "10" }).setToken(configManager.getConfigValue("secrets.token"));
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     if (!isMsgChannel(msg.channel))
@@ -72,7 +75,7 @@ defer(() => {
     console.log('Started refreshing application (/) commands.');
 
     rest.put(
-        Routes.applicationGuildCommands(globals.CLIENT_ID, globals.GUILD_ID),
+        Routes.applicationGuildCommands(configManager.CLIENT_ID, configManager.GUILD_ID),
         { body: slashCmds },
     ).then(
         _res => console.log("Successfully reloaded application (/) commands.")
@@ -131,7 +134,7 @@ async function handlePingResponse(m: Message) {
         pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
         let old_id = m.author.id
         m.author.id = member!.user.id
-        const gPrefix = globals.PREFIX;
+        const gPrefix = configManager.PREFIX;
         if (common_to_commands.isCmd(pingresponse, gPrefix)) {
             for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                 { command: pingresponse, prefix: gPrefix, msg: m },
@@ -201,7 +204,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     ) || common.BLACKLISTED_USERS().includes(m.author.id)) {
         return
     }
-    if (m.channel.type !== ChannelType.DM && m.guild && m.guild?.id !== globals.GUILD_ID)
+    if (m.channel.type !== ChannelType.DM && m.guild && m.guild?.id !== configManager.GUILD_ID)
         return
 
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
@@ -220,7 +223,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         economy.setMoney(m.author.id, 0)
     }
 
-    let local_prefix = m.author.getBOpt("prefix", globals.PREFIX)
+    let local_prefix = m.author.getBOpt("prefix", configManager.PREFIX)
 
     let content = m.content
 
@@ -374,4 +377,4 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
     }
 })
 
-common.client.login(globals.getConfigValue("secrets.token"))
+common.client.login(configManager.getConfigValue("secrets.token"))

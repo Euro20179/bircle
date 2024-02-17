@@ -22,6 +22,9 @@ import { BattleEffect, BattleResponse, BattleResponses } from '../battle'
 import cmds from '../command-parser/cmds'
 import lexer from '../command-parser/lexer'
 import timer from '../timer'
+import configManager from '../config-manager'
+
+configManager
 
 const handleSending = cmds.handleSending
 
@@ -45,7 +48,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
         msg.author = oldId
     }, "Runas", {
-        permCheck: m => globals.ADMINS.includes(m.author.id)
+        permCheck: m => configManager.ADMINS.includes(m.author.id)
     })]
 
     yield ['endpoint', ccmdV2(async function({ opts, args, stdin, msg }) {
@@ -420,7 +423,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             user_options.saveUserOptions()
             return { content: `<@${member.id}> unset ${optname}`, status: StatusCode.RETURN }
 
-        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => globals.ADMINS.includes(m.author.id)),
+        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => configManager.ADMINS.includes(m.author.id)),
     ]
 
     yield [
@@ -758,7 +761,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return { content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN }
             }
             return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
-        }, CAT, undefined, null, null, null, (m) => globals.ADMINS.includes(m.author.id)),
+        }, CAT, undefined, null, null, null, (m) => configManager.ADMINS.includes(m.author.id)),
     ]
 
     yield [
@@ -783,7 +786,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             let fn = args.join(" ")
             if (!Object.keys(API.APICmds).includes(fn)) {
-                return { content: `${fn} is not a valid  api function\nrun \`${globals.PREFIX}api -l\` to see api commands`, status: StatusCode.ERR }
+                return { content: `${fn} is not a valid  api function\nrun \`${configManager.PREFIX}api -l\` to see api commands`, status: StatusCode.ERR }
             }
             let apiFn = API.APICmds[fn]
             let argsForFn: { [key: string]: any } = {}
@@ -1452,7 +1455,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             cmdToCheck = cmdToCheck.split(";end")[0]
             let success;
-            if (condition.trim().startsWith(`(${globals.PREFIX}`)) {
+            if (condition.trim().startsWith(`(${configManager.PREFIX}`)) {
                 let command_to_run = ""
                 let check = ""
                 let expected = ""
@@ -1499,7 +1502,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }
                 let rv: CommandReturn = { status: 0, noSend: true }
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                    { command: command_to_run, prefix: globals.PREFIX, runtime_opts, msg, symbols },
+                    { command: command_to_run, prefix: configManager.PREFIX, runtime_opts, msg, symbols },
                     "if(SUB)",
                     { parentPID }
                 )) {
@@ -1575,7 +1578,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     }
                 }
             }
-            let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
+            let elseCmd = args.join(" ").split(`${configManager.PREFIX}else;`).slice(1).join(`${configManager.PREFIX}else;`)?.trim()
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                     { command: "(PREFIX)" + cmdToCheck.trim(), prefix: "(PREFIX)", runtime_opts, msg, symbols },
@@ -1731,7 +1734,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             fs.rmSync(`./command-results/${file}`)
             return { content: `${file} removed`, status: StatusCode.RETURN }
         }, "Remove a database file", {
-            permCheck: m => globals.ADMINS.includes(m.author.id)
+            permCheck: m => configManager.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -2110,8 +2113,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
             for (let line of text) {
                 line = line.trim()
-                if (line.startsWith(globals.PREFIX)) {
-                    line = line.slice(globals.PREFIX.length)
+                if (line.startsWith(configManager.PREFIX)) {
+                    line = line.slice(configManager.PREFIX.length)
                 }
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                     { command: `(PREFIX)${parseRunLine(line)}`, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols },
@@ -2228,7 +2231,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             //gets a list of indecies of the items that the user can remove
             let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
-                return v.trim() === msg.author.id || globals.ADMINS.includes(msg.author.id) ? i : undefined
+                return v.trim() === msg.author.id || configManager.ADMINS.includes(msg.author.id) ? i : undefined
             }).filter(v => v !== undefined)
 
             let options = data.map((value, i) => [i, value] as const).filter(v => allowedIndicies.includes(v[0]))
@@ -2627,7 +2630,7 @@ ${styles}
                     status: StatusCode.RETURN
                 }
             }
-            // return globals.ADMINS.includes(msg.author.id)
+            // return configManager.ADMINS.includes(msg.author.id)
         }, "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd")
     ]
 
@@ -2637,7 +2640,7 @@ ${styles}
             globals.CMDUSE = globals.loadCmdUse()
             return { content: "cmd use reset", status: StatusCode.RETURN }
         }, "Resets cmduse", {
-            permCheck: m => globals.ADMINS.includes(m.author.id)
+            permCheck: m => configManager.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -2749,7 +2752,7 @@ ${styles}
 
             if (aliasV2s[name]) {
                 let failed = false
-                if (aliasV2s[name].creator === msg.author.id || globals.ADMINS.includes(msg.author.id)) {
+                if (aliasV2s[name].creator === msg.author.id || configManager.ADMINS.includes(msg.author.id)) {
                     if (!opts.getBool("y", false)) {
                         let validRespones = ["yes", "y"]
                         let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
@@ -2802,7 +2805,7 @@ ${styles}
                     name = text
                     if (getAliasesV2()[name]) {
                         let failed = false
-                        if (aliasV2s[name].creator === msg.author.id || globals.ADMINS.includes(msg.author.id)) {
+                        if (aliasV2s[name].creator === msg.author.id || configManager.ADMINS.includes(msg.author.id)) {
                             if (!opts.getBool("y", false)) {
                                 let validRespones = ["yes", "y"]
                                 let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {

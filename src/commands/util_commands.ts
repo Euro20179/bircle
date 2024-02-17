@@ -29,6 +29,7 @@ import translate from '@iamtraction/google-translate'
 import { attach } from 'neovim'
 
 import cmds from '../command-parser/cmds'
+import configManager from '../config-manager'
 
 const handleSending = cmds.handleSending
 
@@ -813,7 +814,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             })
             return crv("clearing logs", { status: StatusCode.INFO })
         }, "Clears logs", {
-            permCheck: m => globals.ADMINS.includes(m.author.id)
+            permCheck: m => configManager.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -2439,7 +2440,7 @@ middle
             {
                 "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:<br>
 <p>
-${globals.PREFIX}embed title this is the title<br>
+${configManager.PREFIX}embed title this is the title<br>
 url https://aurl.com<br>
 description the description<br>
 field name | value | (optional true or false)<br>
@@ -2492,7 +2493,7 @@ The order these are given does not matter, excpet for field, which will be added
             cmd.stdin.write(m.content + "\n")
         })
         return { noSend: true, status: StatusCode.ERR }
-    }, CommandCategory.UTIL, "Open a remote shell", undefined, undefined, undefined, m => globals.ADMINS.includes(m.author.id))]
+    }, CommandCategory.UTIL, "Open a remote shell", undefined, undefined, undefined, m => configManager.ADMINS.includes(m.author.id))]
 
     yield ["qalc", createCommandV2(async ({ msg, args: argList, opts, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
@@ -3605,7 +3606,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ], status: StatusCode.RETURN
             }
         }, "Gets messages", {
-            permCheck: m => globals.ADMINS.includes(m.author.id)
+            permCheck: m => configManager.ADMINS.includes(m.author.id)
         })
     ]
 

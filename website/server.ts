@@ -9,7 +9,7 @@ import user_options from '../src/user-options'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient, isSafeFilePath } from '../src/util'
 
 import common from '../src/common'
-import { CLIENT_SECRET, CLIENT_ID, getConfigValue, editConfig } from '../src/globals'
+import { CLIENT_SECRET, CLIENT_ID, getConfigValue, editConfig } from '../src/config-manager'
 import pets from '../src/pets'
 import timer from '../src/timer'
 import { getInventory } from '../src/shop'
