@@ -464,7 +464,10 @@ export class AliasV2 {
             vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
-        globals.addToCmdUse(this.name)
+        //this.name does not get added to cmdUse in the events if it's legacy
+        if(legacy){
+            globals.addToCmdUse(this.name)
+        }
         await this.expand(args, opts, ((a, preArgs) => {
             globals.addToCmdUse(a)
             lastCmd = a

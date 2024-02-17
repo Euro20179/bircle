@@ -4,6 +4,7 @@ import { ArgList, Options, getContentFromResult } from "../util";
 import { Message } from "discord.js";
 import { RuntimeOptions } from "./cmds";
 import vars from "../vars";
+import { addToCmdUse } from "../globals";
 
 const commandEventListener = new EventEmitter()
 
@@ -19,6 +20,7 @@ type CmdRunEvent = {
     args: ArgList,
     opts: Options,
     runtimeOpts: RuntimeOptions
+    cmd: string
 }
 
 type CmdOverEvent = {
@@ -32,7 +34,8 @@ type CmdResultEvent = {
     msg: Message
 }
 
-commandEventListener.on(cmdRun, function(_event: CmdRunEvent){
+commandEventListener.on(cmdRun, function(event: CmdRunEvent){
+    addToCmdUse(event.cmd)
 })
 
 commandEventListener.on(cmdResult, function(event: CmdResultEvent){

@@ -171,7 +171,8 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         cmdObject,
         args,
         opts,
-        runtimeOpts: runtime_options
+        runtimeOpts: runtime_options,
+        cmd
     })
 
     if (cmdObject instanceof AliasV2) {
