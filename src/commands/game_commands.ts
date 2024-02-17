@@ -1711,20 +1711,20 @@ until you put a 0 in the box`)
             if (!economy.canBetAmount(msg.author.id, bet)) {
                 return { content: "That bet is too high for you", status: StatusCode.ERR }
             }
-            if (globals.BLACKJACK_GAMES[msg.author.id]) {
+            if (globals.userUsingCommand(msg.author.id, "blackjack")) {
                 return { content: "You idiot u already playing the game", status: StatusCode.ERR }
             }
+
+            globals.startCommand(msg.author.id, "blackjack")
 
             let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
 
             if (shop.hasItem(msg.author.id, "conspiracy")) {
                 shop.useItem(msg.author.id, "conspiracy")
                 economy.addMoney(msg.author.id, bet * 3)
-                delete globals.BLACKJACK_GAMES[msg.author.id]
+                globals.endCommand(msg.author.id, "blackjack")
                 return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
-
-            globals.BLACKJACK_GAMES[msg.author.id] = true
 
             let cards: string[] = []
 
@@ -1807,14 +1807,14 @@ until you put a 0 in the box`)
 
             function winBJ(bet: number) {
                 economy.addMoney(msg.author.id, bet * 3)
-                delete globals.BLACKJACK_GAMES[msg.author.id]
+                globals.endCommand(msg.author.id, "blackjack")
                 return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
 
             }
 
             function dealerBJ(bet: number) {
                 economy.loseMoneyToBank(msg.author.id, bet)
-                delete globals.BLACKJACK_GAMES[msg.author.id]
+                globals.endCommand(msg.author.id, "blackjack")
                 if (Math.random() > .999) {
                     economy.loseMoneyToBank(msg.author.id, bet * 2)
                     return { content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN }
@@ -1888,7 +1888,7 @@ until you put a 0 in the box`)
                 response = collectedMessages.at(0)
                 if (!response) {
                     economy.loseMoneyToBank(msg.author.id, bet)
-                    delete globals.BLACKJACK_GAMES[msg.author.id]
+                    globals.endCommand(msg.author.id, "blackjack")
                     return { content: `Did not respond  in time, lost ${bet}`, status: StatusCode.ERR }
                 }
 
@@ -1986,7 +1986,7 @@ until you put a 0 in the box`)
                         UserHp = UserHp - Math.floor(Math.random() * 26);
                         await newmsg.edit(`spider attack u\nUserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`)
                     }
-                    delete globals.BLACKJACK_GAMES[msg.author.id]
+                    globals.endCommand(msg.author.id, "blackjack")
                     if (UserHp > 0) {
 
                         let amount = Math.random() * 2 + 1
@@ -2006,7 +2006,7 @@ until you put a 0 in the box`)
                 status = `You won: ${currency_sign}${bet}`
                 economy.addMoney(msg.author.id, bet)
             }
-            delete globals.BLACKJACK_GAMES[msg.author.id]
+            globals.endCommand(msg.author.id, "blackjack")
 
             return { content: `<@${msg.author.id}>\n**${status}**\n${stats}`, status: StatusCode.RETURN }
         }, "Play a round of blackjack",

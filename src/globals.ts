@@ -20,7 +20,6 @@ export const ADMINS = BOT_CONFIG.general.admins
 
 export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
-export let BLACKJACK_GAMES: { [id: string]: boolean } = {}
 export let EDS: { [id: string]: boolean } = {}
 
 export let HEIST_PLAYERS: string[] = []
@@ -187,7 +186,6 @@ export default {
     ADMINS,
     BUTTONS,
     POLLS,
-    BLACKJACK_GAMES,
     EDS,
     HEIST_PLAYERS,
     HEIST_TIMEOUT,
