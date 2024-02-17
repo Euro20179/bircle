@@ -1,4 +1,3 @@
-import { User } from "discord.js"
 import fs from 'fs'
 
 import { ProcessManager } from "./command-parser/process-manager"
@@ -19,7 +18,6 @@ export const ADMINS = BOT_CONFIG.general.admins
 export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 export let EDS: { [id: string]: boolean } = {}
-
 
 //an array of commands that the user is running
 export let USER_IN_COMMANDS: { [id: string]: string[] } = {}
@@ -105,32 +103,26 @@ export function writeCmdUse() {
     fs.writeFileSync("data/cmduse", generateCmdUseFile())
 }
 
-export function loadCmdUse() {
-    let cmduse: { [key: string]: number } = {}
-    if (!fs.existsSync("data/cmduse")) {
+function loadUseFile(fp: string){
+    let usage: { [key: string]: number } = {}
+    if (!fs.existsSync(fp)) {
         return {}
     }
-    let data = fs.readFileSync("data/cmduse", "utf-8")
+    let data = fs.readFileSync(fp, "utf-8")
     for (let line of data.split("\n")) {
         if (!line) continue
-        let [cmd, times] = line.split(":")
-        cmduse[cmd] = parseInt(times)
+        let [item, count] = line.split(":")
+        usage[item] = parseInt(count)
     }
-    return cmduse
+    return usage
+}
+
+export function loadCmdUse() {
+    return loadUseFile("data/cmduse")
 }
 
 export function loadEmoteUse() {
-    let emoteuse: { [key: string]: number } = {}
-    if (!fs.existsSync("data/emoteuse")) {
-        return {}
-    }
-    let data = fs.readFileSync("data/emoteuse", "utf-8")
-    for (let line of data.split("\n")) {
-        if (!line) continue
-        let [emote, times] = line.split(":")
-        emoteuse[emote] = parseInt(times)
-    }
-    return emoteuse
+    return loadUseFile("data/emoteuse")
 }
 
 export function editConfig(path: string, newValue: any) {
