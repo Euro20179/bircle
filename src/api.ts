@@ -201,3 +201,8 @@ export async function handleApiArgumentType(
             return argument
     }
 }
+
+export default {
+    handleApiArgumentType,
+    APICmds
+}

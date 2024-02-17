@@ -1,5 +1,5 @@
 import fs from 'fs'
-import fetch = require('node-fetch')
+
 import economy, { EconomyData } from '../economy'
 import pet from '../pets'
 import user_options from '../user-options'
@@ -34,7 +34,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
         let res;
         try {
-            res = await fetch.default(`http://${ip}/total`)
+            res = await fetch(`http://${ip}/total`)
         }
         catch (err) {
             return crv("Could not fetch data", { status: StatusCode.ERR })
@@ -68,7 +68,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
         let res;
         try {
-            res = await fetch.default(`http://${ip}/total`)
+            res = await fetch(`http://${ip}/total`)
         }
         catch (err) {
             return crv("Could not fetch data", { status: StatusCode.ERR })
@@ -120,7 +120,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
             let res;
             try {
-                res = await fetch.default(`http://${ip}/total`)
+                res = await fetch(`http://${ip}/total`)
             }
             catch (err) {
                 return crv("Could not fetch data", { status: StatusCode.ERR })
@@ -147,7 +147,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
             let amountAfterExchangeRate = nAmount * exchangeRate
 
-            let response = await fetch.default(`http://${ip}/exchange`,
+            let response = await fetch(`http://${ip}/exchange`,
                 { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: msg.author.id, money: amountAfterExchangeRate }) }
             )
 
@@ -649,7 +649,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let amount = args[1]
             let data
             try {
-                data = await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
+                data = await fetch(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
             }
             catch (err) {
                 return { content: "Could not fetch data", status: StatusCode.ERR }
@@ -782,7 +782,7 @@ export default function*(): Generator<[string, CommandV2]> {
             if (!ip) {
                 return crv("No ip", { status: StatusCode.ERR })
             }
-            let res = await fetch.default(`http://${ip}`)
+            let res = await fetch(`http://${ip}`)
             let json = await res.json()
             //0 means that it has been an hour, but they are not broke
             if (canWork === 0 && json[msg.author.id]?.major === 'graduated') {

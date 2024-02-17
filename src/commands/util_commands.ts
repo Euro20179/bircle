@@ -3,11 +3,9 @@ import vm from 'vm'
 import https from 'https'
 import cheerio from 'cheerio'
 
-import fetch = require('node-fetch')
-
 import { Stream } from 'stream'
 
-import globals = require('../globals')
+import globals from '../globals'
 import economy from '../economy'
 import pet from '../pets'
 import timer from '../timer'
@@ -239,7 +237,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
         const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
-        let results = await fetch.default(search, {
+        let results = await fetch(search, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
             }
@@ -276,7 +274,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             link = linkList[0]
         }
 
-        let showReq = await fetch.default(link, {
+        let showReq = await fetch(link, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
             }
@@ -396,7 +394,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             const embed = new EmbedBuilder()
 
-            const res = await fetch.default(url, {
+            const res = await fetch(url, {
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -507,7 +505,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
         let res;
         try {
-            res = await fetch.default(`http://${ip}`, { method: "POST", body: JSON.stringify({ "id": user.id }), headers: { "Content-Type": "application/json" } })
+            res = await fetch(`http://${ip}`, { method: "POST", body: JSON.stringify({ "id": user.id }), headers: { "Content-Type": "application/json" } })
         }
         catch (err) {
             return crv("Could not fetch data", { status: StatusCode.ERR })
@@ -540,7 +538,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let ref = await msg.fetchReference()
             if (ref.attachments) {
                 for (let attachment of ref.attachments) {
-                    let res = await (await fetch.default(attachment[1].url)).buffer()
+                    let res = Buffer.from(await (await fetch(attachment[1].url)).arrayBuffer())
                     content += res.toString("binary")
                 }
             }
@@ -1838,7 +1836,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
 
             if (opts['refresh']) {
-                let data = await fetch.default("https://www.rsc.org/periodic-table/")
+                let data = await fetch("https://www.rsc.org/periodic-table/")
                 let text = await data.text()
                 let elementsData = text.match(/var elementsData = (.*);/)
                 if (!elementsData?.[1]) {
@@ -1929,7 +1927,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             let pageNo = Number(opts['page'] as string) || 1
 
-            let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}&type=video`)
+            let res = await fetch(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}&type=video`)
             let jsonData = await res.json()
 
             let valid_thumbnail_qualities = [
@@ -2052,7 +2050,7 @@ middle
             let url = "https://www.duckduckgo.com"
             try {
                 let start = Date.now()
-                await fetch.default(url, { timeout: 1500 })
+                await fetch(url)
                 return { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }
             }
             catch (err) {
@@ -2660,7 +2658,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 if (!file) {
                     return crv("No text, or file given", { status: StatusCode.ERR })
                 }
-                let req = await fetch.default(file)
+                let req = await fetch(file)
                 text = await req.text()
             }
             let json
@@ -3274,7 +3272,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         'stackl', ccmdV2(async function({ msg, rawArgs: args }) {
-            const stackl = require("../stackl")
+            const stackl = await import("../stackl")
             let opts: Opts;
             [opts, args] = getOpts(args)
             let useStart = true
@@ -3616,8 +3614,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         ccmdV2(async function({ msg, args }) {
             let att = msg.attachments.at(0)
             if (att) {
-                let data = await fetch.default(att.url)
-                let text = await data.buffer()
+                let data = await fetch(att.url)
+                let text = Buffer.from(await data.arrayBuffer())
                 return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
             }
             return { noSend: true, status: StatusCode.ERR }
@@ -4302,7 +4300,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!data) {
                 let attachment = msg.attachments?.at(0)
                 if (attachment) {
-                    let res = await fetch.default(attachment.url)
+                    let res = await fetch(attachment.url)
                     data = await res.text()
                 }
                 else return { content: "no data given to search through", status: StatusCode.ERR }

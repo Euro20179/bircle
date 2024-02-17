@@ -1,8 +1,6 @@
-
 import fs from 'fs'
-import ytdl = require('ytdl-core')
-import fetch = require('node-fetch')
-
+import ytdl from 'ytdl-core'
+import fetch from 'node-fetch'
 
 
 import { CommandCategory, createCommandV2, StatusCode } from '../common_to_commands'

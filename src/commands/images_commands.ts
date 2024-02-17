@@ -1,8 +1,6 @@
 import fs from 'fs'
 import https from 'https'
 
-import fetch = require('node-fetch')
-
 import { Stream } from 'stream'
 
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile,  StatusCode } from '../common_to_commands'
@@ -81,17 +79,17 @@ export default function*(): Generator<[string, CommandV2]> {
         "picsum.photos", createCommandV2(async ({ rawOpts: opts, msg, args }) => {
             let width = parseInt(args[0]) || 100;
             let height = parseInt(args[1]) || 100;
-            let data = await fetch.default(`https://picsum.photos/${width}/${height}`);
+            let data = await fetch(`https://picsum.photos/${width}/${height}`);
             if (data.status !== 200) {
                 return { content: `picsum returned a ${data.status} error`, status: StatusCode.ERR }
             }
             if (opts['url']) {
                 return { content: data.url, status: StatusCode.RETURN }
             }
-            let png_fetch = await fetch.default(data.url)
-            let png = await png_fetch.buffer()
+            let png_fetch = await fetch(data.url)
+            let png = await png_fetch.arrayBuffer()
             const fn = cmdFileName`picsum.photos ${msg.author.id} png`
-            fs.writeFileSync(fn, png)
+            fs.writeFileSync(fn, Buffer.from(png))
             return {
                 files: [
                     {
@@ -820,7 +818,7 @@ The commands below, only work after **path** has been run:
                 let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
                 positions.push([x, y])
             }
-            let img_data = await fetch.default(String(img_link))
+            let img_data = await fetch(String(img_link))
             let fn = cmdFileName`polygon ${msg.author.id} png`
             fs.writeFileSync(fn, await img_data.buffer())
             let img = await canvas.loadImage(fn)
@@ -1353,7 +1351,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 buf = fs.readFileSync(img)
             }
             else {
-                buf = await (await fetch.default(img)).buffer()
+                buf = await (await (await fetch(img)).blob()).arrayBuffer()
             }
             let fn = cmdFileName`rotate ${msg.author.id} png`
             try {

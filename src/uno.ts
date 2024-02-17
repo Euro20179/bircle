@@ -1,6 +1,6 @@
 const colors = ["red", "green", "blue", "yellow"]
 
-class Card {
+export class Card {
     type = "normal"
     constructor(public color: string, public value: string) {}
     canBePlayed(stack: Stack) {
@@ -258,7 +258,7 @@ class GiveCard extends Card {
     }
 }
 
-class Stack {
+export class Stack {
     cards: Card[]
     constructor(cards: Card[]) {
         this.cards = cards
@@ -298,7 +298,7 @@ class Stack {
     }
 }
 
-class Hand {
+export class Hand {
     cards: Card[]
     constructor(count: number, stack: Stack) {
         this.cards = []
@@ -370,7 +370,7 @@ function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }: 
     return cards
 }
 
-export {
+export default {
     Hand,
     Card,
     Stack,

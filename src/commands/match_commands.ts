@@ -3,7 +3,7 @@ import { cmd, createHelpArgument, createMatchCommand, crv, Interpreter, lastComm
 import { Parser } from '../parsing'
 import { fetchUserFromClient, getContentFromResult, isMsgChannel } from '../util'
 
-import user_options = require('../user-options')
+import user_options from '../user-options'
 import vars from '../vars'
 import { DMChannel, Message } from 'discord.js'
 

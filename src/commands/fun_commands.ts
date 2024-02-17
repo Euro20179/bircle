@@ -24,8 +24,6 @@ import {
     ButtonInteraction,
 } from 'discord.js';
 
-import fetch = require('node-fetch')
-
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
@@ -59,9 +57,9 @@ import {
 // import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
 //
 import { format, getOpts, parseRangeString } from '../parsing'
-import user_options = require('../user-options')
+import user_options from '../user-options'
 import pet from '../pets'
-import globals = require('../globals')
+import globals from '../globals'
 import timer from '../timer'
 import common_to_commands, {
     ccmdV2,
@@ -460,7 +458,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let prompt = (approved_models[
                     model as keyof typeof approved_models
                 ] as string).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", resp.content)
-                const result = await fetch.default(`${baseurl}:11434/api/chat`, {
+                const result = await fetch(`${baseurl}:11434/api/chat`, {
                     method: "POST",
                     body: JSON.stringify({
                         model,
@@ -483,7 +481,7 @@ export default function*(): Generator<[string, CommandV2]> {
             } while (true)
             return crv("Chat session ended")
         }
-        const result = await fetch.default(`${baseurl}:11434/api/generate`, {
+        const result = await fetch(`${baseurl}:11434/api/generate`, {
             method: "POST",
             body: JSON.stringify({
                 model,
@@ -776,7 +774,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     common.GLOBAL_CURRENCY_SIGN
                 )
                 let gallonToBarrel = 1 / 42
-                let res = await fetch.default("https://oilprice.com/oil-price-charts")
+                let res = await fetch("https://oilprice.com/oil-price-charts")
                 let html = await res.text()
 
                 let prices = html.match(/>(\d+.\d+)</)
@@ -972,7 +970,7 @@ export default function*(): Generator<[string, CommandV2]> {
         'scorigami', ccmdV2(async ({ args, opts }) => {
             let data
             try {
-                data = await fetch.default('https://nflscorigami.com/data')
+                data = await fetch('https://nflscorigami.com/data')
             }
             catch (err) {
                 return { content: "Unable to fetch  scorigami", status: StatusCode.ERR }
@@ -1253,7 +1251,7 @@ export default function*(): Generator<[string, CommandV2]> {
             const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${globals.GUILD_ID}`
             let data
             try {
-                data = await fetch.default(url)
+                data = await fetch(url)
             }
             catch (err) {
                 return { content: "Could not fetch data", status: StatusCode.ERR }
@@ -1477,7 +1475,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
             const BASE = `https://${locale}.wikipedia.org/w/api.php`
             const LIMIT = opts.getNumber("limit", 10)
-            const searchResp = await fetch.default(`${BASE}?action=opensearch&search=${search}&limit=${LIMIT}`)
+            const searchResp = await fetch(`${BASE}?action=opensearch&search=${search}&limit=${LIMIT}`)
             const searchResult = await searchResp.json()
             let title;
             if (opts.getBool("a", false)) {
@@ -1504,7 +1502,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 title = searchResult[1][Number(n.content) - 1]
             }
 
-            const pageResp = await fetch.default(`${BASE}?action=parse&page=${title}&prop=text&formatversion=2&format=json&redirects`)
+            const pageResp = await fetch(`${BASE}?action=parse&page=${title}&prop=text&formatversion=2&format=json&redirects`)
 
             const pageJson = await pageResp.json()
 
@@ -1895,7 +1893,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
             let remote = runtime_opts.get("remote", false)
 
-            let resp = await fetch.default(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
+            let resp = await fetch(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
             let html = await resp.text()
             let embed = new EmbedBuilder()
             //winner should be in *****
@@ -2049,7 +2047,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let url = "https://www.wttr.in"
             let town = args.join(" ") || "tokyo"
 
-            let data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
+            let data = await (await fetch(`${url}/${encodeURI(town)}?format=1`)).text()
             let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
             if (!tempData) {
                 return { content: "Could not find weather", status: StatusCode.ERR }
@@ -2123,7 +2121,7 @@ Valid formats:
                 city = userOptions.getOpt(msg.author.id, "location", "Tokyo")
             }
             const link = `https://search.brave.com/search?q=${city}+weather&source=web`
-            let res = await fetch.default(link)
+            let res = await fetch(link)
             let text = await res.text()
             let data = text.match(/const data = (\[.*\]);/)
             //must use eval because it's not valid json
@@ -2448,14 +2446,14 @@ Valid formats:
         "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts, runtime_opts }) {
             let req;
             if (opts.getBool("r", opts.getBool("rand", false))) {
-                req = await fetch.default(`https://api.urbandictionary.com/v0/random`)
+                req = await fetch(`https://api.urbandictionary.com/v0/random`)
             }
             else {
                 let search = stdin ? getContentFromResult(stdin) : argShapeResults['query'] as string | typeof BADVALUE
                 if (search === BADVALUE || !search) {
                     return crv("No serach query")
                 }
-                req = await fetch.default(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
+                req = await fetch(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
             }
             function createEmbedsFromUdictResults(results: any, ratingLocation: "auto" | "footer" | "fields" = "auto") {
                 let embeds = []
@@ -2516,7 +2514,7 @@ Valid formats:
             let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")
 
             paged.addButton("random", { label: "🔀", customId: `udict.random:${msg.author.id}`, style: ButtonStyle.Success }, function(_int, m) {
-                fetch.default(`https://api.urbandictionary.com/v0/random`).then(async (req) => {
+                fetch(`https://api.urbandictionary.com/v0/random`).then(async (req) => {
                     const json = await req.json()
                     this.embeds = createEmbedsFromUdictResults(json)
                     await m.edit({ components: [this.createActionRow()], embeds: [this.embeds[this.currentPage]] }).catch(console.error)
@@ -2710,7 +2708,7 @@ Valid formats:
         "reddit",
         ccmdV2(async function({ args }) {
             let subreddit = args[0]
-            let data = await fetch.default(`https://libreddit.kavin.rocks/r/${subreddit}`)
+            let data = await fetch(`https://libreddit.kavin.rocks/r/${subreddit}`)
             let text = await data.text()
             if (!text) {
                 return { content: "nothing found", status: StatusCode.ERR }
@@ -2790,7 +2788,7 @@ Valid formats:
             from = encodeURI(from.trim())
             to = encodeURI(to.trim())
             const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
-            const resp = await fetch.default(url, {
+            const resp = await fetch(url, {
                 headers: {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
                 }

@@ -1,5 +1,5 @@
 import fs from 'fs'
-import fetch = require("node-fetch")
+import fetch from "node-fetch"
 
 import pet from "./pets"
 import timer from "./timer"

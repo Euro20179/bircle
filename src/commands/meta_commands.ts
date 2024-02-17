@@ -4,9 +4,9 @@ import vars, { VarType } from '../vars'
 
 
 import { aliasesV2, AliasV2, ccmdV2, clearSnipes, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
-import globals = require('../globals')
-import user_options = require('../user-options')
-import API = require('../api')
+import globals from '../globals'
+import user_options from '../user-options'
+import API from '../api'
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
@@ -2322,23 +2322,19 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
 
             let data = {
-                util: require("../util"),
-                common_to_commands: require("../common_to_commands").default,
-                globals: () => {
-                    let data = require("../globals")
-                    delete data['token']
-                    return data
-                },
-                common: require("../common"),
-                economy: require("../economy").default,
-                timer: require("../timer").default,
-                pets: require("../pets").default,
-                amount_parser: require("../amount-parser").default
+                util: await import("../util"),
+                common_to_commands: await import("../common_to_commands"),
+                globals: await import("../globals"),
+                common: await import("../common"),
+                economy: await import("../economy"),
+                timer: await import("../timer"),
+                pets: await import("../pets"),
+                amount_parser: await import("../amount-parser")
             }
             if (args[0].includes(".")) {
                 args = new ArgList(args.join(" ").split("."))
             }
-            let curObj = data
+            let curObj: object = data
             for (let prop of args) {
                 curObj = curObj?.[prop as keyof typeof curObj]
             }

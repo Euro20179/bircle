@@ -4,7 +4,7 @@ import { Message, EmbedBuilder } from 'discord.js'
 
 import pet from './pets'
 
-import fs = require("fs")
+import fs from 'fs'
 
 import { getOpts } from './parsing'
 
@@ -949,6 +949,6 @@ async function battle(msg: Message, args: ArgumentList) {
     return { embeds: [e], status: StatusCode.RETURN }
 }
 
-export {
+export default {
     battle
 }

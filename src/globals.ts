@@ -22,7 +22,7 @@ export let EDS: { [id: string]: boolean } = {}
 
 export let HEIST_PLAYERS: string[] = []
 
-export let HEIST_TIMEOUT: NodeJS.Timeout | null = null
+export let HEIST_TIMEOUT: Timeout | null = null
 export let HEIST_STARTED = false
 
 export let YAHTZEE_WAITING_FOR_PLAYERS = false

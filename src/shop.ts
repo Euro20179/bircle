@@ -1,4 +1,4 @@
-import fs = require("fs")
+import fs from 'fs'
 
 type ItemData = {[key: string]: {count: number, uses: number, description: string, max?: number, cost: string[]}}
 let INVENTORY: {[key: string]: {[key: string]: number}} = {}

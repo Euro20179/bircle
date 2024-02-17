@@ -1,6 +1,6 @@
 import { Message } from 'discord.js'
 
-import fs = require("fs")
+import fs from 'fs'
 import economy from './economy'
 import amountParser from './amount-parser'
 
@@ -38,10 +38,6 @@ let PETACTIONS: { [key: string]: Function } = {
         }
         return false
     },
-}
-
-function randInt(min: number, max: number) {
-    return Math.random() * (max - min) + min
 }
 
 function loadPets() {

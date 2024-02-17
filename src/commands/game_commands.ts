@@ -3,13 +3,13 @@ import fs from 'fs'
 import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
 import { StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
 
-import globals = require('../globals')
+import globals from '../globals'
 import economy from '../economy'
-import user_options = require('../user-options')
-import battle = require('../battle')
+import user_options from '../user-options'
+import battle from '../battle'
 import pet from '../pets'
 
-import uno = require('../uno')
+import uno, { Hand, Stack } from '../uno'
 
 import { choice, cycle, efd, fetchUser, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from '../util'
 
@@ -1596,7 +1596,7 @@ until you put a 0 in the box`)
                         }
                         await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined, status: StatusCode.RETURN })
                     }
-                }, timeRemaining)
+                }, timeRemaining) as NodeJS.Timeout
             }
             let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
             return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO, do_change_cmd_user_expansion: false }
@@ -2090,7 +2090,7 @@ until you put a 0 in the box`)
             let deck = new uno.Stack(cards)
             let pile = new uno.Stack([])
 
-            let playerData = new Map<string, uno.Hand>()
+            let playerData = new Map<string, Hand>()
 
             for (let player of players) {
                 playerData.set(player.id, new uno.Hand(7, deck))
@@ -2121,7 +2121,7 @@ until you put a 0 in the box`)
                     }
                     if (!(pile.top()?.type == 'skip')) {
                         let player = players[players.map(v => v.id).indexOf(going)]
-                        let send = displayStack(playerData.get(player.id) as uno.Hand)
+                        let send = displayStack(playerData.get(player.id) as Hand)
                         send += "\n-------------------------"
                         player.send({ content: send })
                         if (pile.cards.length)
@@ -2139,7 +2139,7 @@ until you put a 0 in the box`)
             let cardsPlayed = 0
             let cardsDrawn = 0
             let choosing = false
-            function displayStack(stack: uno.Stack | uno.Hand, count = -1) {
+            function displayStack(stack: Stack | Hand, count = -1) {
                 let send = "card\n"
                 if (count < 0) count = stack.cards.length
                 for (let i = 0; i < count; i++) {
@@ -2167,7 +2167,7 @@ until you put a 0 in the box`)
                         going = turns.next().value
                         return
                     }
-                    if ((playerData.get(player.id) as uno.Hand).cards.length <= 0) {
+                    if ((playerData.get(player.id) as Hand).cards.length <= 0) {
                         await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
                         for (let player of players) {
                             await player.send("STOP")
@@ -2188,29 +2188,29 @@ until you put a 0 in the box`)
                         return
                     }
                     if (m.content.toLowerCase() == "cards") {
-                        await m.channel.send(displayStack(playerData.get(player.id) as uno.Hand))
+                        await m.channel.send(displayStack(playerData.get(player.id) as Hand))
                         return
                     }
                     if (m.content.toLowerCase() == 'draw') {
-                        let rv = (playerData.get(player.id) as uno.Hand).draw(deck)
+                        let rv = (playerData.get(player.id) as Hand).draw(deck)
                         cardsDrawn++
                         if (!rv) {
                             await handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO })
                             pile.shuffle()
                             deck = new uno.Stack(pile.cards)
                             pile = new uno.Stack([]);
-                            (playerData.get(player.id) as uno.Hand).draw(deck)
+                            (playerData.get(player.id) as Hand).draw(deck)
                         }
                         await handleSending(msg, { content: `${player} drew a card`, status: StatusCode.INFO })
-                        let send = displayStack(playerData.get(player.id) as uno.Hand)
+                        let send = displayStack(playerData.get(player.id) as Hand)
                         send += "\n-------------------------"
                         await m.channel.send(send)
-                        await handleSending(msg, { content: `**${player.displayName || player.user.username} has ${(playerData.get(player.id) as uno.Hand).cards.length} cards**`, status: StatusCode.INFO })
+                        await handleSending(msg, { content: `**${player.displayName || player.user.username} has ${(playerData.get(player.id) as Hand).cards.length} cards**`, status: StatusCode.INFO })
                         if (pile.cards.length)
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                         return
                     }
-                    let selectedCard = (playerData.get(player.id) as uno.Hand).cards[Number(m.content) - 1]
+                    let selectedCard = (playerData.get(player.id) as Hand).cards[Number(m.content) - 1]
                     if (!selectedCard) {
                         await player.user.send(`${m.content} is not a valid choice`)
                     }
@@ -2219,7 +2219,7 @@ until you put a 0 in the box`)
                             cardsPlayed++;
                             forcedDraw = 2
                             pile.add(selectedCard);
-                            (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                            (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                             going = turns.next().value
                         }
                         else {
@@ -2229,7 +2229,7 @@ until you put a 0 in the box`)
                     else if (selectedCard.type == 'shuffle-stack') {
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
-                            (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                            (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                             await handleSending(msg, { content: "**stack was shuffled**", status: StatusCode.INFO },)
                             pile.add(selectedCard)
                             pile.shuffle()
@@ -2242,8 +2242,8 @@ until you put a 0 in the box`)
                     else if (selectedCard.type == 'give') {
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++;
-                            (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
-                            await player.send({ content: displayStack((playerData.get(m.author.id) as uno.Hand)) })
+                            (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
+                            await player.send({ content: displayStack((playerData.get(m.author.id) as Hand)) })
                             await player.send("Pick a card from your deck to give to a random opponent")
                             choosing = true
                             try {
@@ -2257,11 +2257,11 @@ until you put a 0 in the box`)
                                     cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                                 }
                                 let n = parseInt(cardM?.content as string)
-                                let selectedRemovealCard = (playerData.get(m.author.id) as uno.Hand).cards[n - 1]
+                                let selectedRemovealCard = (playerData.get(m.author.id) as Hand).cards[n - 1]
                                 let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
                                 let randomPlayer = choice(tempPlayerData)
-                                let hand = playerData.get(randomPlayer) as uno.Hand
-                                (playerData.get(m.author.id) as uno.Hand).remove(selectedRemovealCard)
+                                let hand = playerData.get(randomPlayer) as Hand
+                                (playerData.get(m.author.id) as Hand).remove(selectedRemovealCard)
                                 hand.add(selectedRemovealCard)
                             }
                             catch (err) {
@@ -2279,12 +2279,12 @@ until you put a 0 in the box`)
                     else if (selectedCard.type == '-1') {
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++;
-                            (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                            (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                             pile.add(selectedCard)
                             let randomPlayer = choice(players.filter(v => v.id != player.id)).id
                             await handleSending(msg, { content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`, status: StatusCode.INFO });
-                            let newTopCard = (playerData.get(randomPlayer) as uno.Hand).cards[0];
-                            (playerData.get(randomPlayer) as uno.Hand).remove(0)
+                            let newTopCard = (playerData.get(randomPlayer) as Hand).cards[0];
+                            (playerData.get(randomPlayer) as Hand).remove(0)
                             pile.add(newTopCard)
                             going = turns.next().value
                         }
@@ -2312,7 +2312,7 @@ until you put a 0 in the box`)
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard);
-                        (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                        (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                         going = turns.next().value
                     }
                     else if (selectedCard.type == "wild+4") {
@@ -2338,7 +2338,7 @@ until you put a 0 in the box`)
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard);
-                        (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                        (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                         forcedDraw = 4
                         going = turns.next().value
                     }
@@ -2350,9 +2350,9 @@ until you put a 0 in the box`)
                             going = turns.next().value
                             await new Promise(res => {
                                 pile.add(selectedCard);
-                                (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                                (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                                 let gP = players.filter(v => v.id == going)[0]
-                                let send = displayStack((playerData.get(going) as uno.Hand))
+                                let send = displayStack((playerData.get(going) as Hand))
                                 send += "\n-------------------------"
                                 gP.send({ content: send })
                                 if (pile.cards.length)
@@ -2368,15 +2368,15 @@ until you put a 0 in the box`)
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++;
                             pile.add(selectedCard);
-                            (playerData.get(player.id) as uno.Hand).remove(Number(m.content) - 1)
+                            (playerData.get(player.id) as Hand).remove(Number(m.content) - 1)
                             going = turns.next().value
                         }
                         else {
                             await m.channel.send("You cannot play that card")
                         }
                     }
-                    await handleSending(msg, { content: `**${player.displayName || player.user.username} has ${(playerData.get(player.id) as uno.Hand).cards.length} cards**`, status: StatusCode.INFO })
-                    if ((playerData.get(player.id) as uno.Hand).cards.length <= 0) {
+                    await handleSending(msg, { content: `**${player.displayName || player.user.username} has ${(playerData.get(player.id) as Hand).cards.length} cards**`, status: StatusCode.INFO })
+                    if ((playerData.get(player.id) as Hand).cards.length <= 0) {
                         await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
                         for (let player of players) {
                             await player.send("STOP")

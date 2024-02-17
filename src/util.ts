@@ -1,4 +1,4 @@
-import cheerio = require("cheerio")
+import cheerio from "cheerio"
 import { spawnSync } from "child_process"
 
 import htmlRenderer from "./html-renderer"
@@ -16,6 +16,8 @@ import events from './events'
 import { formatMoney, getOpt } from "./user-options"
 import { getConfigValue } from "./globals"
 import { parseRangeString } from "./parsing"
+
+import units from './units'
 
 
 export type MimeType = `${string}/${string}`
@@ -598,7 +600,7 @@ function rgbToHex(r: int_t, g: int_t, b: int_t) {
 }
 
 function generateSafeEvalContextFromMessage(msg: Message) {
-    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.displayName, ubot: msg.author.bot, Units: require("./units").default }
+    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.displayName, ubot: msg.author.bot, Units: units}
 }
 
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {
