@@ -2,7 +2,7 @@ import { Message, GuildMember, EmbedBuilder, CollectorFilter, ColorResolvable } 
 
 import vars from './vars'
 
-import { cmd, StatusCode } from "./common_to_commands"
+import { StatusCode } from "./common_to_commands"
 import cmds from './command-parser/cmds'
 import { efd, isMsgChannel, sleep } from './util'
 
@@ -519,7 +519,12 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof text !== 'string') {
                 return { err: true, content: "Cannot run a non-string" }
             }
-            let data = (await cmd({ msg, command_excluding_prefix: text, recursion: 19 })).rv
+            let data
+            for await(data of cmds.runcmdv2({
+                msg,
+                command: text,
+                prefix: ""
+            }));
             if (data === undefined) {
                 stack.push(0)
             }

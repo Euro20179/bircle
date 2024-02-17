@@ -6,6 +6,7 @@ import shop, { hasItem } from "./shop"
 import { cmd, getAliasesV2 } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"
+import cmds from "./command-parser/cmds"
 
 export const APICmds: {
     [key: string]: {
@@ -84,11 +85,11 @@ export const APICmds: {
         requirements: ["cmd"],
         extra: ['msg'],
         exec: async ({ msg, cmd: command }: { msg: Message, cmd: string }) => {
-            return JSON.stringify((await cmd({
-                msg,
-                command_excluding_prefix: command,
-                recursion: RECURSION_LIMIT - 1
-            })).rv)
+            let rv;
+            for await(rv of cmds.runcmdv2({
+                msg, command, prefix: ""
+            }));
+            return JSON.stringify(rv)
         }
     },
     economyLooseGrandTotal: {

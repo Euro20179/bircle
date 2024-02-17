@@ -1093,7 +1093,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "count", ccmdV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
+        "count", ccmdV2(async ({ msg, args, recursionCount: rec, commandBans: disable, runtime_opts, symbols, pid_label }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode }
 
             if (msg.channel.id !== globals.BOT_CONFIG.general['counting-channel']) {
@@ -1119,12 +1119,17 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             count_text = format(count_text, { count: `.${numeric}.` })
             if (common_to_commands.isCmd(count_text, globals.PREFIX)) {
-                let rv = (await cmd({
+
+                let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
+
+                let rv;
+                for await(rv of globals.PROCESS_MANAGER.spawn_cmd({
                     msg,
-                    command_excluding_prefix: count_text.slice(globals.PREFIX.length),
-                    recursion: rec,
-                    disable
-                })).rv
+                    command: count_text,
+                    prefix: globals.PREFIX,
+                    runtime_opts,
+                    symbols
+                }, "count(SUB)", { parentPID }));
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
                 }

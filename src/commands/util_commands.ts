@@ -15,7 +15,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import common_to_commands, { StatusCode, lastCommand,  CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
+import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -820,8 +820,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "ed", createCommandV2(async ({ msg, rawOpts: opts, args, recursionCount: rec, commandBans: bans }) => {
+        "ed", createCommandV2(async ({ msg, rawOpts: opts, args, recursionCount: rec, commandBans: bans, runtime_opts, symbols, pid_label }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+
+            let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
+
             if (globals.EDS[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
             }
@@ -1076,8 +1079,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         for (let i = 0; i < commandLines.length; i++) {
                             let textAtLine = text[commandLines[i]]
                             vars.setVar("__ed_line", textAtLine, msg.author.id)
-                            let rv = (await cmd({ msg, command_excluding_prefix: args, recursion: rec, disable: bans })).rv
-                            let t = getContentFromResult(rv, "\n").trim()
+                            let rv;
+                            for await (rv of cmds.runcmdv2({
+                                msg, command: args, prefix: "", runtime_opts, symbols, pid_label
+                            }));
+                            let t = getContentFromResult(rv ?? { noSend: true, status: 0 }, "\n").trim()
                             vars.delVar("__ed_line", msg.author.id)
                             text[commandLines[i]] = t
                         }
@@ -3874,7 +3880,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             let role = argShapeResults['role'] as Role
             let fmt = argShapeResults['fmt'] as string
-            if(fmt){
+            if (fmt) {
                 return crv(
                     format(fmt, {
                         i: role.id,
