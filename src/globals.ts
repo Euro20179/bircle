@@ -6,7 +6,6 @@ export const PROCESS_MANAGER = new ProcessManager()
 
 export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
-export let EDS: { [id: string]: boolean } = {}
 
 //an array of commands that the user is running
 export let USER_IN_COMMANDS: { [id: string]: string[] } = {}
@@ -120,7 +119,6 @@ export let EMOTEUSE = loadEmoteUse()
 export default {
     BUTTONS,
     POLLS,
-    EDS,
     USER_IN_COMMANDS,
     startCommand,
     endCommand,

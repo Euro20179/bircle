@@ -819,12 +819,14 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "ed", createCommandV2(async ({ msg, rawOpts: opts, args, recursionCount: rec, commandBans: bans, runtime_opts, symbols, pid_label }) => {
+        "ed", createCommandV2(async function({ msg, rawOpts: opts, args, recursionCount: rec, commandBans: bans, runtime_opts, symbols, pid_label }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+
+            let state = this[1].state ?? {}
 
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
 
-            if (globals.EDS[msg.author.id]) {
+            if (state.EDS[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
             }
             let mode: "normal" | "insert" = "normal"
@@ -834,13 +836,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 canEdit[i] = (await fetchUserFromClientOrGuild(canEdit[i] as string))?.id || undefined
                 if (canEdit[i] === undefined)
                     continue
-                if (globals.EDS[canEdit[i] as string])
+                if (state.EDS[canEdit[i] as string])
                     canEdit[i] = undefined
             }
             canEdit = canEdit.filter(v => v)
             for (let ed of canEdit) {
                 if (!ed) continue
-                globals.EDS[ed] = true
+                state.EDS[ed] = true
             }
             function parseNormalEdInput(input: string) {
                 let cmds = "qnaipgsdg!"
@@ -1108,8 +1110,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         m = (await msg.channel.awaitMessages({ filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"] })).at(0)
                     }
                     catch (err) {
-                        for (let ed in globals.EDS) {
-                            delete globals.EDS[ed]
+                        for (let ed in state.EDS) {
+                            delete state.EDS[ed]
                         }
 
                         return { content: "Timeout", status: StatusCode.ERR }
@@ -1120,8 +1122,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     }
                 }
             }
-            for (let ed in globals.EDS) {
-                delete globals.EDS[ed]
+            for (let ed in state.EDS) {
+                delete state.EDS[ed]
             }
             if (opts['s']) {
                 return { noSend: true, status: StatusCode.RETURN }
