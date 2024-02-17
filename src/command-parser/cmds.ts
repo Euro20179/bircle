@@ -28,25 +28,6 @@ export class SymbolTable {
     }
 }
 
-type RuntimeOption =
-    "silent"
-    | "stdin"
-    | "remote"
-    | "skip"
-    | "typing"
-    | "delete"
-    | "command"
-    | "alias"
-    | "legacy"
-    | "recursion_limit"
-    | "recursion"
-    | "program-args"
-    | "verbose"
-    | "no-run"
-    | "disable"
-    | "no-send"//this is similar to silent, but instead of yielding { noSend: true, status: 0 }
-//it just adds noSend: true to whatever object it got
-
 type RuntimeOptionValue = {
     silent: boolean,
     stdin: CommandReturn,
@@ -65,6 +46,8 @@ type RuntimeOptionValue = {
     disable: { categories?: CommandCategory[], commands?: string[] } | false
     "no-send": boolean,
 }
+
+type RuntimeOption = keyof RuntimeOptionValue
 
 export class RuntimeOptions {
     public options: Record<RuntimeOption, RuntimeOptionValue[keyof RuntimeOptionValue]>
