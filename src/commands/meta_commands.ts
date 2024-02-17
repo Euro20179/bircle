@@ -2491,7 +2491,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
                 await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
                 delete opts['n']
-                let styles = fs.readFileSync("help-styles.css")
+                let styles = ""
+                if(fs.existsSync("help-styles.css")){
+                    styles = fs.readFileSync("help-styles.css", "utf-8")
+                }
+                styles = user_options.getOpt(msg.author.id, "css", styles)
                 let html = `<style>
 ${styles}
 </style>`
