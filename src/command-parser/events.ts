@@ -5,6 +5,7 @@ import { Message } from "discord.js";
 import { RuntimeOptions } from "./cmds";
 import vars from "../vars";
 import useTracker from "../use-tracker";
+import { PREFIX } from "../config-manager";
 
 const commandEventListener = new EventEmitter()
 
@@ -20,13 +21,15 @@ type CmdRunEvent = {
     args: ArgList,
     opts: Options,
     runtimeOpts: RuntimeOptions
-    cmd: string
+    cmd: string,
+    raw_args: string[]
 }
 
 type CmdOverEvent = {
     msg: Message,
     finalRv: CommandReturn,
-    cmd: string
+    cmd: string,
+    args: string[]
 }
 
 type CmdResultEvent = {
@@ -35,6 +38,10 @@ type CmdResultEvent = {
 }
 
 commandEventListener.on(cmdRun, function(event: CmdRunEvent){
+    const excluded_cmds = ["!!"]
+    if(!excluded_cmds.includes(event.cmd)){
+        lastCommand[event.msg.author.id] = `${PREFIX}${event.cmd} ${event.raw_args.join(" ")}`
+    }
     useTracker.cmdUsage.addToUsage(event.cmd)
 })
 
@@ -43,10 +50,6 @@ commandEventListener.on(cmdResult, function(event: CmdResultEvent){
 })
 
 commandEventListener.on(cmdOver, function(event: CmdOverEvent){
-    const excluded_cmds = ["!!"]
-    if(!excluded_cmds.includes(event.cmd)){
-        lastCommand[event.msg.author.id] = event.msg.content
-    }
     vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
 })
 

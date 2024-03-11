@@ -28,6 +28,7 @@ export function userUsingCommand(id: string, command: string) {
     return USER_IN_COMMANDS[id]?.includes(command) ? true : false
 }
 
+//TODO: make scallywag tokens a normal inventory item
 function loadScallyWagTokens() {
     let SCALLYWAG_TOKENS
     if (fs.existsSync("./command-results/scallywag-tokens.json")) {

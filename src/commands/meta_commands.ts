@@ -11,7 +11,7 @@ import API from '../api'
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from '../util'
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, iterGenerator } from '../util'
 
 
 import { Guild, EmbedBuilder, User } from 'discord.js'
@@ -294,7 +294,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg, symbols})) {
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg, symbols })) {
                     yield result
                 }
             }
@@ -308,7 +308,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
             let rv: CommandReturn = { noSend: true, status: 0 }
-            for await (let res of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg , symbols}, "( (SUB)")) {
+            for await (let res of globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.slice(0, -1).join(" "), prefix: "(PREFIX)", msg, symbols }, "( (SUB)")) {
                 rv = res
             }
             return { content: JSON.stringify(rv), status: StatusCode.RETURN }
@@ -2493,7 +2493,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
                 delete opts['n']
                 let styles = ""
-                if(fs.existsSync("help-styles.css")){
+                if (fs.existsSync("help-styles.css")) {
                     styles = fs.readFileSync("help-styles.css", "utf-8")
                 }
                 styles = user_options.getOpt(msg.author.id, "css", styles)
@@ -2939,12 +2939,13 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!", ccmdV2(async function({ msg, rawOpts: opts }) {
+        "!!", ccmdV2(async function*({ msg, rawOpts: opts }) {
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
                 return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
                 return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
+
             return crv(lastCommand[msg.author.id], {
                 recurse: true
             })

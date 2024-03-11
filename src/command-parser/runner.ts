@@ -171,7 +171,8 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         args,
         opts,
         runtimeOpts: runtime_options,
-        cmd
+        cmd,
+        raw_args
     })
 
     if (cmdObject instanceof AliasV2) {
@@ -207,7 +208,8 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         events.commandEventListener.emit(events.cmdOver, {
             msg,
             finalRv: rv,
-            cmd
+            cmd,
+            args: raw_args
         })
         return
     }
