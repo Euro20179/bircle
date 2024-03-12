@@ -9,7 +9,7 @@ import user_options from '../src/user-options'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient, isSafeFilePath } from '../src/util'
 
 import common from '../src/common'
-import { CLIENT_SECRET, CLIENT_ID, getConfigValue, editConfig } from '../src/config-manager'
+import { CLIENT_SECRET, CLIENT_ID, getConfigValue, editConfig, saveConfig } from '../src/config-manager'
 import pets from '../src/pets'
 import timer from '../src/timer'
 import { getInventory } from '../src/shop'
@@ -320,6 +320,8 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 res.end(JSON.stringify({ "error": "Invalid user" }))
                 break;
             }
+            editConfig("secrets.twin-bot-ip", `${req.socket.remoteAddress}:3000`)
+            saveConfig()
             economy.addMoney(userId, Number(amount))
             res.writeHead(200)
             res.end(JSON.stringify({ "amount": Number(amount) }))
