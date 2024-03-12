@@ -133,6 +133,7 @@ function _handlePost(req: http.IncomingMessage, res: http.ServerResponse) {
 }
 
 function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
+    console.log("hi")
     let [apiEndPoint] = subPaths
     subPaths = subPaths.splice(1)
     res.setHeader("Content-Type", "application/json")
@@ -290,6 +291,36 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             res.end('"success"')
             break;
         }
+        case "update-ip": {
+            if(!urlParams){
+                res.writeHead(403)
+                res.end("Permission denied")
+                break;
+            }
+
+            let apiKey = urlParams.get("key") || ""
+
+            let VALID_API_KEYS = getConfigValue("secrets.valid-api-keys") || []
+
+            if (!VALID_API_KEYS.includes(apiKey)) {
+                res.writeHead(403)
+                res.end("Permission denied")
+                break;
+            }
+
+            let newIp = subPaths[0] || ""
+            if(!newIp){
+                res.writeHead(400)
+                res.end("No ip provided")
+                break;
+            }
+
+            editConfig("secrets.twin-bot-ip", `${newIp}:3000`)
+            saveConfig()
+            res.writeHead(200)
+            res.end(`NEW-IP: ${newIp}:3000`)
+            break
+        }
         case "give-money": {
             if (!urlParams) {
                 res.writeHead(403)
@@ -320,8 +351,6 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 res.end(JSON.stringify({ "error": "Invalid user" }))
                 break;
             }
-            editConfig("secrets.twin-bot-ip", `${req.socket.remoteAddress}:3000`)
-            saveConfig()
             economy.addMoney(userId, Number(amount))
             res.writeHead(200)
             res.end(JSON.stringify({ "amount": Number(amount) }))
@@ -450,7 +479,10 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             })
             break
         }
-
+        default: {
+            res.writeHead(404)
+            res.end("404")
+        }
     }
 
 }
