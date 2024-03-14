@@ -2061,7 +2061,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             function handleRunFn(fn: string, contents: string) {
                 switch (fn) {
                     case "RUN_FN_VAR": {
-                        return `\\v{${parseRunLine(contents)}}`
+                        return `\${${parseRunLine(contents)}}`
                     }
                     case "RUN_FN_DOFIRST": {
                         return `$(${parseRunLine(contents)})`

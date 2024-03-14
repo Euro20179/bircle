@@ -435,7 +435,7 @@ export class Lexer {
                             yield new TTSemi(";;", this.i - 1, this.i)
                         }
                         else {
-                            yield new TTString(";", this.i, this.i)
+                            yield new TTString(`;${this.curChar}`, this.i, this.i)
                         }
                         break
                     }
