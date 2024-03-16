@@ -2050,8 +2050,8 @@ middle
     ]
 
     yield [
-        'fetch-time', ccmdV2(async function() {
-            let url = "https://www.duckduckgo.com"
+        'fetch-time', ccmdV2(async function({ args }) {
+            let url = args[0] || "https://duckduckgo.com"
             try {
                 let start = Date.now()
                 await fetch(url)
@@ -2060,7 +2060,11 @@ middle
             catch (err) {
                 return { content: "Problem fetching ".concat(url), status: StatusCode.ERR }
             }
-        }, "Gets the ping to an ip (timeout after 1.5s)")
+        }, "Gets the ping to an ip (timeout after 1.5s)", {
+            helpArguments: {
+                url: createHelpArgument("Url to fetch", false)
+            }
+        })
     ]
 
     yield [
