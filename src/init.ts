@@ -1,3 +1,5 @@
+import fs from 'fs'
+
 import { User } from 'discord.js'
 import common from './common'
 import {loadItems} from './shop'
@@ -14,6 +16,9 @@ function init(done?: Function){
     common.loadEndpointsDB()
     loadItems()
     INITIALIZED = true
+    if(!fs.existsSync("data/graduates.list")){
+        fs.writeFileSync("data/graduates.list", "")
+    }
     done?.()
 }
 

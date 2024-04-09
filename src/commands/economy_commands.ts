@@ -778,14 +778,24 @@ export default function*(): Generator<[string, CommandV2]> {
         "work", ccmdV2(async function({ msg }) {
             let canWork = economy.canWork(msg.author.id)
             let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
-            let ip = getToolIp()
-            if (!ip) {
-                return crv("No ip", { status: StatusCode.ERR })
+            const gradFile = "data/graduates.list"
+            const graduates = fs.readFileSync(gradFile, "utf-8").split("\n")
+            if(!graduates.includes(msg.author.id)){
+                let ip = getToolIp()
+                if (!ip) {
+                    return crv("No ip", { status: StatusCode.ERR })
+                }
+                let res = await fetch(`http://${ip}`)
+                let json = await res.json()
+                if (json[msg.author.id]?.major === "graduated"){
+                    fs.appendFileSync(gradFile, `${msg.author.id}\n`)
+                }
+                else{
+                    return { content: "No working for you bubs", status: StatusCode.ERR }
+                }
             }
-            let res = await fetch(`http://${ip}`)
-            let json = await res.json()
             //0 means that it has been an hour, but they are not broke
-            if (canWork === 0 && json[msg.author.id]?.major === 'graduated') {
+            if (canWork === 0) {
                 let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                     fired: (amount) => {
                         return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
