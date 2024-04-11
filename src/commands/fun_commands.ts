@@ -412,6 +412,13 @@ export default function*(): Generator<[string, CommandV2]> {
 <|im_start|>assistant
 
 `,
+            "dolphin-mistral": `<|im_start|>system
+{{ .System }}<|im_end|>
+<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+
+`,
             "wizard-math": `{{ .System }}
 
 ### Instruction:
