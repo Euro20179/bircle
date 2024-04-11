@@ -405,9 +405,7 @@ export default function*(): Generator<[string, CommandV2]> {
         let ctx = opts.getNumber("ctx", 2048)
         let model = opts.getString("m", "dolphin-mistral")
         let approved_models = {
-            "llama2-uncensored": `{{ .System }}\n\n### HUMAN:\n{{ .Prompt }}\n\n### RESPONSE:\n\n`,
-            "mistral": `[INST] {{ .System }} {{ .Prompt }} [/INST]`,
-            "dolphin-mistral": `<|im_start|>system
+            "udmis": `<|im_start|>system
 {{ .System }}<|im_end|>
 <|im_start|>user
 {{ .Prompt }}<|im_end|>
@@ -421,7 +419,18 @@ export default function*(): Generator<[string, CommandV2]> {
 
 ### Response:
 
-`
+`,
+            "gemma": `<start_of_turn>user
+{{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+{{ .Response }}<end_of_turn>
+
+`,
+            "codellama7b": `{{ .Prompt }}`,
+            "starcoder": `{{ .Prompt }}`
+        }
+        if(opts.getBool("l", false)){
+            return crv(Object.keys(approved_models).join("\n"))
         }
         if (!(model in approved_models))
             return crv(`${model} is not one of ${Object.keys(approved_models).join(", ")}`, {
