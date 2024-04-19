@@ -403,7 +403,7 @@ export default function*(): Generator<[string, CommandV2]> {
         let messages: any[] = []
         let temp = opts.getNumber("t", 0.8)
         let ctx = opts.getNumber("ctx", 2048)
-        let model = opts.getString("m", "dolphin-mistral")
+        let model = opts.getString("m", "llama3")
         let approved_models = {
             "udmis": `<|im_start|>system
 {{ .System }}<|im_end|>
@@ -434,7 +434,15 @@ export default function*(): Generator<[string, CommandV2]> {
 
 `,
             "codellama7b": `{{ .Prompt }}`,
-            "starcoder": `{{ .Prompt }}`
+            "starcoder": `{{ .Prompt }}`,
+            "llama3": `{{ if .System }}<|start_header_id|>system<|end_header_id|>
+
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+
+{{ .Response }}<|eot_id|>
+`
         }
         if(opts.getBool("l", false)){
             return crv(Object.keys(approved_models).join("\n"))
