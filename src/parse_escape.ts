@@ -32,7 +32,7 @@ export default {
 
     escape_y: async function(token, _char, seq, interpreter) {
         if (seq) {
-            return await interpreter?.interprateAsToken(new Token(T.str, seq, token.argNo), T.syntax) as Token[]
+            return await interpreter?.interpretAsToken(new Token(T.str, seq, token.argNo), T.syntax) as Token[]
         }
         return [new Token(T.str, " ", token.argNo)]
     },
@@ -45,7 +45,7 @@ export default {
             modifiers: p.modifiers,
             recursion: int.recursion + 1
         })
-        let args = (await i.interprate()).join(" ").split(" ")
+        let args = (await i.interpret()).join(" ").split(" ")
         let toks = []
         for (let i = 0; i < args.length; i++) {
             toks.push(new Token(T.str, args[i], int.args.length + i))

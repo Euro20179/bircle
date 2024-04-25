@@ -175,7 +175,7 @@ export default function*() {
                 modifiers: p.modifiers,
                 recursion: 10
             })
-            data = (await int.interprate()).join(" ")
+            data = (await int.interpret()).join(" ")
         }
 
         vars.setVarEasy(`${prefix}:${name}`, data, msg.author.id)

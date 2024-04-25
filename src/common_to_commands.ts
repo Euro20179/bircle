@@ -850,7 +850,7 @@ export class Interpreter {
 
     #originalTokens: Token[]
 
-    #interprated: boolean
+    #interpretd: boolean
     #i: number
     #curTok: Token | undefined
     #doFirstCountValueTable: { [key: number]: string }
@@ -905,7 +905,7 @@ export class Interpreter {
         this.#msg = msg
         this.#argOffset = 0
         this.#doFirstNoFromArgNo = {}
-        this.#interprated = false
+        this.#interpretd = false
 
         this.#shouldType = false
 
@@ -996,7 +996,7 @@ export class Interpreter {
             disable: this.disable,
             context: this.context
         })
-        await int.interprate()
+        await int.interpret()
         token.data = int.args.join(" ")
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars.vars["__global__"] }, { timeout: 1000 })), token.argNo)
         return [t]
@@ -1053,7 +1053,7 @@ export class Interpreter {
             modifiers: parse.modifiers,
             recursion: this.recursion + 1
         })
-        let args = await int.interprate()
+        let args = await int.interpret()
         return Array.from(args, (arg, index) => new Token(T.str, index < args.length - 1 ? `${arg} ` : arg, token.argNo))
     }
 
@@ -1144,7 +1144,7 @@ export class Interpreter {
     }
 
     async run(): Promise<CommandReturn | undefined> {
-        let args = await this.interprate()
+        let args = await this.interpret()
 
         args[0] = args[0].trim()
 
@@ -1258,16 +1258,16 @@ export class Interpreter {
         return this.applyFinalityToRv(cmd, args, rv)
     }
 
-    async interprateAsToken(token: Token, t: T) {
+    async interpretAsToken(token: Token, t: T) {
         return await this[t](token)
     }
-    async interprateCurrentAsToken(t: T) {
+    async interpretCurrentAsToken(t: T) {
         return await this[t](this.#curTok as Token)
     }
 
-    async interprateAllAsToken(t: T) {
+    async interpretAllAsToken(t: T) {
         while (this.advance()) {
-            let tokList = await this.interprateCurrentAsToken(t)
+            let tokList = await this.interpretCurrentAsToken(t)
             if (tokList && tokList.length) {
                 for (let tok of tokList) {
                     this.addTokenToArgList(tok)
@@ -1290,7 +1290,7 @@ export class Interpreter {
                 context: this.context
             })
 
-            await int.interprate()
+            await int.interpret()
 
             commandReturn = defileCommandReturn(await int.run() as CommandReturn)
 
@@ -1303,13 +1303,13 @@ export class Interpreter {
         return commandReturn
     }
 
-    async interprate() {
-        if (this.#interprated) {
+    async interpret() {
+        if (this.#interpretd) {
             return this.args
         }
 
         let tokList
-        while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
+        while (this.advance() && (tokList = await this.interpretCurrentAsToken((this.#curTok as Token).type))) {
             for (let tok of tokList) {
                 this.addTokenToArgList(tok)
             }
@@ -1327,7 +1327,7 @@ export class Interpreter {
             this.args = this.args.splice(lastUndefIdx + 1)
         }
 
-        this.#interprated = true
+        this.#interpretd = true
 
         let intPipeData = this.getPipeTo()
 

@@ -40,7 +40,7 @@ export default {
     parse_token: async (token, __, args, int) => {
         let [tt, ...data] = args
         let text = data.join("|")
-        return int.interprateAsToken(new Token(strToTT(tt), text, token.argNo as number), strToTT(tt))
+        return int.interpretAsToken(new Token(strToTT(tt), text, token.argNo as number), strToTT(tt))
     },
 
     parse_rev: async (_, __, args) => {
