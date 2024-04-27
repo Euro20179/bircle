@@ -3,13 +3,11 @@ import fs from 'fs'
 
 import vars from './vars';
 
-import events from './events';
 
-import configManager from "./config-manager"
-import user_options, { UserOption } from "./user-options"
+import user_options  from "./user-options"
 import common from './common';
 import { getInnerPairsAndDeafultBasedOnRegex } from './parsing';
-import { cmdCatToStr, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf, valuesOf } from './util';
+import { cmdCatToStr, isMsgChannel, isBetween, getToolIp, valuesOf } from './util';
 
 import { parseBracketPair } from './parsing'
 
@@ -260,50 +258,6 @@ export const StatusCode = {
     ERR: 2
 } as const
 
-class OrderedDict<TKey, TValue>{
-    keys: TKey[]
-    values: TValue[]
-    constructor() {
-        this.keys = []
-        this.values = []
-    }
-
-    get(key: TKey) {
-        return this.values[this.keys.indexOf(key)]
-    }
-
-    set(key: TKey, value: TValue) {
-        if (this.keys.includes(key)) {
-            return false
-        }
-        this.keys.push(key)
-        this.values.push(value)
-        return true
-    }
-
-    delete(key: TKey) {
-        let val = this.get(key)
-        this.keys = this.keys.filter(v => v !== key)
-        this.values = this.values.filter(v => v !== val)
-    }
-
-    keyAt(index: number) {
-        return this.keys[index]
-    }
-
-    valueAt(index: number) {
-        return this.values[index]
-    }
-
-    keyExists(key: TKey) {
-        return this.keys.includes(key)
-    }
-
-    get length() {
-        return this.keys.length
-    }
-}
-
 export type StatusCode = typeof StatusCode[keyof typeof StatusCode]
 
 export function statusCodeToStr(code: StatusCode) {
@@ -447,7 +401,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, legacy, context, symbols }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable }) {
+    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, commandBans: _commandBans, legacy, symbols }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -579,23 +533,6 @@ export function isCmd(text: string, prefix: string) {
     return !text.match(/^\[.*\]\((?:https?|discord):\/\/\S*\).?/) && text.slice(0, prefix.length) === prefix
 }
 
-type CmdArguments = {
-    msg: Message,
-    command_excluding_prefix: string,
-    recursion?: number,
-    disable?: {
-        categories?: CommandCategory[],
-        commands?: string[]
-    },
-    sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>,
-    pipeData?: CommandReturn,
-    returnInterpreter?: boolean,
-    enableUserMatch?: boolean,
-    programArgs?: string[],
-    env?: Record<string, string>,
-    context?: InterpreterContext
-}
-
 export async function handleUserMatchCommands(msg: Message, content: string) {
     let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
     for (let [name, [regex, run]] of userMatchCmds) {
@@ -687,33 +624,6 @@ class InterpreterContext {
 function censor_error(err: Error) {
     let ip = getToolIp()
     return err.toString().replaceAll(ip as string, "")
-}
-
-function cmdUserExpansion(msg: Message, rv: CommandReturn) {
-    //@ts-ignore
-    let optionToGet: UserOption = ({
-        [StatusCode.ERR]: "change-cmd-error",
-        [StatusCode.INFO]: "change-cmd-info",
-        [StatusCode.PROMPT]: "change-cmd-prompt",
-        [StatusCode.RETURN]: "change-cmd-return",
-        [StatusCode.WARNING]: "change-cmd-warning"
-    } as { [key: number]: UserOption })[rv.status] as UserOption
-
-    let opt = user_options.getOpt(msg.author.id, optionToGet, "")
-
-    if (opt === "") return rv;
-
-    rv.content = opt
-    if (rv.recurse && rv.recurse !== true) {
-        //if rv specified different bans, we want those to take priority
-        rv.recurse = { ...rv.recurse }
-    }
-    else {
-        rv.recurse = true
-    }
-    rv.do_change_cmd_user_expansion = false
-
-    return rv
 }
 
 export function createHelpArgument(description: string, required?: boolean, requires?: string, default_?: string) {

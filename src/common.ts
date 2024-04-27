@@ -21,7 +21,7 @@ const client = new Client({ intents: [
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.MessageContent
-], allowedMentions: { parse: ["users"] } })
+], allowedMentions: {} })
 
 let USER_SETTINGS = {}
 
