@@ -2447,15 +2447,6 @@ yield[
             display.push(mulStr("⬛ ", word.length))
         }
         await handleSending(msg, { content: display.join("\n"), status: StatusCode.INFO }, sendCallback)
-        let letterCount: { [k: string]: number } = {}
-        for (let letter of word) {
-            if (letterCount[letter] === undefined) {
-                letterCount[letter] = 1
-            }
-            else {
-                letterCount[letter] += 1
-            }
-        }
         collector.on("collect", async (m) => {
             if (m.content == "STOP") {
                 collector.stop()
@@ -2464,20 +2455,22 @@ yield[
             }
             guesses.push(m.content)
             let nextInDisplay = ""
-            let guessLetterCount: { [key: string]: number } = {}
+            let guess = m.content
+            console.log(word)
             for (let i = 0; i < word.length; i++) {
                 let correct = word[i]
-                let guessed = m.content[i]
-                if (guessLetterCount[guessed] === undefined) {
-                    guessLetterCount[guessed] = 1
-                } else {
-                    guessLetterCount[guessed] += 1
-                }
-                if (correct == guessed)
+                let guessed = guess[i]
+                if(guessed == correct){
+                    guess = guess.replace(correct, "\0")
                     nextInDisplay += `**${guessed}** `
-                else if (word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
-                    nextInDisplay += `${guessed}? `
-                else nextInDisplay += `~~${guessed}~~ `
+                }
+                else if(guess.includes(correct)){
+                    guess = guess.replace(correct, "\0")
+                    nextInDisplay += `${correct}? `
+                }
+                else{
+                    nextInDisplay += `~~${guessed}~~ `
+                }
             }
             display[6 - guessCount] = nextInDisplay
             guessCount--
