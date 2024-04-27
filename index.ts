@@ -39,28 +39,6 @@ init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
 const rest = new REST({ version: "10" }).setToken(configManager.getConfigValue("secrets.token"));
 
-async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
-    if (!isMsgChannel(msg.channel))
-        return { rv: { noSend: true, status: StatusCode.RETURN }, interpreter: undefined }
-    let rv;
-    try {
-        rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
-    }
-    catch (err) {
-        console.error(err)
-        await cmds.handleSending(
-            msg, command_commons.crv(
-                `Command failure: **${cmd}**
-\`\`\`${command_commons.censor_error(err as Error)}\`\`\``,
-                { status: StatusCode.ERR }
-            )
-        )
-        return { rv: { noSend: true, status: 0 }, interpreter: undefined }
-    }
-    useTracker.emoteUsage.saveUsage()
-    return rv
-}
-
 const PROCESS_OPTS = getOptsUnix(process.argv.slice(2), "", [["headless"]])
 const HEADLESS = PROCESS_OPTS[0]['headless']
 
@@ -284,10 +262,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         )) {
             await cmds.handleSending(m, result)
         }
-    }
-    else if (content.startsWith(`L${local_prefix}`)) {
-        let c = m.content.slice(local_prefix.length + 1)
-        await command_commons.handleSending(m, (await execCommand(m, c)).rv)
     }
     else {
         await command_commons.handleMatchCommands(m, m.content, true)

@@ -206,10 +206,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
     })]
 
-    yield ["env", ccmdV2(async ({ interpreter, symbols }) => {
-        return symbols
-            ? crv(Object.entries(symbols.symbols).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
-            : crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
+    yield ["env", ccmdV2(async ({ symbols }) => {
+        return crv(Object.entries(symbols.symbols).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
     }, "Gets the interpreter env")]
 
     yield ['ps', ccmdV2(async function() {

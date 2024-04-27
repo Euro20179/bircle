@@ -34,6 +34,18 @@ export class ProcessManager {
         }
     }
 
+    /*
+        * @description gets the first result then kills itself
+    */
+    async spawn_cmd_then_die(args: RunCmdOptions, label?: string, options?: {parentPID?: number}){
+        label ??= `${args.command}${this.PIDS.size}`
+        for await(let result of this.spawn_cmd(args, label, options)){
+            this.killproc(this.getprocidFromLabel(label) as number)
+            return result
+        }
+        return { noSend: true, status: 1 }
+    }
+
     async* spawn_cmd(args: RunCmdOptions, label?: string, options?: {parentPID?: number}) {
         if (options?.parentPID && !this.getproc(options.parentPID)){
             return { noSend: true, status: StatusCode.ERR }

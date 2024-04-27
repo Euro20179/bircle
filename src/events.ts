@@ -1,7 +1,6 @@
 import EventEmitter from "events";
 
 import vars from "./vars";
-import { Interpreter } from "./common_to_commands";
 import { Message } from "discord.js";
 import { getContentFromResult } from "./util";
 
@@ -17,7 +16,7 @@ const HandleSend = Symbol("handle-send")
 
 const botEvents = new EventEmitter()
 
-botEvents.on(CmdRun, function cmdRunEventHandler(int: Interpreter) {
+botEvents.on(CmdRun, function cmdRunEventHandler(int) {
     let varname = `!stats:cmd-usage.${int.args[0]}`
     let msg = int.getMessage()
     vars.setVarEasy(varname, String(Number(vars.getVar(msg, varname)) + 1), msg.author.id)

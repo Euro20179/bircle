@@ -1,15 +1,15 @@
 import common from '../common'
-import { cmd, createHelpArgument, createMatchCommand, crv, Interpreter, lastCommand, StatusCode } from '../common_to_commands'
-import { Parser } from '../parsing'
+import { createHelpArgument, createMatchCommand, crv, lastCommand, StatusCode } from '../common_to_commands'
 import { fetchUserFromClient, getContentFromResult, isMsgChannel } from '../util'
 
 import user_options from '../user-options'
 import vars from '../vars'
 import { DMChannel, Message } from 'discord.js'
 
-import {PREFIX} from '../config-manager'
+import { PREFIX } from '../config-manager'
 
 import cmds from '../command-parser/cmds'
+import globals from '../globals'
 
 const handleSending = cmds.handleSending
 
@@ -17,11 +17,16 @@ export default function*() {
     yield [createMatchCommand(async ({ msg, match }) => {
         let find = match[1]
         let replace = match[2]
-        if(!lastCommand[msg.author.id])
+        if (!lastCommand[msg.author.id])
             return crv("You have not ran a command")
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1 })).rv as CommandReturn
-
+        let final: CommandReturn = { status: 1, noSend: true }
+        for await (const result of globals.PROCESS_MANAGER.spawn_cmd({
+            msg, command: lastCommand[msg.author.id].slice(1), prefix: ""
+        })) {
+            final = result
+        }
+        return final
     }, /^\^([^\^]+)\^(.*)$/, "un-replace", {
         info: "^&lt;find&gt;^&lt;replace&gt;",
         arguments: {
@@ -49,7 +54,9 @@ export default function*() {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, PREFIX.length) === PREFIX) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19})).rv as CommandReturn)
+            const ctx = new cmds.RuntimeOptions()
+            ctx.set("recursion", 19)
+            signature = getContentFromResult((await globals.PROCESS_MANAGER.spawn_cmd_then_die({ msg, command: signature.slice(PREFIX.length), runtime_opts: ctx, prefix: "" })))
             if (signature.startsWith(PREFIX)) {
                 signature = "\\" + signature
             }
@@ -71,27 +78,34 @@ export default function*() {
     }, /^@([^\s]+) (.*)/, "end-mail-from-dms")]
 
     yield [createMatchCommand(async function({ msg, match }) {
-        return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`})).rv as CommandReturn
+        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
+            msg, command: `stop${match[1] ?? ""}`, prefix: ""
+        })
     }, /u!stop(.*)/, "!stop", {
         info: "same as [stop"
     })]
 
     yield [createMatchCommand(async function({ msg, match }) {
-        return (await cmd({ msg, command_excluding_prefix: `calc -python ${match[1] ?? ""}`})).rv as CommandReturn
+        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
+            msg, command: `calc -python ${match[1] ?? ""}`, prefix: ""
+        })
     }, /u!eval(.*)/, "!eval", {
         info: "same as [calc -python"
     })]
 
     yield [createMatchCommand(async function({ msg, match }) {
         user_options.unsetOpt(msg.author.id, 'prefix')
-        return (await cmd({ msg, command_excluding_prefix: match[1] ?? "echo -D prefix unset"})).rv as CommandReturn
-
+        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
+            msg, command: match[1] ?? "echo -D prefix unset", prefix: ""
+        })
     }, /s!(.*)/, "!", {
         info: "In case of a bad prefix, unsets it"
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
-        return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`})).rv
+        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
+            msg, command: match[1] ?? `stop${match[1] ?? ""} `, prefix: ""
+        })
     }, /^u!stop(.*)/, "!stop", {
         info: "same as [stop",
         arguments: {
@@ -100,7 +114,9 @@ export default function*() {
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
-        return (await cmd({ msg, command_excluding_prefix: `calc -python${match[1] ?? ""}`})).rv
+        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
+            msg, command: match[1] ?? `calc -python${match[1] ?? ""}`, prefix: ""
+        })
     }, /^u!eval(.*)/, "!eval", {
         info: "same as <code>[calc -python</code>",
         arguments: {
@@ -113,7 +129,9 @@ export default function*() {
             return { noSend: true, status: StatusCode.RETURN }
         }
         user_options.setOpt(msg.author.id, "prefix", PREFIX)
-        return (await cmd({ msg, command_excluding_prefix: match[1]})).rv
+        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
+            msg, command: match[1], prefix: ""
+        })
 
     }, /^s!(.*)/, "!", {
         info: "run <code>s!</code> in case you mess up the prefix"
@@ -138,7 +156,9 @@ export default function*() {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, PREFIX.length) === PREFIX) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19})).rv)
+            const ctx = new cmds.RuntimeOptions()
+            ctx.set("recursion", 19)
+            signature = getContentFromResult((await globals.PROCESS_MANAGER.spawn_cmd_then_die({ msg, command: signature.slice(PREFIX.length), runtime_opts: ctx, prefix: "" })))
             if (signature.startsWith(PREFIX)) {
                 signature = "\\" + signature
             }
@@ -169,13 +189,7 @@ export default function*() {
         let data = match[4]
 
         if (quoteType === '"') {
-            let p = new Parser(msg, data)
-            await p.parse()
-            let int = new Interpreter(msg, p.tokens, {
-                modifiers: p.modifiers,
-                recursion: 10
-            })
-            data = (await int.interpret()).join(" ")
+            data = (await cmds.expandSyntax(data, msg)).join("\n")
         }
 
         vars.setVarEasy(`${prefix}:${name}`, data, msg.author.id)
@@ -247,7 +261,7 @@ export default function*() {
                 return m as Message<true>
             }
             for (let c of cmds) {
-                let {rv} = await cmd({ msg: m, command_excluding_prefix: `${c} ${result}` })
+                let rv = await globals.PROCESS_MANAGER.spawn_cmd_then_die({ msg: m, command: `${c} ${result}`, prefix: "" })
                 if (rv?.content) result = rv.content
             }
             m.channel.send = oldSend

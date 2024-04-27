@@ -2,7 +2,6 @@ import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, Mes
 
 import { ArgList, BADVALUE, Options } from './util'
 import { EconomyData } from "./economy"
-import { Interpreter } from "./common_to_commands"
 import { UserOption } from "./user-options"
 import { RuntimeOptions, SymbolTable } from "./command-parser/cmds"
 
@@ -12,10 +11,6 @@ declare module "discord.js" {
         economyData: EconomyData,
         netWorth: number
         getBOpt<T>(opt: UserOption, fallback: T): string | T
-    }
-
-    export interface Message {
-        execCommand: (prefix: string) => Promise<{rv: CommandReturn, interpreter?: Interpreter}>
     }
 }
 
@@ -136,7 +131,6 @@ declare global {
         */
         pipeTo?: Token[],
         runtime_opts: RuntimeOptions,
-        interpreter: Interpreter,
         argShapeResults: Record<string, unknown>,
         symbols: SymbolTable
         pid_label: string

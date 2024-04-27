@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { AwaitMessagesOptions, ChannelType, Collection, Message, User } from 'discord.js'
 import http from 'http'
-import common_to_commands, { CommandCategory, Interpreter } from '../src/common_to_commands'
+import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
@@ -670,7 +670,7 @@ server.on("request", (req, res) => {
         return handleGet(req, res)
     }
 })
-function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string, handleReturn: (rv: { interpreter?: Interpreter, rv: CommandReturn }) => any, handleError: (err: any) => any) {
+function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string, handleReturn: (rv: { interpreter?: unknown, rv: CommandReturn }) => any, handleError: (err: any) => any) {
     common.client.channels.fetch(inChannel).then((channel) => {
         if (!channel || channel.type !== ChannelType.GuildText) {
             handleError("Channel not found")

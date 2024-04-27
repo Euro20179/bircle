@@ -8,15 +8,11 @@ import events from './events';
 import configManager from "./config-manager"
 import user_options, { UserOption } from "./user-options"
 import common from './common';
-import { Parser, Token, T, WebModifier, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier, CommandModifier } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf, valuesOf } from './util';
+import { getInnerPairsAndDeafultBasedOnRegex } from './parsing';
+import { cmdCatToStr, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf, valuesOf } from './util';
 
-import { parseBracketPair, getOpts } from './parsing'
+import { parseBracketPair } from './parsing'
 
-import { cloneDeep } from 'lodash';
-
-import parse_escape from './parse_escape';
-import parse_format from './parse_format';
 import cmds, { SymbolTable } from './command-parser/cmds';
 import globals from './globals';
 import useTracker from './use-tracker';
@@ -200,7 +196,7 @@ export class PagedEmbed {
     }
 
     async begin(_sendcallback?: CommandReturn['sendCallback']) {
-        let m = await handleSending(this.msg, { components: [this.createActionRow()], embeds: [this.currentEmbed], status: StatusCode.INFO })
+        let m = await cmds.handleSending(this.msg, { components: [this.createActionRow()], embeds: [this.currentEmbed], status: StatusCode.INFO })
 
         let msgCollector = m.channel.createMessageCollector({ filter: newM => newM.author.id === this.msg.author.id })
         let mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
@@ -307,8 +303,6 @@ class OrderedDict<TKey, TValue>{
         return this.keys.length
     }
 }
-
-export const PIDS: OrderedDict<number, Interpreter> = new OrderedDict()
 
 export type StatusCode = typeof StatusCode[keyof typeof StatusCode]
 
@@ -453,7 +447,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, legacy, context, symbols }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable }) {
+    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, legacy, context, symbols }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -496,11 +490,6 @@ export class AliasV2 {
             }
         }
 
-        let modifierText = ""
-        for (let mod of modifiers ?? []) {
-            modifierText += mod.stringify() as string
-        }
-
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
         //
@@ -513,10 +502,6 @@ export class AliasV2 {
             ) {
                 yield result
             }
-        }
-        else {
-            let res = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, pipeData: stdin, sendCallback: sendCallback, context })
-            yield res.rv
         }
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
@@ -630,7 +615,7 @@ export async function handleUserMatchCommands(msg: Message, content: string) {
         }
 
         try {
-            await handleSending(msg, (await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })).rv)
+            await cmds.handleSending(msg, (await globals.PROCESS_MANAGER.spawn_cmd_then_die({ msg, command: tempExec, prefix: "" })))
         }
         catch (err) {
             console.error(err)
@@ -644,7 +629,7 @@ export async function handleMatchCommands(msg: Message, command_excluding_prefix
     for (let obj of valuesOf(matchCommands)) {
         let match = command_excluding_prefix.match(obj.match)
         if (match?.[0]) {
-            return handleSending(msg, await obj.run({ msg, match }))
+            return cmds.handleSending(msg, await obj.run({ msg, match }))
         }
     }
     if (enableUserMatch) {
@@ -652,91 +637,6 @@ export async function handleMatchCommands(msg: Message, command_excluding_prefix
     }
     return false
 }
-
-/**
-    Quick summary of how cmd() works
-
-    Give the command to the Interpeter which sends it to the Parser to get a list of tokens
-    The interpreter then takes the tokens and goes through each one and preforms a specific action depending on the token
-    the result of the action gets turned into an argument for the args list
-    for example the dofirst token will do the command inside of it and the arg becomes the result of that command
-    after the args list is generated the Interpreter.run function is called which runs the command with the desired arguments and opts
-
-    at any point the [kill command could be run which can run Interpreter.kill() which sets Interpreter.killed to true
-    commands can use this value to end what they're doing
-*/
-export async function cmd({
-    msg,
-    command_excluding_prefix,
-    recursion = 0,
-    disable,
-    sendCallback,
-    pipeData,
-    enableUserMatch,
-    programArgs,
-    env,
-    context
-}: CmdArguments): Promise<{ interpreter?: Interpreter | undefined, rv: CommandReturn }> {
-
-    let int, rv: CommandReturn | false | null = null;
-
-    if (await handleMatchCommands(msg, command_excluding_prefix, enableUserMatch || false)) {
-        return { rv: rv || { noSend: true, status: StatusCode.RETURN }, interpreter: int }
-    }
-
-    let parser = new Parser(msg, command_excluding_prefix)
-    await parser.parse()
-
-    let logicalLine = 0
-
-    context ??= new InterpreterContext(programArgs, env)
-
-    let PID = (PIDS.keyAt(PIDS.length - 1) ?? 0) + 1
-
-    context.export("PID", String(PID))
-
-    //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
-    do {
-        context.setOpt("silent", 0)
-        //if this is not here, and the user uses ;;, only the last result gets sent
-        if (rv) {
-            await handleSending(msg, rv, sendCallback)
-        }
-        context.export("LINENO", String(++logicalLine))
-
-        let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
-        let currentToks = parser.tokens.slice(0, eolIdx)
-        parser.tokens = parser.tokens.slice(eolIdx + 1)
-
-        //happens if there is some kind of empty statement
-        if (currentToks.length === 0) continue
-
-        int = new Interpreter(msg, currentToks, {
-            modifiers: parser.modifiers,
-            recursion, disable, sendCallback, pipeData, context,
-        })
-
-        PIDS.set(PID, int)
-
-        //this was previously ored to false
-        rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
-        //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
-        //  double piping is when the result pipes into itself
-        //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
-        rv = await int.handlePipes(rv)
-
-        context = int.context
-
-    } while (parser.tokens.length > 0 && PIDS.keyExists(PID))
-
-    PIDS.delete(PID)
-
-    return {
-        rv: rv || { noSend: true, status: StatusCode.RETURN },
-        interpreter: int
-    } as { rv: CommandReturn, interpreter?: Interpreter }
-}
-
 
 type InterpreterOptionNames = "dryRun" | "explicit" | "no-int-cache" | "silent"
 type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
@@ -784,579 +684,9 @@ class InterpreterContext {
     }
 }
 
-function getModifiersFromCmd(cmd: string) {
-    const modMap = {
-        "d:": DeleteModifier,
-        "t:": TypingModifier,
-        "s:": SilentModifier,
-        "n:": SkipModifier,
-        "W:": WebModifier,
-        "a:": AliasModifier,
-        "c:": CommandModifier,
-    }
-
-    let modifiers = []
-    let foundMatch = true
-    while (foundMatch) {
-        for (let mod of keysOf(modMap)) {
-            if (!cmd.startsWith(mod)) {
-                foundMatch = false
-                continue;
-            }
-            modifiers.push(
-                new modMap[mod as keyof typeof modMap]()
-            )
-            cmd = cmd.slice(mod.length)
-            foundMatch = true
-            break;
-        }
-    }
-    return [modifiers, cmd] as const
-
-}
-async function runBircleFile(msg: Message, cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
-    let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
-    return (await cmd({
-        msg: msg,
-        command_excluding_prefix: data,
-        programArgs: args,
-    })).rv
-}
-
-
-function getOptsParserFromName(name: string) {
-    return {
-        "with-negate": getOptsWithNegate,
-        unix: getOptsUnix,
-        normal: getOpts
-    }[name] ?? getOpts
-}
-
-function userCanRunCommand(msg: Message, cmd_name: string, cmdObject: CommandV2 | AliasV2) {
-    return !common.WHITELIST[msg.author.id]?.includes(cmd_name) && ((cmdObject as CommandV2).permCheck && !(cmdObject as CommandV2)?.permCheck?.(msg))
-}
-
-export class Interpreter {
-    tokens: Token[]
-    args: string[]
-    recursion: number
-    disable: { categories?: CommandCategory[], commands?: string[] }
-    sendCallback: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>) | undefined
-    aliasV2: false | AliasV2
-
-    context: InterpreterContext
-
-    altClient: boolean = false
-
-    #originalTokens: Token[]
-
-    #interpretd: boolean
-    #i: number
-    #curTok: Token | undefined
-    #doFirstCountValueTable: { [key: number]: string }
-    #doFirstNoFromArgNo: { [key: number]: number }
-    #msg: Message
-    #argOffset: number
-
-    #pipeData: CommandReturn | undefined
-    #pipeTo: Token[]
-
-    #shouldType: boolean
-
-    killed: boolean = false
-
-    modifiers: Modifier[]
-
-    static commandUndefined = new Object()
-
-    static resultCache = new Map()
-
-    constructor(msg: Message, tokens: Token[], options: {
-        modifiers?: Modifier[],
-        recursion?: number,
-        disable?: {
-            categories?: CommandCategory[],
-            commands?: string[]
-        },
-        sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>,
-        pipeData?: CommandReturn,
-        programArgs?: string[],
-        context?: InterpreterContext,
-    }) {
-        this.tokens = tokens
-        this.#originalTokens = cloneDeep(tokens)
-        this.args = []
-        this.recursion = options.recursion ?? 0
-        this.disable = options.disable ?? {}
-        this.sendCallback = options.sendCallback
-        this.aliasV2 = false
-
-        this.context = options.context ?? new InterpreterContext(options.programArgs, {
-            IFS: " "
-        })
-
-        this.#pipeData = options.pipeData
-        this.#pipeTo = []
-
-        this.modifiers = options.modifiers ?? []
-        this.#i = -1
-        this.#curTok = undefined
-        this.#doFirstCountValueTable = {}
-        this.#msg = msg
-        this.#argOffset = 0
-        this.#doFirstNoFromArgNo = {}
-        this.#interpretd = false
-
-        this.#shouldType = false
-
-    }
-
-    kill() {
-        this.killed = true
-        PIDS.delete(Number(this.context.env['PID']))
-    }
-
-    setTyping(bool?: boolean) {
-        this.#shouldType = bool ?? true
-    }
-
-    getMessage() {
-        return this.#msg
-    }
-
-    getPipeTo() {
-        return this.#pipeTo
-    }
-
-    getPipeData() {
-        return this.#pipeData
-    }
-
-    advance(amount = 1) {
-        this.#i += amount;
-        this.#curTok = this.tokens[this.#i]
-        return this.#curTok !== undefined
-    }
-    back() {
-        this.#i--;
-        if (this.#i < 0) {
-            return false
-        }
-        this.#curTok = this.tokens[this.#i]
-        return true
-    }
-    addTokenToArgList(token: Token) {
-        if (token.data === Interpreter.commandUndefined) {
-            return;
-        }
-        if (typeof token.data === 'object') {
-            throw Error(`Invalid token data, expected string not array (${token.data.join(" + ")})`)
-        }
-        if (this.args[token.argNo + this.#argOffset] === undefined) {
-            this.args[token.argNo + this.#argOffset] = token.data
-        }
-        else {
-            this.args[token.argNo + this.#argOffset] += token.data
-        }
-    }
-    removeLastTokenFromArgList() {
-        this.args = this.args.splice(0, -1)
-    }
-
-    async [T.str](token: Token): Promise<Token[] | false> {
-        return [new Token(T.str, token.originalText(), token.argNo)]
-    }
-    async [T.dofirst](token: Token): Promise<Token[] | false> {
-        const runCmd = async (data: string) => (await cmd({
-            msg: this.#msg,
-            command_excluding_prefix: data,
-            disable: this.disable,
-            recursion: this.recursion + 1,
-            pipeData: this.getPipeData()
-        })).rv
-
-        let rv = await runCmd(token.data as string)
-        let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
-
-        if (rv && rv.recurse && rv.content && isCmd(rv.content, configManager.PREFIX) && this.recursion < 20) {
-            rv = await runCmd(rv.content.slice(configManager.PREFIX.length))
-            data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
-        }
-
-        this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
-        this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
-        return [new Token(T.str, data, token.argNo)]
-    }
-    async [T.calc](token: Token): Promise<Token[] | false> {
-        let parser = new Parser(this.#msg, token.data as string)
-        await parser.parse()
-        let int = new Interpreter(this.#msg, parser.tokens, {
-            modifiers: parser.modifiers,
-            recursion: this.recursion + 1,
-            disable: this.disable,
-            context: this.context
-        })
-        await int.interpret()
-        token.data = int.args.join(" ")
-        let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars.vars["__global__"] }, { timeout: 1000 })), token.argNo)
-        return [t]
-    }
-    async [T.esc](token: Token): Promise<Token[] | false> {
-        let [char, sequence] = token.data
-
-        if (parse_escape[`escape_${char}`]) {
-            return parse_escape[`escape_${char}`](token, char, sequence, this)
-        }
-        if (sequence) {
-            return [new Token(T.str, `${char}{${sequence}}`, token.argNo)]
-        }
-        return [new Token(T.str, `${char}`, token.argNo)]
-    }
-    async[T.format](token: Token): Promise<Token[] | false> {
-        let [format_name, ...args] = (token.data as string).split("|")
-        if (parse_format[`parse_${format_name}`]) {
-            let dat = await parse_format[`parse_${format_name}`](token, format_name, args, this)
-            if (typeof dat === 'string') {
-                return [new Token(T.str, dat, token.argNo)]
-            }
-            return dat
-        }
-        if (args.length > 0) {
-            return [new Token(T.str, `{${format_name}|${args.join("|")}}`, token.argNo)]
-        }
-        return [new Token(T.str, `{${format_name}}`, token.argNo)]
-    }
-    async[T.dofirstrepl](token: Token): Promise<Token[] | false> {
-        let [doFirstArgNo, doFirstResultNo] = (token.data as string).split(":")
-        if (doFirstResultNo === undefined) {
-            doFirstResultNo = doFirstArgNo
-            doFirstArgNo = String(this.#doFirstNoFromArgNo[token.argNo])
-        }
-        let doFirst = this.#doFirstCountValueTable[Number(doFirstArgNo)]
-        if (doFirst !== undefined) {
-            let text = ""
-            if (doFirstResultNo === "") {
-                text = doFirst
-            }
-            else {
-                text = doFirst.split(" ")[Number(doFirstResultNo)] ?? null
-            }
-            return [new Token(T.str, text, token.argNo)]
-        }
-        //TODO: %{...} spreads args into  multiple arguments
-        return []
-    }
-    async[T.syntax](token: Token): Promise<Token[] | false> {
-        let parse = new Parser(this.#msg, token.data as string)
-        await parse.parse()
-        let int = new Interpreter(this.#msg, parse.tokens, {
-            modifiers: parse.modifiers,
-            recursion: this.recursion + 1
-        })
-        let args = await int.interpret()
-        return Array.from(args, (arg, index) => new Token(T.str, index < args.length - 1 ? `${arg} ` : arg, token.argNo))
-    }
-
-    async[T.pipe](_token: Token): Promise<Token[] | false> {
-        //gets everything after the current pipe
-        this.#pipeTo = this.#originalTokens.slice(this.#i + 1)
-        return false
-    }
-
-    async [T.variable](token: Token): Promise<Token[] | false> {
-        let [varName, ifNull] = token.data
-        if (this.context.env[varName] !== undefined) {
-            return [new Token(T.str, this.context.env[varName], token.argNo)]
-        }
-        let _var = vars.getVar(this.#msg, varName)
-        if (_var === false) {
-            if (ifNull) {
-                return [new Token(T.str, ifNull, token.argNo)]
-            }
-            return [new Token(T.str, `\${${varName}}`, token.argNo)]
-        }
-        return [new Token(T.str, _var, token.argNo)]
-    }
-
-    async [T.end_of_line](_token: Token): Promise<false> {
-        return false
-    }
-
-    hasModifier(mod: typeof Modifier) {
-        return this.modifiers.filter(v => v instanceof mod).length > 0
-    }
-
-    applyFinalityToRv(cmd: string, args: string[], rv: CommandReturn) {
-        //the point of explicit is to say which command is currently being run, and which "line number" it's on
-        if (this.context.options.explicit) {
-            if (rv.content) {
-                rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}\n${rv.content}`
-            }
-            else rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}`
-        }
-
-        //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
-        if (!illegalLastCmds.includes(cmd)) {
-            //this is for the !! command
-            lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
-        }
-        if (rv.silent == undefined && this.context.options.silent == 1) {
-            rv.silent = true
-        }
-        return rv
-    }
-
-    async runCmdV2(cmd: string, cmdObject: CommandV2, rv: CommandReturn, opts: Opts, args: string[], args2: ArgumentList): Promise<CommandReturn> {
-        let argList = new ArgList(args2)
-        let argShapeResults: Record<string, any> = {}
-        //@ts-ignore, this will remain umaintained and broken
-        let obj: CommandV2RunArg = {
-            msg: this.#msg,
-            rawArgs: args,
-            args: argList,
-            sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
-            recursionCount: this.recursion,
-            commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
-            opts: new Options(opts),
-            rawOpts: opts,
-            argList: argList,
-            stdin: this.#pipeData,
-            pipeTo: this.#pipeTo,
-            interpreter: this,
-            argShapeResults,
-        };
-        let cmdO = cmdObject as CommandV2
-        let argShapePass = true
-        if (cmdO.argShape) {
-            argList.beginIter()
-            for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
-                if (result === BADVALUE && !optional) {
-                    rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
-                    return rv
-                }
-                else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
-                else argShapeResults[type] = result
-            }
-        }
-        if (argShapePass)
-            return await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
-        return crv("Something horrible went wrong", { status: StatusCode.ERR })
-    }
-
-    async run(): Promise<CommandReturn | undefined> {
-        let args = await this.interpret()
-
-        args[0] = args[0].trim()
-
-        if (this.context.options.dryRun) {
-            if (this.getPipeTo().length)
-                return void await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
-        }
-
-        let cmd = args[0];
-
-        [this.modifiers, cmd] = getModifiersFromCmd(cmd)
-
-        for (let mod of this.modifiers) {
-            mod.modify(this)
-        }
-
-        args = args.slice(1)
-
-        //The return  value from this function
-        let rv: CommandReturn = { status: StatusCode.RETURN, content: "Nothing happened" };
-
-        let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
-        let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
-        let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
-
-        let cmdObject: CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
-
-        for (let mod of this.modifiers) {
-            cmdObject = mod.modifyCmd({ cmdObject, int: this, cmdName: cmd })
-        }
-
-        if (!cmdObject) {
-            //only run the bircle file if the cmdObject doesn't exist
-            if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
-                return runBircleFile(this.#msg, cmd, args)
-            }
-
-            //We dont want to keep running commands if the command doens't exist
-            //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (cmd.startsWith(configManager.PREFIX)) {
-                cmd = `\\${cmd}`
-            }
-            rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
-                { content: `${cmd} does not exist`, status: StatusCode.ERR } :
-                { noSend: true, status: StatusCode.ERR }
-            return this.applyFinalityToRv(cmd, args, rv)
-        }
-        else if (!(cmdObject instanceof AliasV2) && userCanRunCommand(this.#msg, cmd, cmdObject)) {
-            rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
-            return this.applyFinalityToRv(cmd, args, rv)
-        }
-        else if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.altClient) {
-            rv = { content: `This command cannot be run outside of discord`, status: StatusCode.ERR }
-            return this.applyFinalityToRv(cmd, args, rv)
-        }
-        //if any are true, the user cannot run the command
-        else if (
-            //is blacklisted
-            common.BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
-            //is disabled from the caller
-            this.disable?.commands && this.disable.commands.includes(cmd) ||
-            this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
-            //is a stage channel
-            !isMsgChannel(this.#msg.channel)
-
-        ) {
-            rv = { content: "You are blacklisted from this command, or the command has been disabled", status: StatusCode.ERR }
-            return this.applyFinalityToRv(cmd, args, rv)
-        }
-        else if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(cmd)) {
-            let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-            if (!m || m.content.toLowerCase() !== 'y') {
-                rv = { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
-                return this.applyFinalityToRv(cmd, args, rv)
-            }
-        }
-
-        //make sure it passes the command's perm check if it has one
-
-        events.botEvents.emit(events.CmdRun, this)
-
-        let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
-
-        if (this.#shouldType || cmdObject.make_bot_type)
-            await this.#msg.channel.sendTyping()
-
-        if (!this.context.options['no-int-cache'] && cmdObject.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
-            rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
-        }
-
-        else if (cmdObject?.cmd_std_version == 2) {
-            return this.applyFinalityToRv(cmd, args, await this.runCmdV2(cmd, cmdObject, rv, opts, args, args2))
-        }
-        else if (cmdObject instanceof AliasV2) {
-            //dont need to apply finality as it's already been applied
-            for await (let res of cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, legacy: true })) {
-                rv = res
-            }
-            this.aliasV2 = cmdObject
-        }
-        else {
-            throw new Error(`${cmd} is commandv1 which euro broke`)
-        }
-        if (cmdObject?.use_result_cache === true) {
-            Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
-        }
-        //if it is aliasV2 it will double count
-        if (!this.aliasV2)
-            useTracker.cmdUsage.addToUsage(cmd)
-
-        return this.applyFinalityToRv(cmd, args, rv)
-    }
-
-    async interpretAsToken(token: Token, t: T) {
-        return await this[t](token)
-    }
-    async interpretCurrentAsToken(t: T) {
-        return await this[t](this.#curTok as Token)
-    }
-
-    async interpretAllAsToken(t: T) {
-        while (this.advance()) {
-            let tokList = await this.interpretCurrentAsToken(t)
-            if (tokList && tokList.length) {
-                for (let tok of tokList) {
-                    this.addTokenToArgList(tok)
-                }
-            }
-        }
-    }
-
-    async handlePipes(commandReturn: CommandReturn) {
-        let tks = this.getPipeTo()
-        let allowedMentions = commandReturn.allowedMentions
-        //if noSend is given, we dont want to pipe it
-        while (tks.length && !commandReturn.noSend) {
-            //we cant return json or it will double pipe
-            let int = new Interpreter(this.#msg, tks, {
-                modifiers: this.modifiers,
-                recursion: this.recursion,
-                disable: this.disable,
-                pipeData: commandReturn,
-                context: this.context
-            })
-
-            await int.interpret()
-
-            commandReturn = defileCommandReturn(await int.run() as CommandReturn)
-
-            if (allowedMentions) {
-                //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
-                commandReturn.allowedMentions = { parse: [] }
-            }
-            tks = int.getPipeTo()
-        }
-        return commandReturn
-    }
-
-    async interpret() {
-        if (this.#interpretd) {
-            return this.args
-        }
-
-        let tokList
-        while (this.advance() && (tokList = await this.interpretCurrentAsToken((this.#curTok as Token).type))) {
-            for (let tok of tokList) {
-                this.addTokenToArgList(tok)
-            }
-        }
-
-        //null comes from %{-1}doFirsts
-        this.args = this.args.filter(v => v !== null)
-
-        //undefined can get in args if {token} format is used, and they want a command token
-        let lastUndefIdx = this.args.lastIndexOf(Interpreter.commandUndefined as string)
-
-        //if it is found
-        if (lastUndefIdx > -1) {
-            //we basically treat everythign before it as if it didn't happen
-            this.args = this.args.splice(lastUndefIdx + 1)
-        }
-
-        this.#interpretd = true
-
-        let intPipeData = this.getPipeTo()
-
-        //if the pipe is open, all calls to handleSending, and returns should run through the pipe
-        if (intPipeData.length) {
-            this.sendCallback = (async function(this: Interpreter, options: string | MessageCreateOptions | MessagePayload) {
-                options = defileCommandReturn(options as CommandReturn) as typeof options
-                options = await this.handlePipes(options as CommandReturn) as typeof options
-                return handleSending(this.#msg, options as CommandReturn, undefined)
-            }).bind(this)
-        }
-        return this.args
-    }
-}
-
 function censor_error(err: Error) {
     let ip = getToolIp()
     return err.toString().replaceAll(ip as string, "")
-}
-
-function defileCommandReturn(rv: CommandReturn) {
-    //if a file contains content that was previously supposed to be sent to chat, dont keep in file
-    for (let i = 0; i < (rv.files?.length ?? 0); i++) {
-        if (rv.files?.[i].wasContent) {
-            rv.content = rv.files[i].wasContent
-            rv.files = rv.files.filter((_v, idx) => idx !== i)
-        }
-    }
-    return rv
 }
 
 function cmdUserExpansion(msg: Message, rv: CommandReturn) {
@@ -1384,81 +714,6 @@ function cmdUserExpansion(msg: Message, rv: CommandReturn) {
     rv.do_change_cmd_user_expansion = false
 
     return rv
-}
-
-export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
-
-    if (!isMsgChannel(msg.channel)) return msg
-
-    if (!Object.keys(rv).length) {
-        return msg
-    }
-
-    events.botEvents.emit(events.HandleSend, msg, rv, sendCallback, recursion)
-
-    if (!sendCallback) {
-        sendCallback = rv.sendCallback ||
-            rv.reply ? msg.reply.bind(msg) :
-            rv.channel?.send.bind(rv.channel) ||
-            msg.channel.send.bind(msg.channel)
-    }
-
-    if (rv.delete) {
-        msg.delete().catch(_err => console.log("Message not deleted"))
-    }
-
-    if (rv.noSend) {
-        return msg
-    }
-
-    if (rv.content && rv.do_change_cmd_user_expansion !== false) {
-        rv = cmdUserExpansion(msg, rv)
-    }
-
-    if (!rv?.content) {
-        //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
-        delete rv['content']
-    }
-    //only do this if content
-    else if (recursion < configManager.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, configManager.PREFIX.length) === configManager.PREFIX) {
-        let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
-
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(configManager.PREFIX.length), recursion: recursion + 1, disable: rv.recurse === true ? undefined : rv.recurse })
-
-        rv = ret.rv
-
-        //we only want to override it if the command doens't explicitly want to do it
-        if (rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false) {
-            rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion
-        }
-        //
-        //it's better to just recursively do this, otherwise all the code above would be repeated
-        return await handleSending(msg, rv, sendCallback, recursion + 1)
-    }
-    //if the content is > 2000 (discord limit), send a file instead
-    if ((rv.content?.length || 0) >= 2000) {
-        let oldContent = rv.content
-        if (rv.onOver2kLimit) {
-            rv = rv.onOver2kLimit(msg, rv)
-        }
-        let fn = `./garbage-files/${msg.author.id}-${msg.id}`
-        fs.writeFileSync(fn, rv.content as string)
-        let extension = rv.mimetype ? mimeTypeToFileExtension(rv.mimetype) || "txt" : "txt"
-        rv.files = (rv.files ?? []).concat([{ attachment: fn, name: `cmd.${extension}`, description: "command output too long", wasContent: oldContent }])
-        delete rv["content"]
-    }
-    let newMsg = msg
-    try {
-        if (rv.silent !== true)
-            newMsg = await sendCallback(rv as MessageCreateOptions)
-    }
-    catch (err) {
-        //usually happens when there is nothing to send
-        console.log(err)
-        if (rv.silent !== true)
-            newMsg = await sendCallback({ content: `${err}` })
-    }
-    return newMsg
 }
 
 export function createHelpArgument(description: string, required?: boolean, requires?: string, default_?: string) {
@@ -1680,10 +935,6 @@ export default {
     getCommands,
     getMatchCommands,
     getAliasesV2,
-    cmd,
-    handleSending,
-    Interpreter,
-    PIDS,
     censor_error,
     PagedEmbed,
     createFakeMessage,

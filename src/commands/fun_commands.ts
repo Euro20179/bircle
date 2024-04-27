@@ -63,7 +63,6 @@ import globals from '../globals'
 import timer from '../timer'
 import common_to_commands, {
     ccmdV2,
-    cmd,
     CommandCategory,
     createCommandV2,
     createHelpArgument,
@@ -597,14 +596,18 @@ export default function*(): Generator<[string, CommandV2]> {
                 signature = getContentFromResult(rv)
             }
             else{
-                signature = getContentFromResult((await cmd({
-                    msg,
-                    command_excluding_prefix: signature.slice(configManager.PREFIX.length),
-                    recursion: recursionCount,
-                    disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() }
-                })).rv as CommandReturn)
-                if (signature.startsWith(configManager.PREFIX)) {
-                    signature = "\\" + signature
+                let ctx = new cmds.RuntimeOptions()
+                ctx.set("recursion", recursionCount)
+                ctx.set("disable", { ...(commandBans || {}), ...generateDefaultRecurseBans() })
+                const results = []
+                for await(const res of globals.PROCESS_MANAGER.spawn_cmd({
+                    msg, command: signature.slice(configManager.PREFIX.length), prefix: "",
+                })){
+                    results.push(getContentFromResult(res))
+                }
+                signature = results.join("\n")
+                if(signature.startsWith(configManager.PREFIX)){
+                    signature = `\\${signature}`
                 }
             }
         }
