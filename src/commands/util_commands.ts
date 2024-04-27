@@ -3766,7 +3766,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let h = m / 60
                     let d = h / 24
                     let w = d / 7
-                    switch (1) {
+                    switch (true) {
                         case unit.startsWith("s"):
                             return { content: `${s}`, status: StatusCode.RETURN }
                         case unit.startsWith("m"):
