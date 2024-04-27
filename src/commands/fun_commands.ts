@@ -541,7 +541,9 @@ export default function*(): Generator<[string, CommandV2]> {
         //
         // return { noSend: true, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, {
-        c: createHelpOption("Start a chat session")
+        c: createHelpOption("Start a chat session"),
+        m: createHelpOption("Select the model to use (use -l to list the models)"),
+        l: createHelpOption("List models that can be used")
     }, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans, runtime_opts }) => {
