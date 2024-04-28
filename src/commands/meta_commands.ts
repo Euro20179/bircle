@@ -2144,7 +2144,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 realVal = Number(realVal)
             }
 
-            if (opts['u']) {
+            if(realName.startsWith("&")){
+                user_options.setOpt(msg.author.id, realName.slice(1), String(realVal))
+            }
+            else if (opts['u']) {
                 if (prefix !== '__global__') {
                     return crv("Invalid prefix", { status: StatusCode.ERR })
                 }
@@ -2170,7 +2173,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             },
             arguments: {
                 "[prefix:]name=value": {
-                    description: "name is the variable name, value is the value<br>prefix is optional, and can be anything that does not start with !<br>the <code>%</code> prefix will also create a user variable.",
+                    description: "name is the variable name, value is the value<br>prefix is optional, and can be anything that does not start with !<br>the <code>%</code> prefix will also create a user variable.<br>If name starts with an &, it will be treated as an option name",
                     required: true
                 }
             }
