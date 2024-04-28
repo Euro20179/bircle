@@ -171,32 +171,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             runtime_opts.set("program-args", args)
         }
         if (!opts.getBool("n", false)) {
-            return crv(runtime_opts.get("program-args", []).join(" "))
+            const args = runtime_opts.get("program-args", [])
+            if(!args.length){
+                return { noSend: true, status: StatusCode.RETURN }
+            }
+            return crv(args.join(" "))
         }
-        // let newIfs = opts.getString("IFS", "")
-        // if (newIfs) {
-        //     interpreter.context.export("IFS", newIfs)
-        // }
-        //
-        // let explicit = opts.getBool("x", null)
-        // if (explicit !== null) {
-        //     interpreter.context.setOpt("explicit", Number(explicit))
-        // }
-        //
-        // let intCache = opts.getBool("c", null)
-        // if (intCache !== null) {
-        //     interpreter.context.setOpt("no-int-cache", Number(intCache))
-        // }
-        //
-        // let dryRun = opts.getBool("d", null)
-        // if (dryRun !== null)
-        //     interpreter.context.setOpt("dryRun", Number(dryRun))
-        //
-        // let newProgArgs = args.slice(0)
-        // if (newProgArgs.length) {
-        //     interpreter.context.programArgs = newProgArgs
-        // }
-        // return crv(interpreter.context.programArgs.join(interpreter.context.env.IFS ?? " "))
     }, "Sets program arguments", {
         helpOptions: {
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}"),

@@ -249,6 +249,7 @@ async function* runcmdlinev2({
         }
     }
     catch (err: any) {
+        console.log(err)
         yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }
     }
 }
