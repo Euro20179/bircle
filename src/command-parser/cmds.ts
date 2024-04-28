@@ -211,7 +211,7 @@ async function* runcmdlinev2({
             }
             text += pipe_line_text.trim() + " >pipe> "
         }
-        text = text.slice(0, text.length - " >pipe> ".length)
+        text = `${line_no} ${text.slice(0, text.length - " >pipe> ".length)}`
         yield { content: text, status: StatusCode.INFO }
         // console.log(tokens)
         // yield { content: "Work in progress", status: StatusCode.INFO }
@@ -305,6 +305,7 @@ async function* runcmdv2({
             symbols,
             runtime_opts,
         })
+        lineNo++
     }
 
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
