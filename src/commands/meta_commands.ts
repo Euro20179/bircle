@@ -885,7 +885,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
 
             for (let i = start; i < end; i++) {
-                vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
+                symbols.set(`%:${var_name}`, String(i))
                 for (let line of scriptLines) {
                     for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                         { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols }, `${pid_label}:${i}`, { parentPID }
