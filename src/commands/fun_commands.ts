@@ -1824,7 +1824,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "pfp", ccmdV2(async ({ msg, opts, args, stdin }) => {
-            let link = args[0]
+            let link = stdin?.content || args[0]
             if (!link) {
                 link = String(await getImgFromMsgAndOptsAndReply(opts, msg, stdin))
             }
