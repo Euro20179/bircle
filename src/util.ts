@@ -701,7 +701,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         efd,
         rgbToHex,
         escapeRegex,
-        escapeShell,
         randomColor,
         randomHexColorCode,
         mulStr,
@@ -728,10 +727,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         console.log(err)
         return undefined
     }
-}
-
-function escapeShell(text: string) {
-    return text.replaceAll(/\$/g, "\\$").replaceAll(";", "\\;")
 }
 
 function strlen(text: string) {
@@ -1340,7 +1335,6 @@ export {
     safeEval,
     mulStr,
     cycle,
-    escapeShell,
     strlen,
     UTF8String,
     cmdCatToStr,
