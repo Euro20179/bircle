@@ -91,6 +91,16 @@ function findClosest(needle: number, haystack: number[]): [number, number] {
     }
 }
 
+function rotCharN(char: string, n: number){
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    const idx = chars.indexOf(char)
+    return chars[(idx + n) % (chars.length / 2)]
+}
+
+function rotN(text: string, n: number){
+    return text.split("").map(c => c.match(/[a-zA-Z]/) && rotCharN(c, n) || c).join("")
+}
+
 function base10ToRoman(n: number) {
     const toRoman = {
         1: "I",
@@ -679,8 +689,12 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     //let clearContext = 'Function = undefined;'
     code = clearContext + resultKey + '=' + code
     if (!context) {
-        context = {}
+        context = Object.create(Math)
     }
+    for(const key of Reflect.ownKeys(Math)){
+        context[key as string] = Math[key as keyof typeof Math]
+    }
+
     Object.entries({
         yes: true,
         false: false,
@@ -700,6 +714,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         romanToBase10,
         findClosest,
         base10ToRoman,
+        rotN,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -1378,6 +1393,7 @@ export {
     iterGenerator,
     iterAsyncGenerator,
     fetchRoleFromServer,
-    base10ToRoman
+    base10ToRoman,
+    rotN
 }
 

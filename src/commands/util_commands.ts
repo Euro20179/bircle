@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -2132,6 +2132,7 @@ middle
                 upper: string => string.toUpperCase(),
                 lower: string => string.toLowerCase(),
                 title: string => string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" "),
+                rot13: string => rotN(string, 13),
                 lc: string => String(string.split("\n").length),
                 wc: string => String(string.split(" ").length),
                 bc: string => String(string.split("").length),
@@ -2152,6 +2153,7 @@ middle
     <li>upper:  convert to upper case</li>
     <li>lower:  convert to lowercase</li>
     <li>title:  convert to title</li>
+    <li>rot13:  rot13 encode the string</li>
     <li>lc:     get a line count</li>
     <li>wc:     get a word count</li>
     <li>bc:     get a byte count</li>
@@ -4354,7 +4356,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             helpOptions: {
                 s: createHelpOption("dont give back the extra \"found x at char...\" text")
             },
-            accepts_stdin: "Can be used instead of <code>data</code>"
+            accepts_stdin: "Can be used instead of <code>data</code>",
+            gen_opts: true
         })
     ]
 }
