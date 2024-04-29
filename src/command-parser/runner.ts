@@ -11,7 +11,7 @@ import common from "../common";
 import globals from '../globals';
 
 import events from './events'
-import configManager from '../config-manager';
+import configManager, { PREFIX } from '../config-manager';
 
 const CMD_CACHE: Map<string, CommandReturn[]> = new Map()
 
@@ -145,7 +145,10 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
             }
             return
         }
-        yield { content: `\\${cmd} is not a valid command`, status: StatusCode.ERR }
+        if(cmd.startsWith(PREFIX)){
+            cmd = `\\${cmd}`
+        }
+        yield { content: `${cmd} is not a valid command`, status: StatusCode.ERR }
 
         return
     }
