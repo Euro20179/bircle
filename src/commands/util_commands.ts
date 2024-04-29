@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -169,12 +169,20 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "roman-numerals", ccmdV2(async function({ args, opts }) {
+            if(opts.getBool("r", false)){
+                return crv(args.map(n => base10ToRoman(Number(n))).join(opts.getString("join", "\n")))
+            }
             return crv(args.map(roman => romanToBase10(roman.toUpperCase())).join(opts.getString("join", "\n")))
         }, "Convert roman numberals to aribic numerals", {
             docs: "5000 = B or V-<br>10000 = K OR X-<br>50000 = R OR L-<br>100000 = G OR C-<br>500000 = T D-<br>1000000 = F OR M-",
+            helpOptions: {
+                "r": createHelpOption("The roman numerals to convert ot aribic numerals"),
+            "join": createHelpOption("The text to join each result by", undefined, "\n", true)
+            },
             helpArguments: {
                 '...roman numerals': createHelpArgument("The numerals to convert to aribic numerals")
             },
+            gen_opts: true
         })
     ]
 

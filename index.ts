@@ -13,7 +13,7 @@ commands()
 
 import { slashCmds } from './src/slashCommands'
 
-import command_commons, { StatusCode } from './src/common_to_commands'
+import command_commons from './src/common_to_commands'
 
 import globals from './src/globals'
 import useTracker from './src/use-tracker'

@@ -61,6 +61,69 @@ async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
 }
 
 /**
+    * @description
+    * Finds the item in the haystack that's closest to n
+    * requires haystack to be sorted least -> greatest
+*/
+function findClosest(needle: number, haystack: number[]): [number, number] {
+    if (haystack.length == 0) {
+        return [0, needle]
+    }
+    if (haystack.length === 1) {
+        return [haystack[0], haystack[0] - needle]
+    }
+    const middle = Math.floor(haystack.length / 2)
+    if (needle < haystack[middle]) {
+        let closeness = haystack[middle] - needle
+        let [n, newCloseness] = findClosest(needle, haystack.slice(0, middle))
+        newCloseness = newCloseness
+        //making this <= prioritizes the earlier item in the list
+        return Math.abs(closeness) <= Math.abs(newCloseness) ? [haystack[middle], closeness] : [n, newCloseness]
+    }
+    else if (needle === haystack[middle]) {
+        return [haystack[middle], 0]
+    }
+    else {
+        let closeness = haystack[middle] - needle
+        let [n, newCloseness] = findClosest(needle, haystack.slice(middle + 1))
+        newCloseness = newCloseness
+        return Math.abs(closeness) <= Math.abs(newCloseness) ? [haystack[middle], closeness] : [n, newCloseness]
+    }
+}
+
+function base10ToRoman(n: number) {
+    const toRoman = {
+        1: "I",
+        5: "V",
+        10: "X",
+        50: "L",
+        100: "C",
+        500: "D",
+        1000: "M",
+        5000: "B",
+        10000: "K",
+        50000: "R",
+        100000: "G",
+        500000: "T",
+        1000000: "F"
+    } as const
+    if (n == 0) {
+        return ""
+    }
+    let romanStr = ""
+    const values = Object.keys(toRoman).map(Number).sort((l, r) => l - r)
+    const [closest, closeness] = findClosest(n, values)
+    romanStr += toRoman[closest as keyof typeof toRoman]
+    if (closeness < 0) {
+        romanStr += base10ToRoman(n - closest)
+    }
+    else {
+        romanStr = base10ToRoman(closest - n) + romanStr
+    }
+    return romanStr
+}
+
+/**
     * @description Converts roman numerals to base 10
 */
 function romanToBase10(roman: string) {
@@ -600,7 +663,7 @@ function rgbToHex(r: int_t, g: int_t, b: int_t) {
 }
 
 function generateSafeEvalContextFromMessage(msg: Message) {
-    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.displayName, ubot: msg.author.bot, Units: units}
+    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.displayName, ubot: msg.author.bot, Units: units }
 }
 
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {
@@ -635,6 +698,8 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         renderHTML: htmlRenderer.renderHTML,
         generateCommandSummary,
         romanToBase10,
+        findClosest,
+        base10ToRoman,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -1313,5 +1378,6 @@ export {
     iterGenerator,
     iterAsyncGenerator,
     fetchRoleFromServer,
+    base10ToRoman
 }
 
