@@ -61,8 +61,9 @@ class TokenEvaluator {
                 if (doFirstResultNo === "") {
                     text = doFirst
                 }
-                else if (doFirstResultNo === "..") {
-                    let strings = doFirst.split(" ")
+                else if (doFirstResultNo.startsWith("..")) {
+                    let split = doFirstResultNo.slice(2) || " "
+                    let strings = doFirst.split(split)
                     this.add_list_of_strings(strings)
                     return true
                 }
