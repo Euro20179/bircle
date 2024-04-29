@@ -393,7 +393,7 @@ export default function*(): Generator<[string, CommandV2]> {
         )
     })]
 
-    yield ["chat", createCommandV2(async ({ msg, opts, args, sendCallback }) => {
+    yield ["chat", ccmdV2(async ({ msg, opts, args, sendCallback }) => {
         if (!configManager.getConfigValue("general.enable-chat")) {
             return crv("This command is not enabled", { status: StatusCode.ERR })
         }
@@ -540,11 +540,14 @@ export default function*(): Generator<[string, CommandV2]> {
         // })
         //
         // return { noSend: true, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Use the openai chatbot", undefined, {
-        c: createHelpOption("Start a chat session"),
-        m: createHelpOption("Select the model to use (use -l to list the models)"),
-        l: createHelpOption("List models that can be used")
-    }, undefined, undefined, true)]
+    }, "Use the openai chatbot", {
+        helpOptions: {
+            c: createHelpOption("Start a chat session"),
+            m: createHelpOption("Select the model to use (use -l to list the models)"),
+            l: createHelpOption("List models that can be used")
+        },
+        short_opts: "cm:l"
+    })]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans, runtime_opts }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
