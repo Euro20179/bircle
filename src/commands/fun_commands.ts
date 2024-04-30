@@ -22,6 +22,7 @@ import {
     Embed,
     CacheType,
     ButtonInteraction,
+    MessageContextMenuCommandInteraction,
 } from 'discord.js';
 
 import economy from '../economy'
@@ -51,7 +52,8 @@ import {
     enumerate,
     getImgFromMsgAndOptsAndReply,
     titleStr,
-    countOf
+    countOf,
+    Enum
 } from '../util'
 
 // import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
@@ -95,6 +97,47 @@ import configManager from '../config-manager';
 const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
+
+    yield ["cpj-search", ccmdV2(async function({msg, args, opts}){
+        const resultsPerPage = opts.getNumber("items", 5)
+        const search = args.join(" ")
+        const url = `https://clubpenguinjourney.fandom.com/wiki/Special:Search?query=${search}`
+
+        const res = await fetch(url)
+        const text = await res.text()
+        const $ = cheerio.load(text)
+        let matches = $("li.unified-search__result")
+
+        let pages = []
+        let curEmbed = new EmbedBuilder()
+        let curText = ""
+
+        for(let i = 0; i < matches.length; i++){
+            let match = matches[i]
+
+            let lines = $(match).text().split("\n").map(v => v.trim()).filter(Boolean)
+            curText += `### [${lines[0]}](${lines[lines.length - 1]})\n${lines.slice(1, -1).join("\n")}\n\n`
+
+            if(i % (resultsPerPage - 1) == 0 && i !== 0){
+                curEmbed.setDescription(curText)
+                pages.push(curEmbed)
+                curText = ""
+                curEmbed = new EmbedBuilder()
+            }
+        }
+
+        let e = new PagedEmbed(msg, pages, `cpj-search${msg.author.id}`, true)
+        await e.begin()
+
+        return { noSend: true, status: StatusCode.RETURN }
+    }, "Searches the club penguin journey wiki", {
+            helpOptions: {
+                items: createHelpOption("Number of results per page", undefined, "5", true)
+            },
+            helpArguments: {
+                "...search": createHelpArgument("The search query")
+            }
+        })]
 
     yield ['mastermind', ccmdV2(async function({ msg, opts }) {
         globals.startCommand(msg.author.id, "mastermind")
