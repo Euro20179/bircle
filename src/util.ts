@@ -77,8 +77,9 @@ function findClosest(needle: number, haystack: number[]): [number, number] {
         let closeness = haystack[middle] - needle
         let [n, newCloseness] = findClosest(needle, haystack.slice(0, middle))
         newCloseness = newCloseness
-        //making this <= prioritizes the earlier item in the list
-        return Math.abs(closeness) <= Math.abs(newCloseness) ? [haystack[middle], closeness] : [n, newCloseness]
+        //< prioritizes the earlier item here, because the new closer one is guaranteed to be earlier in the list
+        //therefore select it if closeness and newCloseness are equal
+        return Math.abs(closeness) < Math.abs(newCloseness) ? [haystack[middle], closeness] : [n, newCloseness]
     }
     else if (needle === haystack[middle]) {
         return [haystack[middle], 0]
@@ -87,6 +88,7 @@ function findClosest(needle: number, haystack: number[]): [number, number] {
         let closeness = haystack[middle] - needle
         let [n, newCloseness] = findClosest(needle, haystack.slice(middle + 1))
         newCloseness = newCloseness
+        //making this <= prioritizes the earlier item in the list, because the old closer one is guaranteed to be earlier in the list
         return Math.abs(closeness) <= Math.abs(newCloseness) ? [haystack[middle], closeness] : [n, newCloseness]
     }
 }

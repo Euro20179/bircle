@@ -8,6 +8,7 @@ import economy from '../economy'
 import timer from '../timer'
 import { format } from '../parsing'
 import htmlRenderer from '../html-renderer'
+import userOptions from '../user-options'
 
 
 /**
@@ -75,22 +76,27 @@ class TokenEvaluator {
         }
         else if (token instanceof lexer.TTVariable) {
             let [varName, ...ifNull] = token.data.split("||")
-            let value = this.symbols.get(varName)
-            if (value !== undefined) {
-                this.add_to_cur_tok(value)
+            if(varName.startsWith("&") && userOptions.isValidOption(varName.slice(1))){
+                this.add_to_cur_tok(userOptions.getOpt(this.msg.author.id, varName.slice(1) as "currency-sign", "__unset__"))
             }
-            else {
-                let _var = vars.getVar(this.msg, varName)
-                if (_var === false) {
-                    if (ifNull) {
-                        this.add_to_cur_tok(ifNull.join("||"))
-                    }
-                    else {
-                        this.add_to_cur_tok(`\${${varName}}`)
-                    }
+            else{
+                let value = this.symbols.get(varName)
+                if (value !== undefined) {
+                    this.add_to_cur_tok(value)
                 }
                 else {
-                    this.add_to_cur_tok(_var)
+                    let _var = vars.getVar(this.msg, varName)
+                    if (_var === false) {
+                        if (ifNull) {
+                            this.add_to_cur_tok(ifNull.join("||"))
+                        }
+                        else {
+                            this.add_to_cur_tok(`\${${varName}}`)
+                        }
+                    }
+                    else {
+                        this.add_to_cur_tok(_var)
+                    }
                 }
             }
         }

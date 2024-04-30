@@ -35,48 +35,6 @@ export default function*() {
         }
     })]
 
-    yield [createMatchCommand(async ({ msg, match }) => {
-
-        if (msg.guild) {
-            return { noSend: true, status: StatusCode.RETURN }
-        }
-
-        let searchUser: string = match[1]
-        let textToSend = match[2]
-
-        let user = await fetchUserFromClient(common.client, searchUser)
-
-        if (!user) {
-            return { content: `${searchUser} not found`, status: StatusCode.ERR }
-        }
-        if (user_options.getOpt(user.id, "enable-mail", "false").toLowerCase() !== "true") {
-            return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
-        }
-        let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, PREFIX.length) === PREFIX) {
-            const ctx = new cmds.RuntimeOptions()
-            ctx.set("recursion", 19)
-            signature = getContentFromResult((await globals.PROCESS_MANAGER.spawn_cmd_then_die({ msg, command: signature.slice(PREFIX.length), runtime_opts: ctx, prefix: "" })))
-            if (signature.startsWith(PREFIX)) {
-                signature = "\\" + signature
-            }
-        }
-        if (!user.dmChannel) {
-            try {
-                await user.createDM()
-            }
-            catch (err) {
-                return { content: `Cannot send to ${user.username}`, status: StatusCode.ERR }
-            }
-        }
-        await handleSending(msg, { content: textToSend + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN, delete: true, channel: user.dmChannel as DMChannel })
-
-        return { content: `Message sent to ${user.username}`, status: StatusCode.RETURN }
-
-
-
-    }, /^@([^\s]+) (.*)/, "end-mail-from-dms")]
-
     yield [createMatchCommand(async function({ msg, match }) {
         return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
             msg, command: `stop${match[1] ?? ""}`, prefix: ""
@@ -100,41 +58,6 @@ export default function*() {
         })
     }, /s!(.*)/, "!", {
         info: "In case of a bad prefix, unsets it"
-    })]
-
-    yield [createMatchCommand(async ({ msg, match }) => {
-        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
-            msg, command: match[1] ?? `stop${match[1] ?? ""} `, prefix: ""
-        })
-    }, /^u!stop(.*)/, "!stop", {
-        info: "same as [stop",
-        arguments: {
-            id: createHelpArgument("The id of the spam to stop", false, undefined, "Stops all spams")
-        }
-    })]
-
-    yield [createMatchCommand(async ({ msg, match }) => {
-        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
-            msg, command: match[1] ?? `calc -python${match[1] ?? ""}`, prefix: ""
-        })
-    }, /^u!eval(.*)/, "!eval", {
-        info: "same as <code>[calc -python</code>",
-        arguments: {
-            expression: createHelpArgument("The python expression to run", true)
-        }
-    })]
-
-    yield [createMatchCommand(async ({ msg, match }) => {
-        if (user_options.getOpt(msg.author.id, "prefix", PREFIX) === PREFIX) {
-            return { noSend: true, status: StatusCode.RETURN }
-        }
-        user_options.setOpt(msg.author.id, "prefix", PREFIX)
-        return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
-            msg, command: match[1], prefix: ""
-        })
-
-    }, /^s!(.*)/, "!", {
-        info: "run <code>s!</code> in case you mess up the prefix"
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
