@@ -6,7 +6,7 @@ import user_options from '../user-options'
 import vars from '../vars'
 import { DMChannel, Message } from 'discord.js'
 
-import { PREFIX } from '../config-manager'
+import configManager, { PREFIX } from '../config-manager'
 
 import cmds from '../command-parser/cmds'
 import globals from '../globals'
@@ -14,27 +14,6 @@ import globals from '../globals'
 const handleSending = cmds.handleSending
 
 export default function*() {
-    yield [createMatchCommand(async ({ msg, match }) => {
-        let find = match[1]
-        let replace = match[2]
-        if (!lastCommand[msg.author.id])
-            return crv("You have not ran a command")
-        lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        let final: CommandReturn = { status: 1, noSend: true }
-        for await (const result of globals.PROCESS_MANAGER.spawn_cmd({
-            msg, command: lastCommand[msg.author.id].slice(1), prefix: ""
-        })) {
-            final = result
-        }
-        return final
-    }, /^\^([^\^]+)\^(.*)$/, "un-replace", {
-        info: "^&lt;find&gt;^&lt;replace&gt;",
-        arguments: {
-            find: createHelpArgument("The text to find for replacing", true),
-            replace: createHelpArgument("The text to replace find with", false)
-        }
-    })]
-
     yield [createMatchCommand(async function({ msg, match }) {
         return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
             msg, command: `stop${match[1] ?? ""}`, prefix: ""
