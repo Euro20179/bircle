@@ -1,6 +1,3 @@
-import { Message } from "discord.js"
-import { AliasV2, getAliasesV2, getCommands } from "./common_to_commands"
-import { getOpt } from './user-options'
 
 enum T {
     str,

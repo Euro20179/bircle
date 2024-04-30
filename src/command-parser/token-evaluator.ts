@@ -10,6 +10,54 @@ import { format } from '../parsing'
 import htmlRenderer from '../html-renderer'
 import userOptions from '../user-options'
 
+function parseVariableExpansion(variableInner: string) {
+    let varPart = ""
+    let operator = ""
+    let operatorArg = ""
+    const operators = [
+        "||",
+        "#",
+        "%",
+        "/",
+        "&&",
+        "IF/"
+    ]
+    let curOp = ""
+    for (const ch of variableInner) {
+        if (!operator) {
+            const opAndCh = curOp + ch
+            let foundOp = false
+            for (const op of operators) {
+                if (op == opAndCh) {
+                    operator = opAndCh
+                    curOp = ""
+                    foundOp = true
+                    break
+                }
+                else if (op.startsWith(opAndCh)) {
+                    curOp += ch
+                    foundOp = true
+                    break
+                }
+            }
+            if (!foundOp) {
+                varPart += opAndCh
+                curOp = ""
+            }
+            //if the length of the operator string is 1, curOp is "", therefore we also need
+            //to check if operator is empty
+            else if (curOp == "" && operator == "") {
+                varPart += ch
+            }
+        }
+        else if (operator) {
+            operatorArg += ch
+        }
+    }
+
+    return [varPart, operator, operatorArg]
+}
+
 
 /**
     * @description This class takes a list of tokens, and as necessary expands them into string tokens.
@@ -75,30 +123,43 @@ class TokenEvaluator {
             }
         }
         else if (token instanceof lexer.TTVariable) {
-            let [varName, ...ifNull] = token.data.split("||")
-            if(varName.startsWith("&") && userOptions.isValidOption(varName.slice(1))){
-                this.add_to_cur_tok(userOptions.getOpt(this.msg.author.id, varName.slice(1) as "currency-sign", "__unset__"))
+            let [varName, operator, operatorArg] = parseVariableExpansion(token.data)
+            let val = ""
+            //let [varName, ...ifNull] = token.data.split("||")
+            if (varName.startsWith("&") && userOptions.isValidOption(varName.slice(1))) {
+                val = userOptions.getOpt(this.msg.author.id, varName.slice(1) as "currency-sign", "")
             }
-            else{
-                let value = this.symbols.get(varName)
-                if (value !== undefined) {
-                    this.add_to_cur_tok(value)
-                }
-                else {
-                    let _var = vars.getVar(this.msg, varName)
-                    if (_var === false) {
-                        if (ifNull) {
-                            this.add_to_cur_tok(ifNull.join("||"))
-                        }
-                        else {
-                            this.add_to_cur_tok(`\${${varName}}`)
-                        }
-                    }
-                    else {
-                        this.add_to_cur_tok(_var)
-                    }
+            else {
+                val = this.symbols.get(varName)
+                if (val === undefined) {
+                    val = vars.getVar(this.msg, varName)
                 }
             }
+            if(!val && operator === "||"){
+                val = operatorArg
+            }
+            else if (operator == "%") {
+                val = val.replace(new RegExp(`${operatorArg}$`), "")
+            }
+            else if (operator === "#") {
+                val = val.replace(new RegExp(`^${operatorArg}`), "")
+            }
+            else if (operator === "/") {
+                let [find, replace, flags] = operatorArg.split(/(?<!\\)\//)
+                flags ||= ""
+                val = val.replace(new RegExp(find, flags), replace)
+            }
+            else if (val && operator === "&&") {
+                val = operatorArg
+            }
+            else if (operator === "IF/") {
+                let [i, e] = operatorArg.split("ELSE/")
+                val = val ? i : e
+            }
+            else if(!val) {
+                val = `\${${varName}}`
+            }
+            this.add_to_cur_tok(val)
         }
         else if (token instanceof lexer.TTJSExpr) {
             let text = (await cmds.expandSyntax(token.data, this.msg, this.symbols, this.runtime_opts)).join(" ")

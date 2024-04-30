@@ -2109,10 +2109,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "silent", ccmdV2(async function({ args, msg, runtime_opts, pid_label, symbols }) {
+            const initialSilent = runtime_opts.get("silent", false)
             runtime_opts.set("silent", true)
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
             let gen = globals.PROCESS_MANAGER.spawn_cmd({ command: "(PREFIX)" + args.join(" "), prefix: "(PREFIX)", runtime_opts, msg, symbols }, "silent(SUB)", { parentPID })
             while (!(await gen.next()).done);
+            runtime_opts.set("silent", initialSilent)
             return { noSend: true, status: StatusCode.RETURN }
         }, "Run a command silently")
     ]
