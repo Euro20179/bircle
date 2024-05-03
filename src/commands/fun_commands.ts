@@ -43,13 +43,11 @@ import {
     efd,
     BADVALUE,
     MimeType,
-    range,
     isMsgChannel,
     isBetween,
     fetchUserFromClientOrGuild,
     cmdFileName,
     truthy,
-    enumerate,
     getImgFromMsgAndOptsAndReply,
     titleStr,
     countOf,
@@ -80,6 +78,7 @@ import common_to_commands, {
 } from '../common_to_commands';
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
+import iterators from '../iterators';
 
 
 import { hasItem, useItem, getInventory } from '../shop'
@@ -2103,7 +2102,10 @@ export default function*(): Generator<[string, CommandV2]> {
             if (items === BADVALUE) {
                 return crv("expected list")
             }
-            let ans = Array.from(range(0, times), () => choice(items as string[])).join(sep).trim()
+            let ans = iterators.range(0, times)
+                     .map(() => choice(items as string[]))
+                     .reduce("", (p, cur) => p + cur + "\n")
+                     .trim()
             return ans ? crv(ans) : crv("```invalid message```", { status: StatusCode.ERR })
 
         }, "Choose a random item from a list of items separated by a |", {

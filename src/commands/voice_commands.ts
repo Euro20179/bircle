@@ -6,6 +6,9 @@ import { CommandCategory, createCommandV2, StatusCode } from '../common_to_comma
 import {  generateFileName } from '../util'
 import { EmbedBuilder } from 'discord.js'
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, DiscordGatewayAdapterCreator, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
+import { Queue } from '../queue'
+
+import iterators from '../iterators'
 
 let currently_playing: { link: string, filename: string } | undefined;
 
@@ -14,7 +17,7 @@ function setCurrentlyPlaying(to: { link: string, filename: string } | undefined)
 }
 
 let connection: VoiceConnection | undefined;
-let vc_queue: { link: string, filename: string }[] = []
+let vc_queue: Queue<{link: string, filename: string}> = new Queue()
 const player = createAudioPlayer({
     behaviors: {
         noSubscriber: NoSubscriberBehavior.Pause
@@ -23,13 +26,13 @@ const player = createAudioPlayer({
 
 
 async function play_next_in_queue_or_destroy_connection(_queue: typeof vc_queue){
-    let new_link = vc_queue.shift()
+    let new_link = vc_queue.dequeue()
     if(new_link){
         play_link(new_link)
         return true
     }
     else{
-        vc_queue = []
+        vc_queue.clear()
         connection?.destroy()
     }
     return false
@@ -101,11 +104,11 @@ export default function*() {
                 adapterCreator: voice_state.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
             })
 
-            vc_queue.push({ link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}` })
+            vc_queue.enqueue({ link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}` })
             if (player.state.status === AudioPlayerStatus.Playing) {
                 return { content: `${link} added to queue`, status: StatusCode.RETURN }
             }
-            play_link(vc_queue.shift() as { link: string, filename: string })
+            play_link(vc_queue.dequeue() as { link: string, filename: string })
             return { content: `loading: ${link}`, status: StatusCode.RETURN }
         }, CommandCategory.VOICE, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false),
     ]
@@ -127,7 +130,10 @@ export default function*() {
             let embed = new EmbedBuilder()
             embed.setTitle("queue")
             embed.setDescription(String(currently_playing?.link) || "None")
-            return { content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN }
+            let content = iterators.reduce(
+                new iterators.Iter(iterators.intoIter(vc_queue)).map((v: any) => v.link),
+                "", (p, c) => p + c)
+            return { content: content, embeds: [embed], status: StatusCode.RETURN }
         }, CommandCategory.VOICE, "See the music queue", undefined, undefined, undefined, undefined, undefined, undefined, false),
     ]
 
@@ -145,14 +151,14 @@ export default function*() {
 
     yield [
     'leave', createCommandV2(async ({msg}) => {
-        vc_queue = []
+        vc_queue.clear()
         let voice_state = msg.member?.voice
         if (!voice_state?.channelId) {
             return { content: "No voice", status: StatusCode.ERR }
         }
         let con = getVoiceConnection(voice_state.guild.id)
         if (con) {
-            vc_queue = []
+            vc_queue.clear()
             con.destroy()
             return { content: "Left vc", status: StatusCode.RETURN }
         }

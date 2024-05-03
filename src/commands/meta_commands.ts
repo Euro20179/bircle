@@ -882,6 +882,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
 
+            if(scriptLines.length < 1){
+                return crv("No commands given to run (be sure to put the commands in {})", { status: StatusCode.ERR })
+            }
+
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
 
             for (let i = start; i < end; i++) {

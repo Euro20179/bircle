@@ -8,10 +8,11 @@ import economy from '../economy'
 import user_options from '../user-options'
 import battle from '../battle'
 import pet from '../pets'
+import iterators from '../iterators'
 
 import uno, { Hand, Stack } from '../uno'
 
-import { choice, cycle, efd, fetchUser, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from '../util'
+import { choice, efd, fetchUser, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from '../util'
 
 import { format, getOpts } from '../parsing'
 
@@ -71,7 +72,7 @@ export default function*(): Generator<[string, CommandV2]> {
         //main game
 
 
-        let cycler = cycle(Array.from(players, (p, idx) => [p as User, idx === 0 ? "R" : "B"] as const))
+        let cycler = iterators.cycle(Array.from(players, (p, idx) => [p as User, idx === 0 ? "R" : "B"] as const))
 
         let editableMsg = await handleSending(msg, { content: `${players[0]}\nType the number column you want to go in\n${connect4.createBoardText(board, p1Color, p2Color)}`, status: StatusCode.INFO })
 

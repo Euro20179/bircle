@@ -4,8 +4,9 @@ import https from 'https'
 import { Stream } from 'stream'
 
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile,  StatusCode } from '../common_to_commands'
-import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
+import { cmdFileName, createGradient, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
+import iterators from '../iterators'
 import sharp from 'sharp'
 import cmds from '../command-parser/cmds'
 const handleSending = cmds.handleSending
@@ -130,7 +131,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let canv = new canvas.Canvas(image.width, image.height)
             let ctx = canv.getContext("2d")
             ctx.drawImage(image, 0, 0)
-            let rgba_cycle = cycle<string>(["red", "green", "blue", "alpha"])
+            let rgba_cycle = iterators.cycle<string>(["red", "green", "blue", "alpha"])
             let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v: any, idx: any) => {
                 let cur_channel = rgba_cycle.next().value as string
                 if (idx % 4 === 3)
@@ -184,7 +185,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let canv = new canvas.Canvas(image.width, image.height)
             let ctx = canv.getContext("2d")
             ctx.drawImage(image, 0, 0)
-            let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
+            let rgba_cycle = iterators.cycle(["red", "green", "blue", "alpha"])
             let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v: any, idx: any) => {
                 let cur_channel = rgba_cycle.next().value
                 if (idx % 4 === 3 && !channel.includes("alpha"))

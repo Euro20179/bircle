@@ -1,4 +1,4 @@
-import { enumerate, range } from "./util";
+import iterators from "./iterators";
 
 type BoardCharacter = "O" | "R" | "B" | string
 
@@ -28,14 +28,14 @@ function boardIsFull(board: Board){
 
 function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') {
     let text = "```\n"
-    for (let [idx, _] of enumerate(board[0])) {
+    for (let [idx, _] of iterators.enumerate(board[0])) {
         text += `|${strNumberToEmoji(String(idx + 1))}`
     }
     text += '|\n'
-    for (let [_rowN, row] of enumerate(board)) {
+    for (let [_rowN, row] of iterators.enumerate(board)) {
         //fixes a missing bar at the start of each row
         text += "|"
-        for (let [colN, point] of enumerate(row)) {
+        for (let [colN, point] of iterators.enumerate(row)) {
             switch (point) {
                 case "R":
                     text += redplayer
@@ -67,7 +67,7 @@ function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') 
 */
 function placeColorInColumn(board: Board, color: "R" | "B", column: number) {
     let lowestRow = board[0].length;
-    for (let [rowNo, row] of enumerate(board.reverse())) {
+    for (let [rowNo, row] of iterators.enumerate(board.reverse())) {
         if (row[column] === "O") {
             //board.legth is the column count
             lowestRow = board.length - rowNo - 1
@@ -142,7 +142,7 @@ function checkWin(board: Board, needed = 4) {
             hasWon = true
         }
     }
-    let columns = Array.from(range(0, board[0].length), (colNo) => Array.from(board, row => row[colNo]))
+    let columns = Array.from(iterators.range(0, board[0].length), (colNo) => Array.from(board, row => row[colNo]))
     for (let column of columns) {
         if (checkWinInColumnOrRow(column, needed)) {
             hasWon = true

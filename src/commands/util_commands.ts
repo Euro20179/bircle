@@ -15,7 +15,8 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, take, reduce } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN } from '../util'
+import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -230,7 +231,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             const sep = opts.getString("s", " ")
             //Generating more than 10000 items could get costly
             //(10000 is arbitrary)
-            const items = reduce(take(fillerFn(), 1000), "", (result, cur) => {
+            const items = iterators.reduce(iterators.take(fillerFn(), 1000), "", (result, cur) => {
                 return result ? result + sep + String(cur) : String(cur)
             })
             return crv(items)
@@ -364,7 +365,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         let link
         if (!opts.getBool("a", false)) {
             let text = ""
-            for (let [i, link] of enumerate(linkList)) {
+            for (let [i, link] of iterators.enumerate(linkList)) {
                 text += `${i + 1}: ${links[link]}\n`
             }
             let ans: { content: string } | false =
@@ -2794,13 +2795,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         "read-lines", ccmdV2(async function*({ args, stdin, opts }) {
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
             let lines = text.trim().split("\n")
-            let waitTime = opts.getNumber("w", 1000)
-            if (waitTime < 700) {
-                waitTime = 1000
-            }
             for (let line of lines) {
                 yield crv(line)
-                await sleep(waitTime)
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, "Read each line one at a time and send to sendCallback", {

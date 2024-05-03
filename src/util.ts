@@ -18,6 +18,7 @@ import { getConfigValue } from "./config-manager"
 import { parseRangeString } from "./parsing"
 
 import units from './units'
+import iterators from "./iterators"
 
 
 export type MimeType = `${string}/${string}`
@@ -413,40 +414,6 @@ class UTF8String {
     }
 }
 
-/**
-    * @description similar to python's enumerate() function
-*/
-function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
-    let i = 0
-    for (let item of iterable) {
-        yield [i++, item]
-    }
-}
-
-/**
- * @description Takes the next **n** items from an iterable
- */
-function* take<T>(iterable: Iterable<T>, n: number): Generator<T> {
-    let i = 0;
-    for (let item of iterable) {
-        yield item
-        i++
-        if (i >= n) {
-            break
-        }
-    }
-}
-
-/**
- * @description Reduces an iterable
- */
-function reduce<T, R>(iterable: Iterable<T>, start: R, fn: (result: R, cur: T) => R): R {
-    let result = start
-    for(const item of iterable){
-        result = fn(result, item)
-    }
-    return result
-}
 
 function countOf<T>(list: T[] | string, item: T): number {
     let count = 0
@@ -456,40 +423,6 @@ function countOf<T>(list: T[] | string, item: T): number {
     return count
 }
 
-/**
-    * @description similar to python's range() function
-*/
-function range(start: number, end: number, step: number = 1) {
-    return new Proxy(function*() {
-        for (let i = 0; i < end; i += step) {
-            yield i
-        }
-    }(), {
-        get(target, p) {
-            let val = target[p as keyof typeof target]
-            return typeof val === 'function' ? val.bind(target) : val
-        },
-        has(_target, p) {
-            let n = Number(p)
-            //we need to shift it because then we can just do n % end == 0 to check if the step is correct
-            let [shiftedP, shiftedEnd] = [n - start, end - start]
-            return isBetween(start - 1, n, end) && shiftedP % shiftedEnd == 0
-        }
-    })
-}
-
-/**
- * @param {Iterable} iter
- * @param {function(number):void} [onNext]
- * @returns {Iterable}
- */
-function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
-    for (let i = 0; true; i++) {
-        if (onNext)
-            onNext(i)
-        yield iter[i % iter.length]
-    }
-}
 
 function randomColor() {
     return randomHexColorCode()
@@ -513,7 +446,7 @@ function choice<T>(list: Array<T>): T {
 }
 
 function mulStr(str: string, amount: int_t) {
-    return Array.from(range(0, amount), () => str).join("")
+    return Array.from(iterators.range(0, amount), () => str).join("")
 }
 
 async function fetchChannel(guild: Guild, find: string) {
@@ -748,6 +681,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
             formatMoney: formatMoney,
             getOpt: getOpt
         },
+        ...iterators
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
@@ -1364,7 +1298,6 @@ export {
     rgbToHex,
     safeEval,
     mulStr,
-    cycle,
     strlen,
     UTF8String,
     cmdCatToStr,
@@ -1382,8 +1315,6 @@ export {
     Options,
     ArgList,
     searchList,
-    range,
-    enumerate,
     BADVALUE,
     GOODVALUE,
     createEmbedFieldData,
@@ -1419,7 +1350,5 @@ export {
     fetchRoleFromServer,
     base10ToRoman,
     rotN,
-    take,
-    reduce
 }
 

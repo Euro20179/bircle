@@ -15,7 +15,7 @@ import { slashCmds } from './src/slashCommands'
 
 import command_commons from './src/common_to_commands'
 
-import globals from './src/globals'
+import globals  from './src/globals'
 import useTracker from './src/use-tracker'
 import { defer, isMsgChannel } from './src/util'
 import { format, getOptsUnix } from './src/parsing'
@@ -102,7 +102,7 @@ common.client.on(Events.MessageDelete, async (m) => {
 
 setInterval(() => {
     common.saveDb();
-}, 30000)
+}, 3000)
 
 async function handlePingResponse(m: Message) {
     for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
@@ -176,7 +176,6 @@ async function handleEarnings(m: Message) {
         }
     }
 }
-
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
@@ -253,7 +252,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             { command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts },
             att.name,
         )) {
-            await cmds.handleSending(m, result)
+            cmds.handleSending(m, result)
         }
     }
 
@@ -262,7 +261,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             { command: content, prefix: local_prefix, msg: m },
             content,
         )) {
-            await cmds.handleSending(m, result)
+            cmds.handleSending(m, result)
         }
     }
     else {
