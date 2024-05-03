@@ -242,7 +242,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             },
             helpOptions: {
                 s: createHelpOption("Output seperator between numbers")
-            }
+            },
+            gen_opts: true
         })
     ]
 
