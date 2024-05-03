@@ -3173,14 +3173,26 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
 
         class UserFormat extends Format {
+            constructor(private showType: string){
+                super()
+            }
             async format(text: string) {
                 let user = await fetchUser(msg.guild as Guild, text)
-                if (user)
+                if(!user){
+                    return text
+                }
+                if (this.showType === "@")
                     return `<@${user.id}>`
+                else if(this.showType === "#"){
+                    return user.displayHexColor || "NONE"
+                }
+                else if(this.showType === "a"){
+                    return user.displayAvatarURL() ?? "NONE"
+                }
                 return text
             }
-            static parseFormatSpecifier(_format: string): string | Format {
-                return new UserFormat()
+            static parseFormatSpecifier(format: string): string | Format {
+                return new UserFormat(format[0])
             }
         }
 
@@ -3310,6 +3322,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         let currentSpecifier = ""
         for (let char of formatSpecifier) {
+            //%a is reserved for %au
             if ("sdXxofuc".includes(char)) {
                 formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier + char))
                 currentSpecifier = ""
