@@ -1,4 +1,3 @@
-
 enum T {
     str,
     dofirst,

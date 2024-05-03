@@ -76,6 +76,7 @@ common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
     if (!HEADLESS) {
         defer(() => {
+
             for (let v in user_options.USER_OPTIONS) {
                 if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
                     common.client.users.fetch(v).then((u) => {
@@ -175,6 +176,7 @@ async function handleEarnings(m: Message) {
         }
     }
 }
+
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return

@@ -61,7 +61,10 @@ async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
 }
 
 /**
-    * @description
+    * @!
+*
+* G
+* qa!:qaAZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZzdescription
     * Finds the item in the haystack that's closest to n
     * requires haystack to be sorted least -> greatest
 */

@@ -147,6 +147,106 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
+        "seq", ccmdV2(async function({ args, opts }) {
+            let [seqArg, max, ..._] = args
+            const seq = seqArg.split(",").map(Number)
+            max = Number(max)
+            let fillerFn = function*() {
+                yield 0
+            }
+            function createArithFillerFn(start: number, max: number, diff: number) {
+                let comp = (_a: number, _b: number) => false
+                if (diff < 0 && max > start) {
+                    return 0
+                }
+                else if (diff < 0) {
+                    comp = (a: number, b: number) => a >= b
+                }
+                else {
+                    comp = (a: number, b: number) => a <= b
+                }
+                return function*() {
+                    for (let i = start; comp(i, max); i += diff) {
+                        yield i
+                    }
+                }
+            }
+            switch (seq.length) {
+                case 2: {
+                    let fn = createArithFillerFn(seq[0], max, seq[1] - seq[0])
+                    if (fn === 0) {
+                        return crv("INVALID SEQUENCE", { status: StatusCode.ERR })
+                    }
+                    fillerFn = fn as () => Generator<number, void, unknown>
+                    break
+                }
+                case 1: {
+                    fillerFn = function*() {
+                        for (let i = seq[0]; i <= max; i++) {
+                            yield i
+                        }
+                    }
+                    break
+                }
+                default: {
+                    //we do this because for the multiplictive series, it may start with 0
+                    //if we let the user start it at 0 the loop will never be able to increase
+                    //because x * 0 = 0
+                    //to fix this, only look at the last 3 items in the sequence the user gives
+                    //then prefix the final result with the numbers taken from the splice
+                    //
+                    //if the seq is exactly 3 items and starts with 0, it's gauranteed to be adititive
+                    let prefixNums = seq.splice(0, seq.length - 3)
+                    //if the difference between n2 n1, and n1 n0 are the same it's an additive series
+                    if (seq[2] - seq[1] === seq[1] - seq[0]) {
+                        const diff = seq[2] - seq[1]
+                        let fn = createArithFillerFn(seq[0], max, diff)
+                        if (fn === 0) {
+                            return crv("INVALID SEQUENCE", { status: StatusCode.ERR })
+                        }
+                        fillerFn = fn as () => Generator<number, void, unknown>
+                    }
+                    else if (seq[2] / seq[1] === seq[1] / seq[0]) {
+                        const ratio = seq[1] / seq[0]
+                        if (ratio < 0 && max > seq[0]) {
+                            return crv("INVALID SEQUENCE", { status: StatusCode.ERR })
+                        }
+                        fillerFn = function*() {
+                            for (let i = seq[0]; i <= max; i *= ratio) {
+                                yield i
+                            }
+                        }
+                    }
+                    let oldFiller = fillerFn
+                    fillerFn = function*() {
+                        for (let item of prefixNums) {
+                            yield item
+                        }
+                        yield* oldFiller()
+                    }
+                    break
+                }
+            }
+            const list = []
+            for (let [count, item] of enumerate(fillerFn())) {
+                if (count > 10000) {
+                    break
+                }
+                list.push(item)
+            }
+            return crv(list.join(opts.getString("s", " ")))
+        }, "Fills in an arethmetic or geometric series", {
+            helpArguments: {
+                initialSequence: createHelpArgument("A , seperated sequence of numbers"),
+                max: createHelpArgument("The end of the range")
+            },
+            helpOptions: {
+                s: createHelpOption("Output seperator between numbers")
+            }
+        })
+    ]
+
+    yield [
         "vim", ccmdV2(async function({ args }) {
             const nvim_proc = spawn("nvim", ["-u", "NONE", "-N", "--embed"], {})
             const nvim = attach({ proc: nvim_proc })
@@ -169,7 +269,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "roman-numerals", ccmdV2(async function({ args, opts }) {
-            if(opts.getBool("r", false)){
+            if (opts.getBool("r", false)) {
                 return crv(args.map(n => base10ToRoman(Number(n))).join(opts.getString("join", "\n")))
             }
             return crv(args.map(roman => romanToBase10(roman.toUpperCase())).join(opts.getString("join", "\n")))
@@ -177,7 +277,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             docs: "5000 = B or V-<br>10000 = K OR X-<br>50000 = R OR L-<br>100000 = G OR C-<br>500000 = T D-<br>1000000 = F OR M-",
             helpOptions: {
                 "r": createHelpOption("The roman numerals to convert ot aribic numerals"),
-            "join": createHelpOption("The text to join each result by", undefined, "\n", true)
+                "join": createHelpOption("The text to join each result by", undefined, "\n", true)
             },
             helpArguments: {
                 '...roman numerals': createHelpArgument("The numerals to convert to aribic numerals")
