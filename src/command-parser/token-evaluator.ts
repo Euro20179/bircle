@@ -24,7 +24,11 @@ function parseVariableExpansion(variableInner: string) {
     ]
     let curOp = ""
     for (const ch of variableInner) {
-        if (!operator) {
+        //variable is guaranteed to be 1+ char
+        if(!varPart){
+            varPart += ch
+        }
+        else if (!operator) {
             const opAndCh = curOp + ch
             let foundOp = false
             for (const op of operators) {

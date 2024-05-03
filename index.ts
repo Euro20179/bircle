@@ -252,7 +252,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             { command: cmd, prefix: "(PREFIX)", msg: m, runtime_opts },
             att.name,
         )) {
-            cmds.handleSending(m, result)
+            await cmds.handleSending(m, result)
         }
     }
 
@@ -261,7 +261,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             { command: content, prefix: local_prefix, msg: m },
             content,
         )) {
-            cmds.handleSending(m, result)
+            await cmds.handleSending(m, result)
         }
     }
     else {
