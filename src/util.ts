@@ -96,13 +96,13 @@ function findClosest(needle: number, haystack: number[]): [number, number] {
     }
 }
 
-function rotCharN(char: string, n: number){
+function rotCharN(char: string, n: number) {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     const idx = chars.indexOf(char)
     return chars[(idx + n) % (chars.length / 2)]
 }
 
-function rotN(text: string, n: number){
+function rotN(text: string, n: number) {
     return text.split("").map(c => c.match(/[a-zA-Z]/) && rotCharN(c, n) || c).join("")
 }
 
@@ -423,6 +423,31 @@ function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
     }
 }
 
+/**
+ * @description Takes the next **n** items from an iterable
+ */
+function* take<T>(iterable: Iterable<T>, n: number): Generator<T> {
+    let i = 0;
+    for (let item of iterable) {
+        yield item
+        i++
+        if (i >= n) {
+            break
+        }
+    }
+}
+
+/**
+ * @description Reduces an iterable
+ */
+function reduce<T, R>(iterable: Iterable<T>, start: R, fn: (result: R, cur: T) => R): R {
+    let result = start
+    for(const item of iterable){
+        result = fn(result, item)
+    }
+    return result
+}
+
 function countOf<T>(list: T[] | string, item: T): number {
     let count = 0
     for (let i of list) {
@@ -696,7 +721,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     if (!context) {
         context = Object.create(Math)
     }
-    for(const key of Reflect.ownKeys(Math)){
+    for (const key of Reflect.ownKeys(Math)) {
         context[key as string] = Math[key as keyof typeof Math]
     }
 
@@ -1393,6 +1418,8 @@ export {
     iterAsyncGenerator,
     fetchRoleFromServer,
     base10ToRoman,
-    rotN
+    rotN,
+    take,
+    reduce
 }
 

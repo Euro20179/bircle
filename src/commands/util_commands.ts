@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, take, reduce } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -227,14 +227,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     break
                 }
             }
-            const list = []
-            for (let [count, item] of enumerate(fillerFn())) {
-                if (count > 10000) {
-                    break
-                }
-                list.push(item)
-            }
-            return crv(list.join(opts.getString("s", " ")))
+            const sep = opts.getString("s", " ")
+            //Generating more than 10000 items could get costly
+            //(10000 is arbitrary)
+            const items = reduce(take(fillerFn(), 1000), "", (result, cur) => {
+                return result ? result + sep + String(cur) : String(cur)
+            })
+            return crv(items)
         }, "Fills in an arethmetic or geometric series", {
             helpArguments: {
                 initialSequence: createHelpArgument("A , seperated sequence of numbers"),
