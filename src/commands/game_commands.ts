@@ -263,6 +263,10 @@ export default function*(): Generator<[string, CommandV2]> {
 
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
+        if(msg.author.bot){
+            return crv("Bots cannot join know your meme", { status: StatusCode.ERR })
+        }
+
         const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
 
         async function game() {
