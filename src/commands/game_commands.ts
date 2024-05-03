@@ -304,15 +304,19 @@ export default function*(): Generator<[string, CommandV2]> {
                         await handleSending(msg, { content: `${i + 1}: \\_\\_NO\\_GIF\\_\\_`, status: StatusCode.INFO })
                         continue
                     }
+                    let attachments = gif.attachments.toJSON()[0]
+                    if(!attachments){
+                        await handleSending(msg, { content: `${i + 1}: \\_\\_NO\\_GIF\\_\\_`, status: StatusCode.INFO })
+                        continue
+                    }
                     let b = new ButtonBuilder({ customId: `${i}`, style: ButtonStyle.Primary, label: `Vote for gif ${i + 1})` })
                     buttons.push(b)
                     let row = new ActionRowBuilder<ButtonBuilder>()
                     row.addComponents(b)
-                    let attachments = gif.attachments.toJSON()[0]
                     let m = await handleSending(msg, {
                         content: `${i + 1}:\n${gif.content}`,
                         files: [{
-                            name: attachments.name || "image",
+                            name: attachments?.name || "image",
                             attachment: attachments.url
                         }], status: StatusCode.INFO, components: [row]
                     })
