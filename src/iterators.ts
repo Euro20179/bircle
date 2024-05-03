@@ -4,15 +4,18 @@ class Iter{
     constructor(private iterable: Generator<any>){}
 
     enumerate(){
-        return this.iterable = enumerate(this.iterable)
+        this.iterable = enumerate(this.iterable)
+        return this
     }
 
     take(n: number){
-        return this.iterable = take(this.iterable, n)
+        this.iterable = take(this.iterable, n)
+        return this
     }
 
     map(mapping: Function){
-        return this.iterable = map(this.iterable, mapping)
+        this.iterable = map(this.iterable, mapping)
+        return this
     }
 
     reduce<T>(initial: T, fn: (res: T, c: any) => T){
@@ -20,11 +23,13 @@ class Iter{
     }
 
     filter(filterFn: (item: any, idx: number) => boolean){
-        return this.iterable = filter(this.iterable, filterFn)
+        this.iterable = filter(this.iterable, filterFn)
+        return this
     }
 
     filterMap(filterMapFn: (item: any, idx: number) => [false] | [true, any]){
-        return this.iterable = filterMap(this.iterable, filterMapFn)
+        this.iterable = filterMap(this.iterable, filterMapFn)
+        return this
     }
 
     *[Symbol.iterator](){

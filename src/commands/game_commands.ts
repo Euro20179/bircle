@@ -2130,7 +2130,7 @@ yield[
         let order = [...playerData.keys()]
 
         let forcedDraw = 0
-        let turns = cycle(order, (i: any) => {
+        let turns = iterators.cycle(order, (i: any) => {
             let playerIds = order
             fetchUser(msg.guild as Guild, playerIds[i % playerIds.length]).then((u: any) => {
                 if (players.map(v => v.id).indexOf(going) < 0) {

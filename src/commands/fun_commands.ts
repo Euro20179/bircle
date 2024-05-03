@@ -2104,7 +2104,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             let ans = iterators.range(0, times)
                      .map(() => choice(items as string[]))
-                     .reduce("", (p, cur) => p + cur + "\n")
+                     .reduce("", (p: string, cur: string) => p + cur + "\n")
                      .trim()
             return ans ? crv(ans) : crv("```invalid message```", { status: StatusCode.ERR })
 
@@ -2627,7 +2627,7 @@ Valid formats:
 
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []
-                for (let [i, post] of enumerate(posts)) {
+                for (let [i, post] of iterators.enumerate(posts)) {
                     //@ts-ignore
                     let uploaded = new Date(post.counts.published)
                     let [_http, __, inst, _c, community] = post.community.actor_id.split("/")
