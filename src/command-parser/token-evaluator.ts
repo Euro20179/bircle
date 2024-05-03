@@ -10,7 +10,7 @@ import { format } from '../parsing'
 import htmlRenderer from '../html-renderer'
 import userOptions from '../user-options'
 
-function parseVariableExpansion(variableInner: string) {
+function parseVariableExpansion(variableInner: string): [string, "||" | "#" | "%" | "/" | "&&" | "IF/" | "", string ] {
     let varPart = ""
     let operator = ""
     let operatorArg = ""
@@ -59,7 +59,7 @@ function parseVariableExpansion(variableInner: string) {
         }
     }
 
-    return [varPart, operator, operatorArg]
+    return [varPart, operator as "||", operatorArg]
 }
 
 
@@ -139,29 +139,22 @@ class TokenEvaluator {
                     val = vars.getVar(this.msg, varName)
                 }
             }
-            if(!val && operator === "||"){
-                val = operatorArg
-            }
-            else if (operator == "%") {
-                val = val.replace(new RegExp(`${operatorArg}$`), "")
-            }
-            else if (operator === "#") {
-                val = val.replace(new RegExp(`^${operatorArg}`), "")
-            }
-            else if (operator === "/") {
-                let [find, replace, flags] = operatorArg.split(/(?<!\\)\//)
-                flags ||= ""
-                val = val.replace(new RegExp(find, flags), replace)
-            }
-            else if (val && operator === "&&") {
-                val = operatorArg
-            }
-            else if (operator === "IF/") {
-                let [i, e] = operatorArg.split("ELSE/")
-                val = val ? i : e
-            }
-            else if(!val) {
-                val = `\${${varName}}`
+            switch(operator){
+                case '||': if(!val) val = operatorArg; break 
+                case '&&': if(val) val = operatorArg; break
+                case '#': val = val.replace(new RegExp(`^${operatorArg}`), ""); break
+                case '%': val = val.replace(new RegExp(`${operatorArg}$`), ""); break
+                case '/':
+                    let [find, replace, flags] = operatorArg.split(/(?<!\\)\//)
+                    flags ||= ""
+                    val = val.replace(new RegExp(find, flags), replace)
+                    break
+                case 'IF/':
+                    let [i, e] = operatorArg.split("ELSE/")
+                    val = val ? i : e
+                    break
+                default:
+                    if(!val) val = `\${${varName}}`
             }
             this.add_to_cur_tok(val)
         }
