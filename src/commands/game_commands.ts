@@ -163,10 +163,10 @@ export default function*(): Generator<[string, CommandV2]> {
         helpArguments: {
             "player": createHelpArgument("The player you want to play against", false)
         }, helpOptions: {
-            "needed": createHelpOption("The amount you need to get in a row to win", undefined, "4"),
-            "rows": createHelpOption("The number of rows", undefined, "6"),
-            "cols": createHelpOption("The number of cols", undefined, "7"),
-            "symbol": createHelpOption("The symbol to use for yourself", undefined, "🔴")
+            "needed": createHelpOption("The amount you need to get in a row to win", undefined, "4", true),
+            "rows": createHelpOption("The number of rows", undefined, "6", true),
+            "cols": createHelpOption("The number of cols", undefined, "7", true),
+            "symbol": createHelpOption("The symbol to use for yourself", undefined, "🔴", true)
         }
     })]
 
