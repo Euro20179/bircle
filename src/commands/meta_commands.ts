@@ -898,6 +898,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         // await new Promise(res => setTimeout(res, 1000))
                     }
                 }
+                yield { noSend: true, status: StatusCode.CHECKIN }
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "A for loop", {

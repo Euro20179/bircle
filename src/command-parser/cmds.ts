@@ -318,6 +318,9 @@ async function handleSending(
     rv: CommandReturn,
     sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>
 ): Promise<Message> {
+    //this status is specifically for a command to checkin with the process manager
+    //so that if necessary the process manager can stop the command
+    if(rv.status === StatusCode.CHECKIN) return msg
     if (!isMsgChannel(msg.channel)) return msg
 
     if (!Object.keys(rv).length) {

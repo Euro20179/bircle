@@ -250,6 +250,7 @@ export class PagedEmbed {
 }
 
 export const StatusCode = {
+    CHECKIN: -4,
     ACHIEVEMENT: -3,
     PROMPT: -2,
     INFO: -1,
