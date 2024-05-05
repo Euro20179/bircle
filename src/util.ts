@@ -543,7 +543,8 @@ const cmdFileName = (data: TemplateStringsArray, ...template: string[]) => gener
 function escapeRegex(str: string) {
     let finalString = ""
     let escaped = false
-    for (let char of str) {
+    for (let i = 0; i < str.length; i++) {
+        let char = str[i]
         if (escaped) {
             finalString += char
         }
@@ -1030,14 +1031,15 @@ function getContentFromResult(result: CommandReturn, end = "") {
     if (result.content)
         res += result.content
     if (result.files) {
-        for (let file of result.files) {
+        for (let i = 0; i < result.files.length; i++) {
+            let file = result.files[i]
             if (existsSync(file.attachment))
                 res += end + fs.readFileSync(file.attachment, "base64")
         }
     }
     if (result.embeds) {
-        for (let embed of result.embeds) {
-            res += `${end}${JSON.stringify(embed.toJSON())}`
+        for (let i = 0; i < result.embeds.length; i++) {
+            res += `${end}${JSON.stringify(result.embeds[i].toJSON())}`
         }
     }
     return res

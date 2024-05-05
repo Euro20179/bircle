@@ -294,10 +294,9 @@ async function* runcmdv2({
     let cmd = parser.createCommandFromTokens(lex.gen_tokens())
 
 
-    let lineNo = 1
-    for (let cmdLine of cmd) {
+    for (let lineNo = 1; lineNo <= cmd.length; lineNo++) {
         yield* runcmdlinev2({
-            tokens: cmdLine,
+            tokens: cmd[lineNo - 1],
             msg,
             sendCallback,
             line_no: lineNo,
@@ -305,7 +304,6 @@ async function* runcmdv2({
             symbols,
             runtime_opts,
         })
-        lineNo++
     }
 
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
