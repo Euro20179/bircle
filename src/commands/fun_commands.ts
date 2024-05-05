@@ -2243,7 +2243,24 @@ Valid formats:
             }
             let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg: _, weather, wind_gust, pressure, uvi, clouds } = weatherJson.current
 
+            function getTempColor(temp: number){
+                return {
+                    [110 < tempF ? 1 : 0]: "#aa0000",
+                    [isBetween(100, tempF, 111) ? 1 : 0]: "#ff0000",
+                    [isBetween(90, tempF, 101) ? 1 : 0]: "#ff412e",
+                    [isBetween(75, tempF, 91) ? 1 : 0]: "Orange",
+                    [isBetween(60, tempF, 76) ? 1 : 0]: "Yellow",
+                    [isBetween(45, tempF, 61) ? 1 : 0]: "Green",
+                    [isBetween(32, tempF, 46) ? 1 : 0]: "Blue",
+                    [isBetween(0, tempF, 33) ? 1 : 0]: "#5be6ff",
+                    [tempF <= 0 ? 1 : 0]: "Purple",
+                }[1] ?? "DarkButNotBlack"
+            }
+
+
             let tempF = temp * (9 / 5) + 32
+            let color = getTempColor(tempF)
+
             let feelsLikeF = feels_like * (9 / 5) + 32
 
             let windMPH = wind_speed / 1.6093440006147
@@ -2264,21 +2281,11 @@ Valid formats:
                 pressure = Math.round(pressure)
                 pressureHg = Math.round(pressureHg * 100) / 100
             }
-            let color = {
-                [110 < tempF ? 1 : 0]: "#aa0000",
-                [isBetween(100, tempF, 111) ? 1 : 0]: "#ff0000",
-                [isBetween(90, tempF, 101) ? 1 : 0]: "#ff412e",
-                [isBetween(75, tempF, 91) ? 1 : 0]: "Orange",
-                [isBetween(60, tempF, 76) ? 1 : 0]: "Yellow",
-                [isBetween(45, tempF, 61) ? 1 : 0]: "Green",
-                [isBetween(32, tempF, 46) ? 1 : 0]: "Blue",
-                [isBetween(0, tempF, 33) ? 1 : 0]: "#5be6ff",
-                [tempF <= 0 ? 1 : 0]: "Purple",
-            }[1] ?? "DarkButNotBlack"
 
             let name = weatherJson.city.state ? `${found_city}, ${weatherJson.city.state}` : `${found_city}, ${weatherJson.city.country}`
             let icon = `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
             let descriptionData = titleStr(weather[0].description)
+
 
             let fEmbeds: EmbedBuilder[] = []
             let celciusEmbeds: EmbedBuilder[] = []
@@ -2294,17 +2301,7 @@ Valid formats:
                 let status = titleStr(day.weather[0].description) || "Unknown"
                 let icon = `https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`
                 let avg = (highF + lowF) / 2
-                let color = {
-                    [110 < avg ? 1 : 0]: "#aa0000",
-                    [isBetween(100, avg, 111) ? 1 : 0]: "#ff0000",
-                    [isBetween(90, avg, 101) ? 1 : 0]: "#ff412e",
-                    [isBetween(75, avg, 91) ? 1 : 0]: "Orange",
-                    [isBetween(60, avg, 76) ? 1 : 0]: "Yellow",
-                    [isBetween(45, avg, 61) ? 1 : 0]: "Green",
-                    [isBetween(32, avg, 46) ? 1 : 0]: "Blue",
-                    [isBetween(0, avg, 33) ? 1 : 0]: "#5be6ff",
-                    [avg <= 0 ? 1 : 0]: "Purple",
-                }[1] ?? "DarkButNotBlack"
+                let color = getTempColor(avg)
                 if (!opts.getBool("no-round", false)) {
                     high = Math.round(high)
                     highF = Math.round(highF)
