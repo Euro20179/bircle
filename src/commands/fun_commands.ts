@@ -107,6 +107,10 @@ export default function*(): Generator<[string, CommandV2]> {
         const $ = cheerio.load(text)
         let matches = $("li.unified-search__result")
 
+        if(matches.length < 1){
+            return crv("No results", { status: StatusCode.ERR })
+        }
+
         let pages = []
         let curEmbed = new EmbedBuilder()
         let curText = ""
