@@ -25,8 +25,6 @@ import lexer from '../command-parser/lexer'
 import timer from '../timer'
 import configManager from '../config-manager'
 
-configManager
-
 const handleSending = cmds.handleSending
 
 
@@ -362,7 +360,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
 
-        "option", createCommandV2(async ({ msg, args }) => {
+        "option", ccmdV2(async ({ msg, args }) => {
             let [optname, ...value] = args
             if (!user_options.isValidOption(optname)) {
                 return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
@@ -378,15 +376,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 user_options.saveUserOptions()
                 return { content: `<@${msg.author.id}> set ${optname}=${optVal}`, status: StatusCode.RETURN }
             }
-        }, CAT,
-            "Sets a user option",
+        }, "Sets a user option",
             {
-                option: createHelpArgument("The option to set", true),
-                value: createHelpArgument("The value to set the option to, if not given, option will be unset", false)
-            },
-            null,
-            null,
-            (m) => !m.author.bot),
+                helpOptions: {
+                    option: createHelpArgument("The option to set", true),
+                    value: createHelpArgument("The value to set the option to, if not given, option will be unset", false)
+                },
+                permCheck: (m) => !m.author.bot,
+                prompt_before_run: true
+            }
+        ),
     ]
 
     yield [
