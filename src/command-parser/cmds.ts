@@ -3,7 +3,7 @@ import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
 import lexer, { TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
-import { isMsgChannel, mimeTypeToFileExtension } from '../util'
+import { isMsgChannel, mimeTypeToFileExtension, sleep } from '../util'
 import common_to_commands, { StatusCode, isCmd } from '../common_to_commands'
 
 import configManager from '../config-manager'
@@ -338,6 +338,16 @@ async function handleSending(
     }
 
     if (rv.noSend) {
+        //this microsleep is because
+        //If a command infinitely yields {noSend: true} without actually sending content
+        //it will hang the bot as the javascript eventloop will not run anything else
+        //to fix this, add a 1 ms pause to allow the js eventloop do do other things
+        //
+        //an example of the scenario described above:
+        //user runs `for i 1..Infinity { s:coin }`
+            //without the microsleep, no one can run `stop` as the js eventloop is not processing other events
+            //with the microsleep, the js eventloop can do other things (like process the `stop` command)
+        await sleep(1)
         return msg
     }
 
