@@ -71,13 +71,13 @@ async function* run_command_v2(msg: Message, cmd: string, cmdObject: CommandV2, 
 }
 
 async function* run_file(msg: Message, name: string, args: string[]): AsyncGenerator<CommandReturn> {
-    let data = `(PREFIX)${fs.readFileSync(`./src/bircle-bin/${name}.bircle`, 'utf-8')}`
+    let data = `${fs.readFileSync(`./src/bircle-bin/${name}.bircle`, 'utf-8')}`
 
     let runtime_opts = new cmds.RuntimeOptions()
     runtime_opts.set("program-args", args)
 
     for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-        { command: data, prefix: "(PREFIX)", msg, runtime_opts },
+        { command: data, prefix: "", msg, runtime_opts },
         `${name}.bircle`,
     )) {
         yield result

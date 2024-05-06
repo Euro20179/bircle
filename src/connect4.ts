@@ -5,7 +5,7 @@ type BoardCharacter = "O" | "R" | "B" | string
 export type Board = BoardCharacter[][]
 
 function strNumberToEmoji(number: string) {
-    Array.from(number, n => `${n}\u{fe0f}\u{20e3}`).join("")
+    Array.from(number, (_, n) => `${n}\u{fe0f}\u{20e3}`).join("")
 }
 
 function createBoard(rows = 6, cols = 7) {
@@ -28,9 +28,11 @@ function boardIsFull(board: Board){
 
 function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') {
     let text = "```\n"
-    for (let [idx, _] of iterators.enumerate(board[0])) {
-        text += `|${strNumberToEmoji(String(idx + 1))}`
-    }
+    text += Array.from({ length: 7 }, (_, n) => `|${n}\u{fe0f}\u{20e3}`).join("")
+    //for (let [idx, _] of iterators.enumerate(board[0])) {
+    //    console.log(idx)
+    //    text += `|${strNumberToEmoji(String(idx + 1))}`
+    //}
     text += '|\n'
     for (let [_rowN, row] of iterators.enumerate(board)) {
         //fixes a missing bar at the start of each row

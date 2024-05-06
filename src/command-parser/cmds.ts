@@ -122,11 +122,11 @@ async function* handlePipe(
 
     let new_tokens = await evaulator.evaluate()
 
-    let modifier_dat = lexer.getModifiers(new_tokens[0].data)
+    let modifier_dat = lexer.getModifiers(new_tokens[0].data.trim())
 
     new_tokens[0].data = modifier_dat[0]
 
-    //run this before getting stdin as it has a chanmce of removing stdin
+    //run this before getting stdin as it has a chance of removing stdin
     for (let mod of modifier_dat[1]) {
         mod.set_runtime_opt(runtime_opts)
     }
@@ -304,7 +304,6 @@ async function* runcmdv2({
     })
 
     let cmd = parser.createCommandFromTokens(lex.gen_tokens())
-
 
     for (let lineNo = 1; lineNo <= cmd.length; lineNo++) {
         yield* runcmdlinev2({
