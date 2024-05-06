@@ -100,16 +100,6 @@ async function* handlePipe(
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     pid_label?: string
 ): AsyncGenerator<CommandReturn> {
-    let stdin = runtime_opts.get("stdin", null)
-    if (stdin) {
-        symbols.set("stdin:content", stdin.content ?? "")
-        symbols.set("stdin:%", stdin.content ?? "")
-        symbols.set("stdin:status", stdin.status)
-    }
-    else {
-        symbols.delete("stdin:%")
-        symbols.delete("stdin:status")
-    }
 
     let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg, runtime_opts)
 
@@ -119,8 +109,20 @@ async function* handlePipe(
 
     new_tokens[0].data = modifier_dat[0]
 
+    //run this before getting stdin as it has a chanmce of removing stdin
     for (let mod of modifier_dat[1]) {
         mod.set_runtime_opt(runtime_opts)
+    }
+
+    let stdin = runtime_opts.get("stdin", null)
+    if (stdin) {
+        symbols.set("stdin:content", stdin.content ?? "")
+        symbols.set("stdin:%", stdin.content ?? "")
+        symbols.set("stdin:status", stdin.status)
+    }
+    else {
+        symbols.delete("stdin:%")
+        symbols.delete("stdin:status")
     }
 
     let pipe_to = pipeChain.slice(1)

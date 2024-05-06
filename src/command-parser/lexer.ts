@@ -127,6 +127,23 @@ class AliasModifier extends Modifier {
     }
 }
 
+class ResetStdinModifier extends Modifier {
+    static repr = "r"
+    private previousStdin?: CommandReturn
+    constructor(){
+        super()
+    }
+    set_runtime_opt(options: RuntimeOptions){
+        this.previousStdin = options.get('stdin', null)
+        options.delete("stdin")
+    }
+    unset_runtime_opt(options: RuntimeOptions) {
+        if(this.previousStdin){
+            options.set("stdin", this.previousStdin)
+        }
+    }
+}
+
 function getModifiers(command: string): [string, Modifier[]] {
     const modifiers = [
         WebModifier,
@@ -136,6 +153,7 @@ function getModifiers(command: string): [string, Modifier[]] {
         DeleteModifier,
         CommandModifier,
         AliasModifier,
+        ResetStdinModifier
     ]
 
     let used_modifiers = []
