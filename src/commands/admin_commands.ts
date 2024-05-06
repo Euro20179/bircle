@@ -103,7 +103,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "eval", ccmdV2(async function({ args }) {
+        "eval", ccmdV2(async function({ args, msg }) {
             return crv(JSON.stringify(eval(args.join(" "))))
         }, "Run javascript", {
             permCheck: m => ADMINS.includes(m.author.id)

@@ -15,7 +15,7 @@ import events from './events'
 
 import { formatMoney, getOpt } from "./user-options"
 import { getConfigValue } from "./config-manager"
-import { parseRangeString } from "./parsing"
+import { format, parseRangeString } from "./parsing"
 
 import units from './units'
 import iterators from "./iterators"
@@ -306,6 +306,37 @@ function* keysOf<T extends Object>(o: T): Generator<string> {
             yield key
         }
     }
+}
+
+function formatMember(member: GuildMember, fmt: string){
+    const user = member.user
+    let status = (() => {
+        return member.presence?.clientStatus?.desktop ?? member.presence?.clientStatus?.web ?? member.presence?.clientStatus?.mobile
+    })() ?? "invisible"
+    let platform = member.presence?.clientStatus && Object.keys(member.presence.clientStatus)[0] || "offline"
+    let platform_status = `${platform}/${status}`
+    return format(fmt, {
+                                    "{id}": user.id || "#!N/A",
+                                    "{username}": user.username || "#!N/A",
+                                    "{nickname}": member.displayName || "#!N/A",
+                                    "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
+                                    "{color}": member.displayColor.toString() || "#!N/A",
+                                    "{created}": () => user.createdAt.toString() || "#!N/A",
+                                    "{joined}": () => member.joinedAt?.toString() || "#!N/A",
+                                    "{boost}": member.premiumSince?.toString() || "#!N/A",
+                                    "{status}": platform_status,
+                                    i: user.id || "#!N/A",
+                                    u: user.username || "#!N/A",
+                                    n: member.nickname || "#!N/A",
+                                    d: member.displayName,
+                                    X: () => member.displayHexColor.toString() || "#!N/A",
+                                    x: () => member.displayColor.toString() || "#!N/A",
+                                    c: user.createdAt.toString() || "#!N/A",
+                                    j: member.joinedAt?.toString() || "#!N/A",
+                                    b: member.premiumSince?.toString() || "#!N/A",
+                                    a: user.avatarURL() || "#!N/A",
+                                    s: platform_status
+                                })
 }
 
 function mimeTypeToFileExtension(mime: MimeType) {
@@ -1352,5 +1383,6 @@ export {
     fetchRoleFromServer,
     base10ToRoman,
     rotN,
+    formatMember
 }
 

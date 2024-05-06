@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember } from '../util'
 import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -3981,28 +3981,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 .default({ content: "No user found" })
                 .next(function(member: GuildMember, user: User) {
                     return {
-                        content: format(fmt,
-                            {
-                                id: user.id || "#!N/A",
-                                username: user.username || "#!N/A",
-                                nickname: member.nickname || "#!N/A",
-                                "0xcolor": member.displayHexColor.toString() || "#!N/A",
-                                color: member.displayColor.toString() || "#!N/A",
-                                created: user.createdAt.toString() || "#!N/A",
-                                joined: member.joinedAt?.toString() || "#!N/A",
-                                boost: member.premiumSince?.toString() || "#!N/A",
-                                i: user.id || "#!N/A",
-                                u: user.username || "#!N/A",
-                                n: member.nickname || "#!N/A",
-                                d: member.displayName,
-                                X: member.displayHexColor.toString() || "#!N/A",
-                                x: member.displayColor.toString() || "#!N/A",
-                                c: user.createdAt.toString() || "#!N/A",
-                                j: member.joinedAt?.toString() || "#!N/A",
-                                b: member.premiumSince?.toString() || "#!N/A",
-                                a: user.avatarURL() || "#!N/A"
-                            }
-                        )
+                        content: formatMember(member, fmt)
                     }
                 }).done()
         }, "Gives a random server member", {
@@ -4215,37 +4194,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 })
                 .next((member: GuildMember, user: User) => {
                     if (args[1]) {
-                        let status = (() => {
-                            return member.presence?.clientStatus?.desktop ?? member.presence?.clientStatus?.web ?? member.presence?.clientStatus?.mobile
-                        })() ?? "invisible"
-                        let platform = member.presence?.clientStatus && Object.keys(member.presence.clientStatus)[0] || "offline"
-                        let platform_status = `${platform}/${status}`
                         const fmt = args.slice(1).join(" ")
                         return {
-                            content: format(fmt,
-                                {
-                                    "{id}": user.id || "#!N/A",
-                                    "{username}": user.username || "#!N/A",
-                                    "{nickname}": member.displayName || "#!N/A",
-                                    "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
-                                    "{color}": member.displayColor.toString() || "#!N/A",
-                                    "{created}": () => user.createdAt.toString() || "#!N/A",
-                                    "{joined}": () => member.joinedAt?.toString() || "#!N/A",
-                                    "{boost}": member.premiumSince?.toString() || "#!N/A",
-                                    "{status}": platform_status,
-                                    i: user.id || "#!N/A",
-                                    u: user.username || "#!N/A",
-                                    n: member.displayName || "#!N/A",
-                                    d: member.displayName,
-                                    X: () => member.displayHexColor.toString() || "#!N/A",
-                                    x: () => member.displayColor.toString() || "#!N/A",
-                                    c: user.createdAt.toString() || "#!N/A",
-                                    j: member.joinedAt?.toString() || "#!N/A",
-                                    b: member.premiumSince?.toString() || "#!N/A",
-                                    a: user.avatarURL() || "#!N/A",
-                                    s: platform_status
-                                }
-                            )
+                            content: formatMember(member, fmt)
                         }
                     }
                     let embed = new EmbedBuilder()

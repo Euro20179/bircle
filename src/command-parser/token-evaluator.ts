@@ -1,5 +1,5 @@
 import { ChannelType, Message } from 'discord.js'
-import { getContentFromResult, safeEval } from '../util'
+import { formatMember, getContentFromResult, safeEval } from '../util'
 import cmds, { RuntimeOptions } from './cmds'
 import { SymbolTable } from './cmds'
 import lexer, { TT } from './lexer'
@@ -370,22 +370,10 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
         let fmt = args.join(" ") || "<@%i>"
         let member = msg.member
         let user = member?.user || msg.author
-        if (user === undefined && member === undefined && member === null) {
+        if (user === undefined || member === undefined || member === null) {
             return `{${args.join(" ")}}`
         }
-        return format(fmt,
-            {
-                i: user.id || "#!N/A",
-                u: user.username || "#!N/A",
-                n: member?.displayName || "#!N/A",
-                X: () => member?.displayHexColor.toString() || "#!N/A",
-                x: () => member?.displayColor.toString() || "#!N/A",
-                c: user.createdAt?.toString() || "#!N/A",
-                j: member?.joinedAt?.toString() || "#!N/A",
-                b: member?.premiumSince?.toString() || "#!N/A",
-                a: () => user?.avatarURL() || "#N/A"
-            }
-        )
+        return  formatMember(member, fmt)
     },
     rand: async (_, __, ___, args) => {
         if (args && args?.length > 0)
@@ -416,19 +404,7 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
         if (member === undefined) {
             return `{${fmt}}`
         }
-        let user = member.user
-        return format(fmt,
-            {
-                i: user.id || "#!N/A",
-                u: user.username || "#!N/A",
-                n: member.displayName || "#!N/A",
-                X: () => member?.displayHexColor.toString() || "#!N/A",
-                x: () => member?.displayColor.toString() || "#!N/A",
-                c: user.createdAt.toString() || "#!N/A",
-                j: member.joinedAt?.toString() || "#!N/A",
-                b: member.premiumSince?.toString() || "#!N/A"
-            }
-        )
+        return formatMember(member, fmt)
     },
     html: async (_, __, ___, args) => htmlRenderer.renderHTML(args.join("|")),
     time: async (_, __, ___, args) => {
