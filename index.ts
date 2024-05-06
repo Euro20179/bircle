@@ -102,7 +102,7 @@ common.client.on(Events.MessageDelete, async (m) => {
 
 setInterval(() => {
     common.saveDb();
-}, 3000)
+}, 30000)
 
 async function handlePingResponse(m: Message) {
     for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
