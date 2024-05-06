@@ -3697,9 +3697,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "b64d", createCommandV2(async function() {
-            let c = commands.get("b64")
-            return await c!.run.bind(["b64", c!])(arguments as unknown as CommandV2RunArg) 
+        "b64d", createCommandV2(async function({stdin, args}) {
+            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
+            return crv(Buffer.from(text, "base64").toString("utf8"))
         }, CommandCategory.UTIL, "Decodes base64 (use b64 -d instead)")
     ]
 
