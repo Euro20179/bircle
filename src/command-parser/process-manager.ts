@@ -1,4 +1,5 @@
 import { StatusCode } from "../common_to_commands"
+import { sleep } from "../util"
 import cmds, { RunCmdOptions } from "./cmds"
 
 export class ProcessManager {
@@ -63,6 +64,9 @@ export class ProcessManager {
             //checkin status is so that the process manager can stop the command if necessary
             //this also means it can't be above the if(!this.running) if statement
             if(result.status === StatusCode.CHECKIN) {
+                //microsleep here to prevent an infinite loop with something like
+                //do 100000 for i..Infinity {!!}
+                await sleep(0)
                 continue
             }
             yield result

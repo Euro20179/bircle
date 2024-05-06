@@ -1835,6 +1835,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     yield result
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
+                yield { noSend: true, status: StatusCode.CHECKIN }
             }
             yield {
                 content: "done",
