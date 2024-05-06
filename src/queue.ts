@@ -20,6 +20,7 @@ export class Queue<T> {
     }
 
     dequeue(){
+        this.len--
         return this.queue.popFront()
     }
 
