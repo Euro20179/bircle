@@ -186,8 +186,9 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
                 rawArgs: raw_args,
                 args,
                 opts: opts,
-                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", configManager.RECURSION_LIMIT) - 1),
-                symbols
+                recursionCount: runtime_options.get("recursion", runtime_options.get("recursion_limit", configManager.RECURSION_LIMIT)),
+                symbols,
+                runtime_opts: runtime_options
             })) {
             rv = result
             events.commandEventListener.emit(events.cmdResult, { rv: result, msg })
@@ -196,7 +197,8 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         events.commandEventListener.emit(events.cmdOver, {
             msg,
             finalRv: rv,
-            cmd
+            cmd,
+            args: raw_args
         })
         return
     }

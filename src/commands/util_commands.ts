@@ -952,9 +952,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             let state = this[1].state ?? {}
 
-            let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
-
-            if (state.EDS[msg.author.id]) {
+            if (state[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
             }
             let mode: "normal" | "insert" = "normal"
@@ -964,13 +962,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 canEdit[i] = (await fetchUserFromClientOrGuild(canEdit[i] as string))?.id || undefined
                 if (canEdit[i] === undefined)
                     continue
-                if (state.EDS[canEdit[i] as string])
+                if (state[canEdit[i] as string])
                     canEdit[i] = undefined
             }
             canEdit = canEdit.filter(v => v)
             for (let ed of canEdit) {
                 if (!ed) continue
-                state.EDS[ed] = true
+                state[ed] = true
             }
             function parseNormalEdInput(input: string) {
                 let cmds = "qnaipgsdg!"
@@ -1238,8 +1236,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         m = (await msg.channel.awaitMessages({ filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"] })).at(0)
                     }
                     catch (err) {
-                        for (let ed in state.EDS) {
-                            delete state.EDS[ed]
+                        for (let ed in state) {
+                            delete state[ed]
                         }
 
                         return { content: "Timeout", status: StatusCode.ERR }
@@ -1250,8 +1248,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     }
                 }
             }
-            for (let ed in state.EDS) {
-                delete state.EDS[ed]
+            for (let ed in state) {
+                delete state[ed]
             }
             if (opts['s']) {
                 return { noSend: true, status: StatusCode.RETURN }

@@ -11,7 +11,7 @@ import { cmdCatToStr, isMsgChannel, isBetween, getToolIp, valuesOf } from './uti
 
 import { parseBracketPair } from './parsing'
 
-import cmds, { SymbolTable } from './command-parser/cmds';
+import cmds, { RuntimeOptions, SymbolTable } from './command-parser/cmds';
 import globals from './globals';
 import useTracker from './use-tracker';
 
@@ -402,7 +402,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, commandBans: _commandBans, legacy, symbols }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable }) {
+    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, commandBans: _commandBans, legacy, symbols, runtime_opts }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable, runtime_opts: RuntimeOptions }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -453,7 +453,7 @@ export class AliasV2 {
         if (legacy !== true) {
             for await (
                 let result of
-                globals.PROCESS_MANAGER.spawn_cmd({ command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback, symbols }, `${this.name}(SUB)`,)
+                globals.PROCESS_MANAGER.spawn_cmd({ command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback, symbols, runtime_opts }, `${this.name}(SUB)`,)
             ) {
                 yield result
             }

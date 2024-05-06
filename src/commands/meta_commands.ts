@@ -2927,7 +2927,8 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!", ccmdV2(async function*({ msg, rawOpts: opts }) {
+        "!!", ccmdV2(async function*({ msg, rawOpts: opts, runtime_opts }) {
+            console.log("LAST", lastCommand[msg.author.id])
             if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
                 return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
@@ -2935,12 +2936,13 @@ ${styles}
             }
 
             return crv(lastCommand[msg.author.id], {
-                recurse: true
+                recurse: true,
             })
         }, "Run the last command that was run", {
             helpOptions: {
                 p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])
-            }
+            },
+                permCheck: m => !m.author.bot
         })
     ]
 

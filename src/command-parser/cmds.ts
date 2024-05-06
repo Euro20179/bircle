@@ -275,8 +275,9 @@ async function* runcmdv2({
     }
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
 
-    if (runtime_opts.get("recursion", 0) > runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
-        return common_to_commands.cre("Recursion limit reached")
+    if (runtime_opts.get("recursion", 0) >= runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
+        yield common_to_commands.cre("Recursion limit reached")
+        return
     }
 
 
@@ -306,7 +307,8 @@ async function* runcmdv2({
         })
     }
 
-    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
+    //was removed because it breaks recursion limit, recursion neverr hits 20
+    //runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
 
     return { noSend: true, status: 0 }
 }
