@@ -3717,7 +3717,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!curMsg) {
                 return crv("Could not get latest message", { status: StatusCode.ERR })
             }
-            let fn = generateFileName("archive-channel", msg.author.id, "txt")
+            let fn = generateFileName("archive-channel", `${msg.author.id}-${channel.id}`, "txt")
             let stream = fs.createWriteStream(fn, "utf8")
             let mesageCount = 0
             while (true) {
