@@ -100,7 +100,24 @@ async function* handlePipe(
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     pid_label?: string
 ): AsyncGenerator<CommandReturn> {
+    
+    //we set this up here because we need access to stdin:* BEFORE tokens get parsed
+    //if the r: modifier is set, these symbols will still exist
+    //that's not a problem because the user opted into using them
+    let stdin = runtime_opts.get("stdin", null)
+    if (stdin) {
+        symbols.set("stdin:content", stdin.content ?? "")
+        symbols.set("stdin:%", stdin.content ?? "")
+        symbols.set("stdin:status", stdin.status)
+    }
+    else {
+        symbols.delete("stdin:%")
+        symbols.delete("stdin:status")
+    }
 
+    //parse tokens after because we need them to get the modifier
+    //since we do this before modifiers, {%} will still work if stdin exists
+    //this is consistent with the ${stdin:*} variables
     let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg, runtime_opts)
 
     let new_tokens = await evaulator.evaluate()
@@ -113,17 +130,8 @@ async function* handlePipe(
     for (let mod of modifier_dat[1]) {
         mod.set_runtime_opt(runtime_opts)
     }
-
-    let stdin = runtime_opts.get("stdin", null)
-    if (stdin) {
-        symbols.set("stdin:content", stdin.content ?? "")
-        symbols.set("stdin:%", stdin.content ?? "")
-        symbols.set("stdin:status", stdin.status)
-    }
-    else {
-        symbols.delete("stdin:%")
-        symbols.delete("stdin:status")
-    }
+    //modifiers might have removed stdin
+    stdin = runtime_opts.get("stdin", null)
 
     let pipe_to = pipeChain.slice(1)
 

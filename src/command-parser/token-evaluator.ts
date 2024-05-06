@@ -154,7 +154,7 @@ class TokenEvaluator {
                     val = val ? i : e
                     break
                 default:
-                    if(!val) val = `\${${varName}}`
+                    if(val == undefined || val === "") val = `\${${varName}}`
             }
             this.add_to_cur_tok(val)
         }
