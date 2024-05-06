@@ -2739,6 +2739,10 @@ ${styles}
                 return crv("You did not create this alias, and cannot rename it", { status: StatusCode.ERR })
             }
 
+            if(aliasV2s[newName] && aliasesV2[newName].creator !== msg.author.id){
+                return crv(`the alias ${newName} already exists, and you did not create it`, { status: StatusCode.ERR })
+            }
+
             aliasV2s[newName] = alias
             delete aliasV2s[oldAlias]
             return crv(`\`${oldAlias}\` has been renamed to \`${newName}\``)
