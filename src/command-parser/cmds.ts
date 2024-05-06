@@ -49,6 +49,7 @@ type RuntimeOptionValue = {
     ["no-run"]: boolean,
     disable: { categories?: CommandCategory[], commands?: string[] } | false
     "no-send": boolean,
+    allowPings: boolean
 }
 
 type RuntimeOption = keyof RuntimeOptionValue

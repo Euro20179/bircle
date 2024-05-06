@@ -1634,6 +1634,14 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
+        "@", ccmdV2(async function({args, stdin}){
+            return crv(stdin ? getContentFromResult(stdin) : args.join(" "), {
+                allowedMentions: { parse: ["users"] }
+            })
+        }, "allow mentions")
+    ]
+
+    yield [
         "echo", ccmdV2(async function({ msg, rawOpts: opts, args }) {
             let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)

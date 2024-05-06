@@ -252,6 +252,14 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (data["attachments"]) {
                 delete data["attachments"]
             }
+            if(data["allowedMentions"]){
+                if(data["allowedMentions"]["roles"]){
+                    delete data["allowedMentions"]["roles"]
+                }
+                if(data["allowedMentions"]["parse"] && data["allowedMentions"]["parse"].length){
+                    data["allowedMentions"]["parse"] = data["allowedMentions"]["parse"].filter(v => !["roles", "everyone"].includes(v))
+                }
+            }
         }
         catch (err) {
             return { content: "Could not parse json", status: StatusCode.ERR }

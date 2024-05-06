@@ -144,6 +144,16 @@ class ResetStdinModifier extends Modifier {
     }
 }
 
+//class PingModifier extends Modifier {
+//    static repr = "p"
+//    set_runtime_opt(options: RuntimeOptions){
+//        options.set("allowPings", true)
+//    }
+//    unset_runtime_opt(options: RuntimeOptions) {
+//        options.delete("allowPings")
+//    }
+//}
+
 function getModifiers(command: string): [string, Modifier[]] {
     const modifiers = [
         WebModifier,
@@ -153,7 +163,7 @@ function getModifiers(command: string): [string, Modifier[]] {
         DeleteModifier,
         CommandModifier,
         AliasModifier,
-        ResetStdinModifier
+        ResetStdinModifier,
     ]
 
     let used_modifiers = []
