@@ -3687,18 +3687,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "b64", createCommandV2(async ({ args, stdin }) => {
+        "b64", createCommandV2(async ({ args, stdin,opts }) => {
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
-            return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
+            let content = opts.getBool("d", false)
+                ? Buffer.from(text, "base64").toString("utf8")
+                : Buffer.from(text).toString("base64")
+            return { content, status: StatusCode.RETURN }
         }, CAT, "Encodes text to base64")
     ]
 
     yield [
-        "b64d", createCommandV2(async ({ args, stdin }) => {
-            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
-            return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
-
-        }, CommandCategory.UTIL, "Decodes base64")
+        "b64d", createCommandV2(async function() {
+            let c = commands.get("b64")
+            return await c!.run.bind(["b64", c!])(arguments as unknown as CommandV2RunArg) 
+        }, CommandCategory.UTIL, "Decodes base64 (use b64 -d instead)")
     ]
 
     yield [
