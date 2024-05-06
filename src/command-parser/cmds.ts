@@ -273,6 +273,7 @@ async function* runcmdv2({
         runtime_opts.set("skip", true)
         command = command.slice(2)
     }
+
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
 
     if (runtime_opts.get("recursion", 0) >= runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
@@ -307,8 +308,7 @@ async function* runcmdv2({
         })
     }
 
-    //was removed because it breaks recursion limit, recursion neverr hits 20
-    //runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
+    runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
 
     return { noSend: true, status: 0 }
 }
