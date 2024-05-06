@@ -337,6 +337,10 @@ async function handleSending(
         return msg
     }
 
+    if(rv.content?.startsWith(PREFIX)){
+        rv.content = `\\${rv.content}`
+    }
+
     if (!sendCallback) {
         sendCallback = rv.sendCallback || (rv.reply ? msg.reply.bind(msg) :
             rv.channel?.send.bind(rv.channel) ||

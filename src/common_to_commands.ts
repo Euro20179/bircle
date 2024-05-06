@@ -563,6 +563,9 @@ export async function handleUserMatchCommands(msg: Message, content: string) {
 }
 
 export async function handleMatchCommands(msg: Message, command_excluding_prefix: string, enableUserMatch: boolean) {
+    if(msg.author.bot){
+        return false
+    }
     let matchCommands = getMatchCommands()
     for (let obj of valuesOf(matchCommands)) {
         let match = command_excluding_prefix.match(obj.match)
