@@ -646,6 +646,14 @@ export function createHelpOption(description: string, alternatives?: string[], d
         takes_value
     }
 }
+export function cho(description: string, takes_value?: boolean, default_?: string, alternatives?: string[]){
+    return {
+        description,
+        alternatives,
+        default: default_,
+        takes_value
+    }
+}
 
 export const helpOpt = createHelpOption
 

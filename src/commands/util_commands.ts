@@ -14,7 +14,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser } from '../common_to_commands'
+import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN } from '../util'
 import iterators from '../iterators'
 
@@ -3806,7 +3806,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         from: createHelpArgument("The chars to translate from (not required with -d)", false),
         to: createHelpArgument("The chars to translate to (not required with -d)", false, "from")
     }, {
-        d: createHelpOption("The chars to delete")
+        d: cho("The chars to delete", true)
     })]
 
     yield [
@@ -4443,13 +4443,66 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             let data = stdin ? stdin.content : args.expectString(truthy)
 
-            if (!data) {
+            if (!data || data === BADVALUE) {
                 let attachment = msg.attachments?.at(0)
                 if (attachment) {
                     let res = await fetch(attachment.url)
                     data = await res.text()
                 }
                 else return { content: "no data given to search through", status: StatusCode.ERR }
+            }
+            let outputSep = opts.getString("o", "\n")
+            if(opts.getBool("G", false)){
+                let matcher = new RegExp(regex)
+                let results = ""
+                let lines = data.split("\n")
+                let number = opts.getBool("n", false)
+                let after = opts.getNumber("A", 0)
+                let afterGroupSep = opts.getString("Asep", "A===========\n")
+                
+                let untilMatching = opts.getString("until", "")
+                let untilMatchingR = untilMatching ? new RegExp(untilMatching) : false
+
+                let reverse = opts.getBool("v", false)
+
+                for(let i = 0; i < lines.length; i++){
+                    const line = lines[i]
+                    const matches = line.match(matcher)
+                    if((!reverse && matches) || (reverse && !matches)){
+                        let goingToAdd = ""
+                        let shouldAdd = true
+                        if(number){
+                            goingToAdd += `${i + 1} ${line}${outputSep}`
+                        } else {
+                            goingToAdd += `${line}${outputSep}`
+                        }
+                        if(after){
+                            const end = i + after
+                            //i++ to start on next line
+                            i++
+                            for(; i < lines.length && i < end; i++){
+                                goingToAdd += `${lines[i]}${outputSep}`
+                            }
+                            goingToAdd += afterGroupSep
+                        } else if(untilMatchingR){
+                            shouldAdd = false
+                            i++
+                            for(; i < lines.length; i++){
+                                if(lines[i].match(untilMatchingR)){
+                                    shouldAdd = true
+                                    break
+                                }
+                                goingToAdd += `${lines[i]}${outputSep}`
+                            }
+                            goingToAdd += afterGroupSep
+                        }
+                        //this will only be false if --until is given and it fails to match
+                        if(shouldAdd){
+                            results += goingToAdd
+                        }
+                    }
+                }
+                return crv(results)
             }
             let match = (<string>data).matchAll(new RegExp(regex, "gm"))
             let finds = ""
@@ -4461,7 +4514,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     else {
                         finds += find[0]
                     }
-                    finds += '\n'
+                    finds += outputSep
                 }
                 else {
                     if (find[1]) {
@@ -4482,7 +4535,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 data: createHelpArgument("Text or a file to search through")
             },
             helpOptions: {
-                s: createHelpOption("dont give back the extra \"found x at char...\" text")
+                s: cho("dont give back the extra \"found x at char...\" text"),
+                o: cho("output seperator, defaults to \\n (requires -s or -G)", true, "\\n"),
+                G: cho("work line by line instead of simply finding all matches (enables other options)"),
+                n: cho("number each found line with the line number it was found on (requires -G)"),
+                A: cho("number of lines to get after a match (requires -G)", true, "0"),
+                Asep: cho("seperator between each -A group", true, "A===========\n"),
+                until: cho("get lines after a match until it finds this match (requires -G)<br>failes to match if the until match is not found", true),
+                v: cho("get all non-matching lines (requires -G)")
             },
             accepts_stdin: "Can be used instead of <code>data</code>",
             gen_opts: true
