@@ -148,6 +148,24 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
+        "doesnothing", ccmdV2(async function({msg}){
+            if(!msg.guild){
+                return crv("Not in a guild", { status: StatusCode.ERR })
+            }
+            let text = ""
+            for(let user of await msg.guild?.members.fetch()){
+                text += `${user[1].displayName}\n`
+                const rolesJson = user[1].roles.cache.toJSON()
+                for(let i = 0; i < rolesJson.length; i++){
+                    text += `${rolesJson[i].name}\n`
+                }
+                text += "\n\n"
+            }
+            return crv(text)
+        }, "does nothing in particular")
+    ]
+
+    yield [
         "seq", ccmdV2(async function({ args, opts }) {
             let [seqArg, max, ..._] = args
             const seq = seqArg.split(",").map(Number)
