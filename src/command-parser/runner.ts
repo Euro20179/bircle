@@ -161,7 +161,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     let [opts, parsed_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
 
     if (opts['?']) {
-        parsed_args = ["help"].concat(parsed_args)
+        parsed_args = [cmd]
         cmdObject = commands.get("help") as CommandV2
         delete opts['?']
     }
