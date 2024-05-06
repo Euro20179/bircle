@@ -3713,7 +3713,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!("messages" in channel)) {
                 return crv(`${channel} is not a message channel`, { status: StatusCode.ERR })
             }
-            let curMsg = (await channel.messages.fetch({ limit: 1 })).at(0)?.id as string
+            let curMsg = msg.reference?.messageId || (await channel.messages.fetch({ limit: 1 })).at(0)?.id as string
             if (!curMsg) {
                 return crv("Could not get latest message", { status: StatusCode.ERR })
             }
@@ -3750,7 +3750,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ], status: StatusCode.RETURN
             }
         }, "Gets messages", {
-            permCheck: m => configManager.ADMINS.includes(m.author.id)
+            permCheck: m => configManager.ADMINS.includes(m.author.id),
+            docs: "If you reply to a message and run this command, archiving will start at that point"
         })
     ]
 
