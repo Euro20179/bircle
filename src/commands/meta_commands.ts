@@ -44,6 +44,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         const assertionCmp = args.expectString(1) as string
         const assertion = (args.expectString(() => true) as string).trim()
         const runtimeOpts = runtime_opts.copy()
+
+        //we want the inside to evaluate as well, if the user doesn't want this then they can use n:
+        runtimeOpts.set("skip", false)
         const evaledSyntax = await cmds.expandSyntax(syntax as string, msg, symbols, runtimeOpts)
 
         const joined = evaledSyntax.join(" ")
@@ -51,8 +54,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         const title = opts.getString("title", assertion)
 
         const outputFmt = opts.getString("fmt", "{embed}")
-
-        console.log(`"${assertion}"`, `"${joined}"`)
 
         let pass = false
         switch (assertionCmp) {
@@ -98,7 +99,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             evaled: joined,
             assert: assertion,
             result: pass ? "pass" : "fail"
-        }))
+        }), {
+                status: StatusCode.CMDSTATUS,
+                statusNr: pass ? 0 : 101
+            })
     }, "Returns green embed if assert succeeds, red if fails")]
 
     yield ['runas', ccmdV2(async function*({ msg, args, runtime_opts, symbols }) {

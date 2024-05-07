@@ -256,7 +256,14 @@ export const StatusCode = {
     INFO: -1,
     RETURN: 0,
     WARNING: 1,
-    ERR: 2
+    ERR: 2,
+    CMDSTATUS: 3, //implies that the statusNo return value is set, which is the real status code
+               //works more like unix commands, where the command can decide the exit code, 0 being sccess
+                //1+ being some cmd designated error
+                //${stdin:status} will be set to the statusNo if statusCode is CMDSTATUS
+                //defaults 0, if there's an error the command is expected to use a number 101 or larger
+    //          //4-99 are reserved
+    //          //also sets the ${%:?} var
 } as const
 
 export type StatusCode = typeof StatusCode[keyof typeof StatusCode]

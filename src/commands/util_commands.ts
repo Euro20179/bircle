@@ -2487,6 +2487,7 @@ middle
         "paged-embed", ccmdV2(async({args, msg}) => {
             const embeds = []
             for(let line of args.resplit("\n")){
+                console.log(line)
                 if(!line) continue
                 embeds.push(JSON.parse(line))
             }
@@ -3487,13 +3488,18 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "expr", ccmdV2(async function({ msg, rawArgs: args }) {
+        "expr", ccmdV2(async function({ msg, rawArgs: args, symbols }) {
             let opts;
             [opts, args] = getOpts(args)
 
             let prefix = ""
+            let isEnv = false
             if (opts['u']) {
                 prefix = msg.author.id
+            }
+
+            if(opts['e']) {
+                isEnv = true
             }
 
             let left = args[0]
@@ -3504,7 +3510,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             let leftVal = convFn(left)
             if (isBad(leftVal)) {
-                leftVal = convFn(vars.getVar(msg, `${prefix}:${left}`))
+                if(!isEnv)
+                    leftVal = convFn(vars.getVar(msg, `${prefix}:${left}`))
+                else leftVal = convFn(symbols.get(left))
             }
             if (isBad(leftVal)) {
                 return crv(`${left} did not pass the ${convFn.name} check`, { status: StatusCode.ERR })
@@ -3516,7 +3524,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             let rightVal = convFn(right)
             if (right && isBad(rightVal)) {
-                rightVal = convFn(vars.getVar(msg, `${prefix}:${right}`))
+                if(!isEnv)
+                    rightVal = convFn(vars.getVar(msg, `${prefix}:${right}`))
+                else rightVal = convFn(symbols.get(right))
             }
             if (right && isBad(rightVal)) {
                 return crv(`${right} is not a number`, { status: StatusCode.ERR })
@@ -3582,8 +3592,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     else ans = leftVal % rightVal
                     break;
             }
-            if (prefix === msg.author.id) prefix = "%"
-            vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
+            if(!isEnv){
+                if (prefix === msg.author.id) prefix = "%"
+                vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
+            } else {
+                symbols.set(left, String(ans))
+            }
             return { content: String(ans), status: StatusCode.RETURN }
         }, "Modify a variable", {
             arguments: {

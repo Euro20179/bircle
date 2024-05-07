@@ -3,6 +3,7 @@ import EventEmitter from "events";
 import vars from "./vars";
 import { Message } from "discord.js";
 import { getContentFromResult } from "./util";
+import { StatusCode } from "./common_to_commands";
 
 /**
     * @description Event listener for when a command is about to be run
@@ -25,7 +26,11 @@ botEvents.on(CmdRun, function cmdRunEventHandler(int) {
 botEvents.on(HandleSend, function HandleSend(msg: Message, rv: CommandReturn) {
     //doing this if user expansion is false can cause problems
     if(rv.do_change_cmd_user_expansion !== false){
-        vars.setVarEasy(`%:?`, rv.status, msg.author.id)
+        let status = rv.status
+        if(rv.status === StatusCode.CMDSTATUS){
+            status = String(rv.statusNr || 0)
+        }
+        vars.setVarEasy(`%:?`, status, msg.author.id)
         let c = getContentFromResult(rv, "\n")
         vars.setVarEasy("%:_!", c, msg.author.id)
     }

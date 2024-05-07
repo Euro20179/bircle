@@ -71,6 +71,7 @@ declare global {
 
     interface CommandReturn extends MessageCreateOptions {
         status: StatusCode
+        statusNr?: number,
         silent?: boolean,
         content?: string,
         embeds?: Array<MessageEmbed>

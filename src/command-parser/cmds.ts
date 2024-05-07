@@ -110,7 +110,11 @@ async function* handlePipe(
     if (stdin) {
         symbols.set("stdin:content", stdin.content ?? "")
         symbols.set("stdin:%", stdin.content ?? "")
-        symbols.set("stdin:status", stdin.status)
+        if(stdin.status === StatusCode.CMDSTATUS){
+            symbols.set("stdin:status", String(stdin.statusNr || 0))
+        } else {
+            symbols.set("stdin:status", stdin.status)
+        }
     }
     else {
         symbols.delete("stdin:%")
