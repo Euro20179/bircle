@@ -2,36 +2,31 @@ s:export OLDPIPE = ${&pipe-symbol||>pipe>} ;;
 @ {user} unsetting pipe-symbol for testing ;;
 s:option pipe-symbol ;;
 
-s:export PASS = 0 ;;
-s:export FAIL = 0 ;;
 s:export FAILEDTESTS = ;;
 
 s:export line-number = $(n:assert -title=line-number $(echo ${LINENO}) >test> = 1) ;;
-s:[ ${%:?} = 101 ] { run expr -e FAIL ++;EOL export FAILEDTESTS = ${FAILEDTESTS||} line-number } else { expr -e PASS ++ } ;;
 
 s:export calc-syntax = $(n:assert -title=Calc-syntax $[3 + 3] >test> = 6) ;;
-s:[ ${%:?} = 101 ] { run expr -e FAIL ++;EOL export FAILEDTESTS = ${FAILEDTESTS||} line-number } else { expr -e PASS ++ } ;;
 
 s:export advanced-calc-syntax = $(n:assert -title=Advanced-calc-syntax $[$(echo -D 1) * 5] >test> = 5) ;;
-s:[ ${%:?} = 101 ] { run expr -e FAIL ++;EOL export FAILEDTESTS = ${FAILEDTESTS||} line-number } else { expr -e PASS ++ } ;;
 
 s:export option-parsing = $(n:assert -title=Option-parsing $(opts -a -b -c -a=\s{hi there}) >test> T= **a**: `hi there`
 **b**: `true`
 **c**: `true`) ;;
-s:[ ${%:?} = 101 ] { run expr -e FAIL ++;EOL export FAILEDTESTS = ${FAILEDTESTS||} line-number } else { expr -e PASS ++ } ;;
 
 s:export some-pipes = $(n:assert -title=Some-pipes $(echo -D $["this is neat"] >pipe> rev) >test> T= taen si siht) ;;
-s:[ ${%:?} = 101 ] { run expr -e FAIL ++;EOL export FAILEDTESTS = ${FAILEDTESTS||} line-number } else { expr -e PASS ++ } ;;
+
+s:export macros = $(n:assert -title=macros $(s:export test = echo -D hi ;; ${test>!>}) >test> = hi) ;;
+
+s:export advanced-macros = $(n:assert -title=macros $(s:export test = echo -D {%0} {%1} ;; ${test>!>one two}) >test> = one two) ;;
 
 paged-embed ${line-number}
 ${calc-syntax}
 ${advanced-calc-syntax}
 ${option-parsing}
-${some-pipes} ;;
-
-embed title PASS/FAIL
-color $[${FAIL} ? "Red" : "Green"]
-description ${PASS} / ${FAIL} ${FAILEDTESTS}
+${some-pipes}
+${macros}
+${advanced-macros};;
 
 @ {user} setting pipe-symbol back ;;
 s:option pipe-symbol ${OLDPIPE}

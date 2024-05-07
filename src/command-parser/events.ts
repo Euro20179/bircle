@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { AliasV2, lastCommand } from "../common_to_commands";
+import { AliasV2, StatusCode, lastCommand } from "../common_to_commands";
 import { ArgList, Options, getContentFromResult } from "../util";
 import { Message } from "discord.js";
 import { RuntimeOptions } from "./cmds";
@@ -50,7 +50,10 @@ commandEventListener.on(cmdResult, function(event: CmdResultEvent){
 })
 
 commandEventListener.on(cmdOver, function(event: CmdOverEvent){
-    vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
+    if(event.finalRv.status === StatusCode.CMDSTATUS){
+        vars.setVarEasy("%:_?", String(event.finalRv.statusNr ?? 0), event.msg.author.id)
+    }
+    else vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
 })
 
 export default {

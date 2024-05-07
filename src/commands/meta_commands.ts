@@ -83,7 +83,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 desc += `\nGot: \`\`\`bircle\n${joined}\n\`\`\``
             }
             return {
-                status: StatusCode.RETURN,
+                status: StatusCode.CMDSTATUS,
+                statusNr: pass ? 0 : 101,
                 embeds: [
                     new EmbedBuilder()
                         .setColor(pass ? "Green" : "Red")

@@ -10,7 +10,7 @@ import { format } from '../parsing'
 import htmlRenderer from '../html-renderer'
 import userOptions from '../user-options'
 
-function parseVariableExpansion(variableInner: string): [string, "||" | "#" | "%" | "/" | "&&" | "IF/" | "", string ] {
+function parseVariableExpansion(variableInner: string): [string, "||" | "#" | "%" | "/" | "&&" | "IF/" | ">!>" | "", string ] {
     let varPart = ""
     let operator = ""
     let operatorArg = ""
@@ -20,7 +20,8 @@ function parseVariableExpansion(variableInner: string): [string, "||" | "#" | "%
         "%",
         "/",
         "&&",
-        "IF/"
+        "IF/",
+        ">!>"
     ]
     let curOp = ""
     for (const ch of variableInner) {
@@ -153,6 +154,15 @@ class TokenEvaluator {
                     let [i, e] = operatorArg.split("ELSE/")
                     val = val ? i : e
                     break
+                case ">!>": {
+                    let args = operatorArg.split("+")
+                    for(let i = 0; i < args.length; i++){
+                        val = val.replaceAll(`{%${i}}`, args[i])
+                    }
+                    const syn = await cmds.expandSyntax(val, this.msg, this.symbols, this.runtime_opts)
+                    this.add_list_of_strings(syn)
+                    return
+                }
                 default:
                     if(val == undefined || val === "") val = `\${${varName}}`
             }
