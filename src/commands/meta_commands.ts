@@ -11,10 +11,10 @@ import API from '../api'
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, iterGenerator } from '../util'
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, iterGenerator, GOODVALUE } from '../util'
 
 
-import { Guild, EmbedBuilder, User } from 'discord.js'
+import { Guild, EmbedBuilder, User, Status } from 'discord.js'
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
@@ -33,6 +33,73 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         clearSnipes()
         return crv("Snipes cleared")
     }, "Clears all snipes")]
+
+    yield ['assert', ccmdV2(async function({ args, msg, symbols, runtime_opts, opts }) {
+        args.beginIter()
+        const syntax = args.expect(str => str !== ">test>", function(final) {
+            return final.join(" ")
+        }) as string
+        //ignore "last part of syntax and assert:"
+        args.expectString(2)
+        const assertionCmp = args.expectString(1) as string
+        const assertion = (args.expectString(() => true) as string).trim()
+        const runtimeOpts = runtime_opts.copy()
+        const evaledSyntax = await cmds.expandSyntax(syntax as string, msg, symbols, runtimeOpts)
+
+        const joined = evaledSyntax.join(" ")
+
+        const title = opts.getString("title", assertion)
+
+        const outputFmt = opts.getString("fmt", "{embed}")
+
+        console.log(`"${assertion}"`, `"${joined}"`)
+
+        let pass = false
+        switch (assertionCmp) {
+            case "T=": {
+                pass = assertion === joined.trim()
+                break
+            }
+            case "T!=": {
+                pass = assertion !== joined.trim()
+                break
+            }
+            case "=": {
+                pass = assertion === joined
+                break
+            }
+            case "!=": {
+                pass = assertion !== joined
+                break
+            }
+            default: {
+                return crv("Invalid assertion expecatation", { status: StatusCode.ERR })
+            }
+        }
+        if (outputFmt === "{embed}") {
+            let desc = `Expression: \`\`\`bircle\n${syntax}\n\`\`\`\nExpected (${assertionCmp}): \`\`\`bircle\n${assertion}\n\`\`\``
+            if(!pass){
+                desc += `\nGot: \`\`\`bircle\n${joined}\n\`\`\``
+            }
+            return {
+                status: StatusCode.RETURN,
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(pass ? "Green" : "Red")
+                        .setDescription(desc)
+                        .setTitle(title)
+                        .setFooter({ text: pass ? "pass" : "fail" })
+                ]
+            }
+        }
+        return crv(format(outputFmt, {
+            syntax,
+            test: assertionCmp,
+            evaled: joined,
+            assert: assertion,
+            result: pass ? "pass" : "fail"
+        }))
+    }, "Returns green embed if assert succeeds, red if fails")]
 
     yield ['runas', ccmdV2(async function*({ msg, args, runtime_opts, symbols }) {
         let oldId = msg.author
@@ -170,7 +237,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
         if (!opts.getBool("n", false)) {
             const args = runtime_opts.get("program-args", [])
-            if(!args.length){
+            if (!args.length) {
                 return { noSend: true, status: StatusCode.RETURN }
             }
             return crv(args.join(" "))
@@ -252,11 +319,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (data["attachments"]) {
                 delete data["attachments"]
             }
-            if(data["allowedMentions"]){
-                if(data["allowedMentions"]["roles"]){
+            if (data["allowedMentions"]) {
+                if (data["allowedMentions"]["roles"]) {
                     delete data["allowedMentions"]["roles"]
                 }
-                if(data["allowedMentions"]["parse"] && data["allowedMentions"]["parse"].length){
+                if (data["allowedMentions"]["parse"] && data["allowedMentions"]["parse"].length) {
                     data["allowedMentions"]["parse"] = data["allowedMentions"]["parse"].filter(v => !["roles", "everyone"].includes(v))
                 }
             }
@@ -889,7 +956,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
 
-            if(scriptLines.length < 1){
+            if (scriptLines.length < 1) {
                 return crv("No commands given to run (be sure to put the commands in {})", { status: StatusCode.ERR })
             }
 
@@ -1173,12 +1240,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return testText.join(" ") ? handleFalsiness() : handleTruthiness()
             }
 
+
             else {
                 let [v1, op, v2] = args
                 return (() => {
                     switch (op) {
                         case "=": case "==":
                             return v1 === v2
+
+                        case "!=":
+                            return v1 !== v2
 
                         case "starts-with": case "sw": case "^=":
                             return v1.startsWith(v2)
@@ -2159,7 +2230,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 realVal = Number(realVal)
             }
 
-            if(realName.startsWith("&")){
+            if (realName.startsWith("&")) {
                 user_options.setOpt(msg.author.id, realName.slice(1), String(realVal))
             }
             else if (opts['u']) {
@@ -2739,7 +2810,7 @@ ${styles}
                 return crv("You did not create this alias, and cannot rename it", { status: StatusCode.ERR })
             }
 
-            if(aliasV2s[newName] && aliasesV2[newName].creator !== msg.author.id){
+            if (aliasV2s[newName] && aliasesV2[newName].creator !== msg.author.id) {
                 return crv(`the alias ${newName} already exists, and you did not create it`, { status: StatusCode.ERR })
             }
 
@@ -2954,7 +3025,7 @@ ${styles}
             helpOptions: {
                 p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])
             },
-                permCheck: m => !m.author.bot
+            permCheck: m => !m.author.bot
         })
     ]
 

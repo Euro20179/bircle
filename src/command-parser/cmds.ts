@@ -11,6 +11,7 @@ import userOptions, { getOpt } from '../user-options'
 import parser from './parser'
 
 import { RECURSION_LIMIT } from '../config-manager'
+import { PROCESS_MANAGER } from '../globals'
 
 const PREFIX = configManager.PREFIX
 
@@ -114,6 +115,10 @@ async function* handlePipe(
     else {
         symbols.delete("stdin:%")
         symbols.delete("stdin:status")
+    }
+
+    if(pid_label){
+        symbols.set("PID", String(PROCESS_MANAGER.getprocidFromLabel(pid_label)) || "UNKNOWN")
     }
 
     //parse tokens after because we need them to get the modifier

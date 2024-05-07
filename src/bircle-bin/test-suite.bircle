@@ -1,20 +1,14 @@
-s:export wait-time = -wait=0.5 ;;
-s:export old-parser = $(options opts-parser >pipe> tial -count=1) ;;
-s:option opts-parser normal ;;
-s:set -x ;;
-echo -D ${LINENO} Testing echo ;;
-echo -D ${wait-time} ${LINENO} program args \a{*} ;;
-echo -D ${wait-time} ${LINENO} testing var-or ${fejwafjewafjewa||string} ;;
-s:export old-parser = $(options opts-parser >pipe> tail -count=1) ;;
-s:option opts-parser with-negate ;;
-echo -D ${wait-time} ${LINENO} testing with-negate parser, and dofirst syntax\n$(opts -x -z=true +y) ;;
-s:option opts-parser ${old-parser} ;;
-echo -D ${wait-time} ${LINENO} testing math syntax `\$[2+2]` = $[2+2] ;;
-echo -D ${wait-time} ${LINENO} testing syntax in math syntax `\$[Math.round(\$(rand))]` = $[ Math.round($(rand)) ] ;;
-echo -D ${wait-time} ${LINENO} testing pipes (`echo -D hi \>pipe> rev`) = $(echo -D hi >pipe> rev) ;;
-for i 1..3 { 
-    echo -D ${LINENO} testing for loop, ${%:i}
-} ;;
-echo -D ${wait-time} ${LINENO} testing long pipe (`echo -D \$(echo -D hello \>pipe> rev) \>pipe> echo -D {%} is neato`) = $(echo -D $(echo -D hello >pipe> rev) >pipe> echo -D {%} is neato) ;;
-echo -D ${LINENO} testing `argc hi\\sbye \\s\{hi bye} \\y\{$[3 + 3] is neat}` = $(argc hi\sbye \s{hi bye} \y{$[3+3] is neat} ) ;;
-s:option opts-parser ${old-parser}
+s:export OLDPIPE = ${&pipe-symbol||>pipe>} ;;
+@ {user} unsetting pipe-symbol for testing ;;
+
+s:option pipe-symbol ;;
+assert -title=\s{Line number} \$(echo \${LINENO}) >test> = 1 ;;
+assert -title=\s{Calc syntax} \$[3 + 3] >test> = 6 ;;
+assert -title=\s{Advanced calc syntax} \$[\$(echo -D 1) * 5] >test> = 5 ;;
+assert -title=\s{Option parsing} \$(opts -a -b -c -a=\\s{hi there}) >test> T= **a**: `hi there`
+**b**: `true`
+**c**: `true` ;;
+assert -title=\s{Some pipes} \$(echo -D \$["this is neat"] \>pipe> rev) >test> T= taen si siht ;;
+
+@ {user} setting pipe-symbol back ;;
+s:option pipe-symbol ${OLDPIPE}

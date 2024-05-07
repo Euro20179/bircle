@@ -864,6 +864,8 @@ class ArgList extends Array {
                 argsToUse.push(this.#curArg as string)
                 this.advance()
             }
+            //TODO: remove this, probably breaks a lot of stuff
+            //causes overlap
             this.back()
         }
         return argsToUse
@@ -898,7 +900,7 @@ class ArgList extends Array {
     }
     expectOneOf(amountOfArgs: AmountOfArgs, list: string[]) {
         return this.expect(amountOfArgs, i => {
-            list.includes(i.join(" "))
+            return list.includes(i.join(" "))
         })
     }
     expectList(splitter: string, amountOfListItems: number = 1, sized = false) {
