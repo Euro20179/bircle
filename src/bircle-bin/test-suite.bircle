@@ -18,7 +18,10 @@ s:export some-pipes = $(n:assert -title=Some-pipes $(echo -D $["this is neat"] >
 
 s:export macros = $(n:assert -title=macros $(s:export test = echo -D hi ;; ${test>!>}) >test> = hi) ;;
 
-s:export advanced-macros = $(n:assert -title=macros $(s:export test = echo -D {%0} {%1} ;; ${test>!>one two}) >test> = one two) ;;
+s:export advanced-macros = $(n:assert -title=advanced-macros $(s:export test = echo -D {%0} {%1} ;; ${test>!>one+two}) >test> = one two) ;;
+
+@ {user} setting pipe-symbol back ;;
+s:option pipe-symbol ${OLDPIPE} ;;
 
 paged-embed ${line-number}
 ${calc-syntax}
@@ -26,7 +29,4 @@ ${advanced-calc-syntax}
 ${option-parsing}
 ${some-pipes}
 ${macros}
-${advanced-macros};;
-
-@ {user} setting pipe-symbol back ;;
-s:option pipe-symbol ${OLDPIPE}
+${advanced-macros}

@@ -14,6 +14,7 @@ import { parseBracketPair } from './parsing'
 import cmds, { RuntimeOptions, SymbolTable } from './command-parser/cmds';
 import globals from './globals';
 import useTracker from './use-tracker';
+import amountParser from './amount-parser';
 
 function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
     //@ts-ignore
@@ -200,11 +201,24 @@ export class PagedEmbed {
         let mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
         msgCollector.on("collect", newM => {
             mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
-            let n = Number(newM.content)
-            if (isNaN(n) || !isBetween(0, n, this.pages + 1)) {
+            if(newM.content === "stop"){
+                msgCollector.stop()
+                clearTimeout(mCollectorTo)
+                clearTimeout(to)
+                collector.stop()
                 return
             }
-            this.#currentPage = n - 1
+            else if(newM.content.startsWith("!")){
+                const res = amountParser.runRelativeCalculator(this.pages, newM.content.slice(1)) as number
+                this.#currentPage = res - 1
+            }
+            else {
+                let n = Number(newM.content)
+                if (isNaN(n) || !isBetween(0, n, this.pages + 1)) {
+                    return
+                }
+                this.#currentPage = n - 1
+            }
             if (newM.deletable) newM.delete().catch(console.error)
             m.edit({ components: [this.createActionRow()], embeds: [this.currentEmbed] }).catch(console.error)
         })
