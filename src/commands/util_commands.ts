@@ -14,7 +14,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho } from '../common_to_commands'
+import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember } from '../util'
 import iterators from '../iterators'
 
@@ -2481,6 +2481,19 @@ middle
         }, {
             n: createHelpOption("If <code>operator</code> is <code>#</code>, gets the n'th item<br>if <code>operator</code> is <code>rand</code>, gets n random items")
         }),
+    ]
+
+    yield [
+        "paged-embed", ccmdV2(async({args, msg}) => {
+            const embeds = []
+            for(let line of args.resplit("\n")){
+                if(!line) continue
+                embeds.push(JSON.parse(line))
+            }
+            let paged = new PagedEmbed(msg, embeds, `paged-embed:${msg.author.id}`)
+            await paged.begin()
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Creates a paged embed to group embeds together")
     ]
 
     yield [
