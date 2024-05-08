@@ -9,8 +9,10 @@ import timer from '../timer'
 import { format } from '../parsing'
 import htmlRenderer from '../html-renderer'
 import userOptions from '../user-options'
+import amountParser from '../amount-parser'
+import stackl2 from '../stackl2'
 
-function parseVariableExpansion(variableInner: string): [string, "||" | "#" | "%" | "/" | "&&" | "IF/" | ">!>" | "", string ] {
+function parseVariableExpansion(variableInner: string): [string, "<<" | "||" | "#" | "%" | "/" | "&&" | "IF/" | ">!>" | "", string ] {
     let varPart = ""
     let operator = ""
     let operatorArg = ""
@@ -21,7 +23,8 @@ function parseVariableExpansion(variableInner: string): [string, "||" | "#" | "%
         "/",
         "&&",
         "IF/",
-        ">!>"
+        ">!>",
+        "<<"
     ]
     let curOp = ""
     for (const ch of variableInner) {
@@ -165,6 +168,19 @@ class TokenEvaluator {
                         this.symbols.delete(`#${i}`)
                     }
                     return
+                }
+                case "<<": {
+                    switch(varName.trim()){
+                        case "rel": {
+                            val = amountParser.runRelativeCalculator(0, operatorArg).toString()
+                            break
+                        }
+                        case "stk": {
+                            val = stackl2.run(operatorArg).map(v => String(v[0])).join("\n")
+                            break
+                        }
+                    }
+                    break
                 }
                 default:
                     if(val == undefined || val === "") val = `\${${varName}}`
