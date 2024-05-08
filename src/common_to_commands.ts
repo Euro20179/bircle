@@ -469,6 +469,8 @@ export class AliasV2 {
             }
         }
 
+        runtime_opts.set("disableCmdConfirmations", false)
+
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
         //

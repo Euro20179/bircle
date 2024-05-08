@@ -2566,6 +2566,7 @@ yield[
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
             let gameIsGoing = true
+                //add stop flag to make stop not bypaass process manager TODO
             collection.on("collect", async (m) => {
                 if (!gameIsGoing) return
                 if (m.content == '\\n' || m.content == "<enter>")

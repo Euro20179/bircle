@@ -129,7 +129,9 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     let warn_cmds = user_options.getOpt(msg.author.id, "warn-cmds", "").split(" ")
     let warn_categories = user_options.getOpt(msg.author.id, "warn-categories", "").split(" ")
 
-    if (warn_cmds.includes(cmd) || warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true)) {
+    let doWarn = !runtime_options.get("disableCmdConfirmations", false)
+
+    if (doWarn && (warn_cmds.includes(cmd) || warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true))) {
         let m = await promptUser(msg, `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
 
         if (!m || m.content.toLowerCase() !== 'y') {

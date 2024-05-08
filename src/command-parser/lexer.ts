@@ -60,6 +60,18 @@ class WebModifier extends Modifier {
     }
 }
 
+class CmdConfirmationModifier extends Modifier {
+    static repr = "y"
+
+    set_runtime_opt(options: RuntimeOptions){
+        options.set("disableCmdConfirmations", true)
+    }
+
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("disableCmdConfirmations")
+    }
+}
+
 class SkipModifier extends Modifier {
     static repr = "n"
 
@@ -164,6 +176,7 @@ function getModifiers(command: string): [string, Modifier[]] {
         CommandModifier,
         AliasModifier,
         ResetStdinModifier,
+        CmdConfirmationModifier
     ]
 
     let used_modifiers = []
@@ -640,5 +653,6 @@ export default {
     TTCommand,
     TTRange,
     TTSyntax,
+    CmdConfirmationModifier,
     getModifiers
 }
