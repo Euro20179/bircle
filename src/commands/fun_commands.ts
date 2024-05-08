@@ -160,6 +160,9 @@ export default function*(): Generator<[string, CommandV2]> {
             let res = await promptUser(msg, `Guess (options: ${chars})`, undefined, {
                 timeout: 120000,
                 filter: m => {
+                    if(["cancel", "stop", "quit"].includes(m.content.toLowerCase())){
+                        return true
+                    }
                     if (
                         m.author !== msg.author ||
                         m.content.length !== answer.length
@@ -181,6 +184,11 @@ export default function*(): Generator<[string, CommandV2]> {
             }
 
             guess = res.content.toUpperCase()
+
+            if(["CANCEL", "STOP", "QUIT"].includes(guess)){
+                console.log('stopped')
+                return crv("Cancelled", { status: StatusCode.CMDSTATUS, statusNr: 100 })
+            }
 
             let responseText: { letter: string, type: "correct" | "wrong" | "bad-spot" }[] = []
             for (let i = 0; i < guess.length; i++) {
