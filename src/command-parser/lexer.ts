@@ -25,7 +25,7 @@ export class TT<T>{
 }
 
 class TTString extends TT<string> { }
-class TTSyntax extends TT<string> {}
+class TTSyntax extends TT<string> { }
 class TTCommand extends TT<string> { }
 class TTPipe extends TT<string> { }
 class TTPipeRun extends TT<string> { }
@@ -33,7 +33,7 @@ class TTJSExpr extends TT<string> { }
 class TTDoFirst extends TT<string> { }
 class TTDoFirstRepl extends TT<string> { }
 class TTPrefix extends TT<string> { }
-class TTVariable extends TT<string> { }
+class TTVariable extends TT<[string, string, string]> { }
 class TTSemi extends TT<string> { }
 class TTFormat extends TT<string> { }
 class TTRange extends TT<[number, number]> { }
@@ -130,15 +130,15 @@ class AliasModifier extends Modifier {
 class ResetStdinModifier extends Modifier {
     static repr = "r"
     private previousStdin?: CommandReturn
-    constructor(){
+    constructor() {
         super()
     }
-    set_runtime_opt(options: RuntimeOptions){
+    set_runtime_opt(options: RuntimeOptions) {
         this.previousStdin = options.get('stdin', null)
         options.delete("stdin")
     }
     unset_runtime_opt(options: RuntimeOptions) {
-        if(this.previousStdin){
+        if (this.previousStdin) {
             options.set("stdin", this.previousStdin)
         }
     }
@@ -204,7 +204,7 @@ export class Lexer {
     constructor(public command: string, options: LexerOptions) {
         this.options = options
 
-        if(this.options.enable_1_arg_string){
+        if (this.options.enable_1_arg_string) {
             this.special_chars += `"'`
         }
     }
@@ -244,6 +244,76 @@ export class Lexer {
         return builtString
     }
 
+    //has 2 jobs,
+    //parse until the closing }
+    //and seperate out the varPart, operator, operatorArg
+    parseVariable(): [string, string, string] {
+        let varPart = this.curChar
+        let operator = ""
+        let operatorArg = ""
+        const operators = [
+            "||",
+            "#",
+            "%",
+            "/",
+            "&&",
+            "IF/",
+            ">!>",
+            "<<"
+        ]
+        let curOp = ""
+
+        let bracketNo = 1
+
+        while(this.advance()){
+            const ch = this.curChar
+            if(ch === "{"){
+                bracketNo++
+                continue
+            } else if(ch === "}"){
+                bracketNo--
+            }
+            if(bracketNo === 0){
+                break
+            }
+            //variable is guaranteed to be 1+ char
+            if (!varPart) {
+                varPart += ch
+            }
+            else if (!operator) {
+                const opAndCh = curOp + ch
+                let foundOp = false
+                for (const op of operators) {
+                    if (op == opAndCh) {
+                        operator = opAndCh
+                        curOp = ""
+                        foundOp = true
+                        break
+                    }
+                    else if (op.startsWith(opAndCh)) {
+                        curOp += ch
+                        foundOp = true
+                        break
+                    }
+                }
+                if (!foundOp) {
+                    varPart += opAndCh
+                    curOp = ""
+                }
+                //if the length of the operator string is 1, curOp is "", therefore we also need
+                //to check if operator is empty
+                else if (curOp == "" && operator == "") {
+                    varPart += ch
+                }
+            }
+            else if (operator) {
+                operatorArg += ch
+            }
+        }
+
+        return [varPart, operator as "||", operatorArg]
+    }
+
     parseDollar() {
         let start = this.i
         let end = this.i
@@ -265,9 +335,7 @@ export class Lexer {
             }
             case "{": {
                 this.advance()
-                const inside = parseBracketPair(this.command, "{}", this.i)
-                this.advance(inside.length)
-                return new TTVariable(inside, start, this.i)
+                return new TTVariable(this.parseVariable(), start, this.i)
             }
         }
         this.back()
@@ -292,26 +360,26 @@ export class Lexer {
         return builtString
     }
 
-    parseSimpleString(){
+    parseSimpleString() {
         let string = ""
-        while(this.advance() && this.curChar !== "'"){
+        while (this.advance() && this.curChar !== "'") {
             string += this.curChar
         }
         return string
     }
 
-    parseEscapeableString(){
+    parseEscapeableString() {
         let string = ""
         let escape = false
-        while(this.advance()){
-            if(!escape && this.curChar === '\\'){
+        while (this.advance()) {
+            if (!escape && this.curChar === '\\') {
                 escape = true
                 continue
             }
-            else if(escape){
+            else if (escape) {
                 string += this.curChar
             }
-            else if(this.curChar === '"'){
+            else if (this.curChar === '"') {
                 break
             }
             else {
@@ -321,7 +389,7 @@ export class Lexer {
         }
         return string
     }
-    
+
     parseEscape() {
         const escChars = "ntUusyYAbiSdDTVv\\ a"
         if (!this.advance()) {
@@ -488,9 +556,9 @@ export class Lexer {
                         break
                     }
                     case "'": case '"': {
-                        if(this.options.enable_1_arg_string){
+                        if (this.options.enable_1_arg_string) {
                             let start = this.i
-                            if(this.curChar === "'"){
+                            if (this.curChar === "'") {
                                 yield new TTString(this.parseSimpleString(), start, this.i)
                             }
                             else {

@@ -12,59 +12,6 @@ import userOptions from '../user-options'
 import amountParser from '../amount-parser'
 import stackl2 from '../stackl2'
 
-function parseVariableExpansion(variableInner: string): [string, "<<" | "||" | "#" | "%" | "/" | "&&" | "IF/" | ">!>" | "", string ] {
-    let varPart = ""
-    let operator = ""
-    let operatorArg = ""
-    const operators = [
-        "||",
-        "#",
-        "%",
-        "/",
-        "&&",
-        "IF/",
-        ">!>",
-        "<<"
-    ]
-    let curOp = ""
-    for (const ch of variableInner) {
-        //variable is guaranteed to be 1+ char
-        if(!varPart){
-            varPart += ch
-        }
-        else if (!operator) {
-            const opAndCh = curOp + ch
-            let foundOp = false
-            for (const op of operators) {
-                if (op == opAndCh) {
-                    operator = opAndCh
-                    curOp = ""
-                    foundOp = true
-                    break
-                }
-                else if (op.startsWith(opAndCh)) {
-                    curOp += ch
-                    foundOp = true
-                    break
-                }
-            }
-            if (!foundOp) {
-                varPart += opAndCh
-                curOp = ""
-            }
-            //if the length of the operator string is 1, curOp is "", therefore we also need
-            //to check if operator is empty
-            else if (curOp == "" && operator == "") {
-                varPart += ch
-            }
-        }
-        else if (operator) {
-            operatorArg += ch
-        }
-    }
-
-    return [varPart, operator as "||", operatorArg]
-}
 
 
 /**
@@ -131,7 +78,7 @@ class TokenEvaluator {
             }
         }
         else if (token instanceof lexer.TTVariable) {
-            let [varName, operator, operatorArg] = parseVariableExpansion(token.data)
+            let [varName, operator, operatorArg] = token.data
             let val = ""
             //let [varName, ...ifNull] = token.data.split("||")
             if (varName.startsWith("&") && userOptions.isValidOption(varName.slice(1))) {
