@@ -39,7 +39,7 @@ export const APICmds: {
     },
     taxAmount: {
         requirements: ["id"],
-        exec: async({ id }: { id: string }) => {
+        exec: async ({ id }: { id: string }) => {
             return economy.calculateTaxPercent(id, {
                 max: hasItem(id, "tax shield") ? economy.getEconomy()[id]?.money : Infinity,
                 taxPercent: false,
@@ -85,7 +85,7 @@ export const APICmds: {
         extra: ['msg'],
         exec: async ({ msg, cmd: command }: { msg: Message, cmd: string }) => {
             let rv;
-            for await(rv of cmds.runcmdv2({
+            for await (rv of cmds.runcmdv2({
                 msg, command, prefix: ""
             }));
             return JSON.stringify(rv)
@@ -153,12 +153,14 @@ export const APICmds: {
                     errors: ["time"]
                 })
                 let resp = collected.at(0)
+                const j = JSON.stringify(resp)
                 if (typeof resp === 'undefined') {
                     return "0"
                 }
-                return JSON.stringify(resp)
+                return j
             }
             catch (err) {
+                console.log(err)
                 return "0"
             }
         },

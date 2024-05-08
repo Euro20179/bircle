@@ -16,6 +16,7 @@ import { getInventory } from '../src/shop'
 
 import ws from 'ws'
 import cmds from '../src/command-parser/cmds'
+import globals from '../src/globals'
 
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
@@ -720,11 +721,11 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         }
 
         (async function(){
-            for await (let item of cmds.runcmdv2({
+            for await (let item of globals.PROCESS_MANAGER.spawn_cmd({
                 command: command,
                 prefix: "",
                 msg
-            })){
+            }, `EXT:${command}`)){
                 handleReturn({interpreter: undefined, rv: item})
             }
             return
@@ -732,7 +733,6 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
         }).catch(() => {
-
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
             handleError("ERrr")
@@ -788,14 +788,12 @@ wsServer.on("connection", function(ws, req) {
                 }).then(user =>
                     _run(ws, cmd, user, inChannel, (rv) => {
                         ws.send(JSON.stringify(rv))
-                        ws.close(1000)
                     }, err => console.log(err))
                 )
             }
             else {
                 _run(ws, cmd, common.client.user as User, inChannel, rv => {
                     ws.send(JSON.stringify(rv))
-                    ws.close(1000)
                 }, err => {
                     console.log(err)
                 })

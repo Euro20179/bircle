@@ -27,7 +27,6 @@ function createFakeMessage(author: User, channel: DMChannel | TextChannel, conte
         channel: channel,
         channelId: channel.id,
         cleanContent: content as string,
-        client: common.client,
         components: [],
         content: content as string,
         createdAt: new Date(Date.now()),
@@ -84,6 +83,10 @@ function createFakeMessage(author: User, channel: DMChannel | TextChannel, conte
         _cacheType: false,
         _patch: (_data: any) => { }
     }
+    Object.defineProperty(msg, "client", {
+        enumerable: false,
+        value: common.client
+    })
     return msg
 }
 

@@ -154,6 +154,9 @@ async function* handlePipe(
         sendCallback,
         pid_label as string
     )) {
+        if(item.status === StatusCode.CHECKIN){
+            continue
+        }
         if (runtime_opts.get("no-send", false)) {
             item.noSend = true
         }
