@@ -614,7 +614,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                         return
                     }
                     res.writeHead(200)
-                    res.end(data.toString("utf8"))
+                    res.end(data.toString("base64"))
                 })
                 break
             }
