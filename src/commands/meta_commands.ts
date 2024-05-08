@@ -1864,6 +1864,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 let end = performance.now()
                 total += end - start
             }
+            if(count !== 1){
+                return crv(`total: ${total}\n${total/count}ms`)
+            }
             return { content: `${total / count}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {

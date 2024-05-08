@@ -28,7 +28,6 @@ class TTString extends TT<string> { }
 class TTSyntax extends TT<string> { }
 class TTCommand extends TT<string> { }
 class TTPipe extends TT<string> { }
-class TTPipeRun extends TT<string> { }
 class TTJSExpr extends TT<string> { }
 class TTDoFirst extends TT<string> { }
 class TTDoFirstRepl extends TT<string> { }
@@ -39,6 +38,8 @@ class TTFormat extends TT<string> { }
 class TTRange extends TT<[number, number]> { }
 class TTIFS extends TT<string> { }
 class TTEsc extends TT<[string, string]>{ }
+
+class TTAnd extends TT<string> {  }
 
 
 export abstract class Modifier {
@@ -640,7 +641,6 @@ export default {
     TT,
     TTString,
     TTPipe,
-    TTPipeRun,
     TTJSExpr,
     TTDoFirst,
     TTPrefix,
