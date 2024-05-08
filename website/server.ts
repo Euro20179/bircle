@@ -490,6 +490,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
 
 function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
     let url = req.url
+    res.setHeader("Access-Control-Allow-Origin", "*")
     if (!url) {
         res.writeHead(404)
         res.end("Page not found")
