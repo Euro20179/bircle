@@ -47,13 +47,18 @@ commandEventListener.on(cmdRun, function(event: CmdRunEvent){
 
 commandEventListener.on(cmdResult, function(event: CmdResultEvent){
     vars.setVarEasy("%:_!", getContentFromResult(event.rv), event.msg.author.id)
+    vars.setVarEasy("%:!", getContentFromResult(event.rv), event.msg.author.id)
 })
 
 commandEventListener.on(cmdOver, function(event: CmdOverEvent){
     if(event.finalRv.status === StatusCode.CMDSTATUS){
         vars.setVarEasy("%:_?", String(event.finalRv.statusNr ?? 0), event.msg.author.id)
+        vars.setVarEasy("%:?", String(event.finalRv.statusNr ?? 0), event.msg.author.id)
     }
-    else vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
+    else {
+        vars.setVarEasy("%:?", event.finalRv.status, event.msg.author.id)
+        vars.setVarEasy("%:_?", event.finalRv.status, event.msg.author.id)
+    }
 })
 
 export default {
