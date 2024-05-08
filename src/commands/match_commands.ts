@@ -18,7 +18,7 @@ export default function*() {
         return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
             msg, command: `stop${match[1] ?? ""}`, prefix: ""
         })
-    }, /u!stop(.*)/, "!stop", {
+    }, /^u!stop(.*)/, "!stop", {
         info: "same as [stop"
     })]
 
@@ -26,7 +26,7 @@ export default function*() {
         return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
             msg, command: `calc -python ${match[1] ?? ""}`, prefix: ""
         })
-    }, /u!eval(.*)/, "!eval", {
+    }, /^u!eval(.*)/, "!eval", {
         info: "same as [calc -python"
     })]
 
@@ -35,7 +35,7 @@ export default function*() {
         return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
             msg, command: match[1] ?? "echo -D prefix unset", prefix: ""
         })
-    }, /s!(.*)/, "!", {
+    }, /^s!(.*)/, "!", {
         info: "In case of a bad prefix, unsets it"
     })]
 
@@ -96,7 +96,7 @@ export default function*() {
 
         vars.setVarEasy(`${prefix}:${name}`, data, msg.author.id)
         return { noSend: true, status: StatusCode.RETURN }
-    }, /(?:([^ ]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "reate-var", {
+    }, /^(?:([^ ]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "reate-var", {
         info: "var=\"data\" or var='data'",
         arguments: {
             name: createHelpArgument("Name of the variable", true),
@@ -106,7 +106,7 @@ export default function*() {
 
     yield [createMatchCommand(async function() {
         return { content: 'https://media.discordapp.net/attachments/969326196733136906/1035812838813474836/Screenshot_20221029-001015.png?width=278&height=602', status: StatusCode.RETURN }
-    }, /Screenshot \(Oct 29, 2022 00:10:15\)/, "mg")]
+    }, /^Screenshot \(Oct 29, 2022 00:10:15\)$/, "mg")]
 
     yield [createMatchCommand(async ({ msg: m, match: search }) => {
         if (!isMsgChannel(m.channel)) return { noSend: true, status: StatusCode.ERR }
