@@ -613,9 +613,8 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                         res.end("Internal server error")
                         return
                     }
-                    let html = `<head><meta charset='utf-8'><link rel='stylesheet' href='/common.css'></head><pre>${data.toString("utf-8")}</pre>`
                     res.writeHead(200)
-                    res.end(html)
+                    res.end(data.toString("utf8"))
                 })
                 break
             }
@@ -629,6 +628,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 for (let file of files) {
                     html += `<li><a href="/garbage/${file}">${file}</a></li>`
                 }
+                res.setHeader("Content-Type", "text/html")
                 res.writeHead(200)
                 res.end(html)
             })
