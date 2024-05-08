@@ -256,10 +256,13 @@ export class Lexer {
             }
             builtString += this.curChar
             if (builtString === name) {
-                break
+                return builtString
             }
         }
-        return builtString
+        //failed, meaning we advanced too far
+        this.back()
+        //exclude the last char, since it's not part of the name trying to get parsed
+        return builtString.slice(0, builtString.length - 1)
     }
 
     //has 2 jobs,

@@ -1247,7 +1247,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
 
             else {
-                let [v1, op, v2] = args
+                let [v1, op, v2] = testText
                 return (() => {
                     switch (op) {
                         case "=": case "==":
