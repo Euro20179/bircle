@@ -2793,8 +2793,8 @@ ${styles}
     }, "Creates a battle response", {
         helpArguments: {
             size: helpArg("Amount of damage, can be<ul><li>tiny</li><li>small</li><li>medium</li><li>big</li><li>huge</li></ul>"),
-            response: helpArg("What it says, <code>{user<n>}</code> will be replaced with a player, if n is all it gets replaced with everyone in the game, if it is 1, it will be replaced with player 1, and so on, <code>{amount}</code> will be replaced with the amount of damage/heal it does"),
-            effects: helpArg("Format: <code>damage OR heal | all OR playernumber</code><br>there can be multiple on different lines")
+            response: helpArg("Must be on its own line<br>What it says, <code>{user&lt;n&gt;}</code> will be replaced with a player, if n is all it gets replaced with everyone in the game, if it is 1, it will be replaced with player 1, and so on, <code>{amount}</code> will be replaced with the amount of damage/heal it does"),
+            effects: helpArg("Each effect must be on its own line<br>format: <code>&lt;damage|heal&gt; | &lt;playern|all&gt;</code>")
         }
     })]
 
