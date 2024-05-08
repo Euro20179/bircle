@@ -1853,6 +1853,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let total = 0
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
 
+            let min = Infinity
+            let max = -Infinity
+
             while (i++ != count) {
                 let start = performance.now()
                 for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
@@ -1862,10 +1865,16 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 )) {
                 }
                 let end = performance.now()
-                total += end - start
+                const t = end - start
+                if(t > max){
+                    max = t
+                } else if(t < min){
+                    min = t
+                }
+                total += t
             }
             if(count !== 1){
-                return crv(`total: ${total}\n${total/count}ms`)
+                return crv(`total: ${total}ms\nmax: ${max}ms\nmin: ${min}ms\n${total/count}ms`)
             }
             return { content: `${total / count}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
