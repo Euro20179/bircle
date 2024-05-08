@@ -201,6 +201,7 @@ function getModifiers(command: string): [string, Modifier[]] {
 
 type LexerOptions = {
     pipe_sign?: string
+    and_sign?: string
     prefix?: string
     is_command?: boolean
     skip_parsing?: boolean,
@@ -231,6 +232,10 @@ export class Lexer {
         return this.options.pipe_sign ?? ">pipe>"
     }
 
+    private get and_sign(){
+        return this.options.and_sign ?? ">and>"
+    }
+
     advance(amount = 1) {
         this.i += amount
         this.curChar = this.command[this.i]
@@ -243,15 +248,14 @@ export class Lexer {
         return this.i > 0
     }
 
-    parsePipeSign() {
-        let pipe_sign = this.pipe_sign()
-        let builtString = this.curChar
-        while (pipe_sign.startsWith(builtString)) {
+    parseName(name: string, start: string) {
+        let builtString = start
+        while (name.startsWith(builtString)) {
             if (!this.advance()) {
                 break
             }
             builtString += this.curChar
-            if (builtString === pipe_sign) {
+            if (builtString === name) {
                 break
             }
         }
@@ -478,6 +482,7 @@ export class Lexer {
 
     *gen_tokens() {
         let pipe_sign = this.pipe_sign()
+        const and_sign = this.and_sign
         if (this.options.is_command !== false) {
             let prefix = this.prefix()
             this.advance(prefix.length)
@@ -519,8 +524,26 @@ export class Lexer {
                         }
                         break
                     }
+                    case and_sign[0]: 
+                        //this must be var because we want it to hoist for pipe_sign
+                        var string = this.parseName(and_sign, this.curChar)
+                        if(string === and_sign){
+                            yield new TTAnd(string, this.i - string.length, this.i)
+                            //reset because if and_Sign and pipe_sign are different
+                            //pipe_sign wont be parsed properly
+                            string = ""
+                            break
+                        }
+                        else if(!pipe_sign.startsWith(string)){
+                            yield new TTString(string, this.i - string.length, this.i)
+                            string = ""
+                            break
+                        }
+                        //fall through
                     case pipe_sign[0]: {
-                        let string = this.parsePipeSign()
+                        //string will be defined if it we first hit and_sign
+                        //@ts-ignore
+                        var string = this.parseName(pipe_sign, string || this.curChar)
                         if (string === pipe_sign) {
                             yield new TTPipe(string, this.i - string.length, this.i)
                         }
@@ -653,6 +676,7 @@ export default {
     TTCommand,
     TTRange,
     TTSyntax,
+    TTAnd,
     CmdConfirmationModifier,
     getModifiers
 }

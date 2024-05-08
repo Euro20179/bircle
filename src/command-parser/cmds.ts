@@ -103,7 +103,7 @@ async function* handlePipe(
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     pid_label?: string
 ): AsyncGenerator<CommandReturn> {
-    
+
     //we set this up here because we need access to stdin:* BEFORE tokens get parsed
     //if the r: modifier is set, these symbols will still exist
     //that's not a problem because the user opted into using them
@@ -111,7 +111,7 @@ async function* handlePipe(
     if (stdin) {
         symbols.set("stdin:content", stdin.content ?? "")
         symbols.set("stdin:%", stdin.content ?? "")
-        if(stdin.status === StatusCode.CMDSTATUS){
+        if (stdin.status === StatusCode.CMDSTATUS) {
             symbols.set("stdin:status", String(stdin.statusNr || 0))
         } else {
             symbols.set("stdin:status", stdin.status)
@@ -122,7 +122,7 @@ async function* handlePipe(
         symbols.delete("stdin:status")
     }
 
-    if(pid_label){
+    if (pid_label) {
         symbols.set("PID", String(PROCESS_MANAGER.getprocidFromLabel(pid_label)) || "UNKNOWN")
     }
 
@@ -155,7 +155,7 @@ async function* handlePipe(
         sendCallback,
         pid_label as string
     )) {
-        if(item.status === StatusCode.CHECKIN){
+        if (item.status === StatusCode.CHECKIN) {
             continue
         }
         if (runtime_opts.get("no-send", false)) {
@@ -198,6 +198,42 @@ async function* handlePipe(
 
 }
 
+async function* runcmdlogicline({
+    tokens,
+    logicChain,
+    msg,
+    sendCallback,
+    runtime_opts,
+    pid_label,
+    symbols,
+}: {
+    tokens: TT<any>[][],
+    logicChain: TT<any>[][][],
+    msg: Message,
+    sendCallback?: RunCmdOptions['sendCallback'],
+    symbols: SymbolTable,
+    runtime_opts: RuntimeOptions,
+    pid_label?: string,
+}): AsyncGenerator<CommandReturn> {
+
+    let andDo = logicChain.slice(1)
+    let success = false
+    for await (let res of handlePipe(tokens[0], tokens.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)) {
+        success = res.status === StatusCode.RETURN
+        yield res
+    }
+    if (success && logicChain.length) {
+        yield* runcmdlogicline({
+            tokens: logicChain[0],
+            logicChain: andDo,
+            msg, sendCallback,
+            runtime_opts,
+            pid_label,
+            symbols
+        })
+    }
+}
+
 export type RunCmdOptions = {
     command: string,
     prefix: string,
@@ -217,7 +253,7 @@ async function* runcmdlinev2({
     symbols,
     line_no,
 }: {
-    tokens: TT<any>[][],
+    tokens: TT<any>[][][],
     msg: Message,
     sendCallback?: RunCmdOptions['sendCallback'],
     symbols: SymbolTable,
@@ -228,12 +264,14 @@ async function* runcmdlinev2({
     symbols.set("LINENO", String(line_no))
     if (runtime_opts.get("verbose", false)) {
         let text = ""
-        for(let pipe_line of tokens){
-            let pipe_line_text = ""
-            for(let token of pipe_line){
-                pipe_line_text += token.data
+        for (let logic_line of tokens) {
+            let logic_line_text = ""
+            for (let pipe_line of logic_line) {
+                for (let token of pipe_line) {
+                    logic_line_text += token.data
+                }
             }
-            text += pipe_line_text.trim() + " >pipe> "
+            text += logic_line_text.trim() + " >pipe> "
         }
         text = `${line_no} ${text.slice(0, text.length - " >pipe> ".length)}`
         yield { content: text, status: StatusCode.INFO }
@@ -245,15 +283,15 @@ async function* runcmdlinev2({
         if (runtime_opts.get("no-run", false)) {
             return
         }
-        for await (let result of handlePipe(
-            tokens[0],
-            tokens.slice(1),
+        for await (let result of runcmdlogicline({
+            tokens: tokens[0],
+            logicChain: tokens.slice(1),
             msg,
             symbols,
             runtime_opts,
             sendCallback,
             pid_label
-        )) {
+        })) {
             if (result.recurse
                 && result.content
                 && isCmd(result.content, PREFIX)
@@ -316,10 +354,12 @@ async function* runcmdv2({
         prefix,
         skip_parsing: runtime_opts.get("skip", false),
         pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
+        and_sign: getOpt(msg.author.id, "and-symbol", ">and>"),
         enable_1_arg_string: enable_arg_string === 'true' ? true : false
     })
 
-    let cmd = parser.createCommandFromTokens(lex.gen_tokens())
+    let toks = [...lex.gen_tokens()]
+    let cmd = parser.createCommandFromTokens(toks[Symbol.iterator]() as any)
 
     for (let lineNo = 1; lineNo <= cmd.length; lineNo++) {
         yield* runcmdlinev2({
@@ -345,14 +385,14 @@ async function handleSending(
 ): Promise<Message> {
     //this status is specifically for a command to checkin with the process manager
     //so that if necessary the process manager can stop the command
-    if(rv.status === StatusCode.CHECKIN) return msg
+    if (rv.status === StatusCode.CHECKIN) return msg
     if (!isMsgChannel(msg.channel)) return msg
 
     if (!Object.keys(rv).length) {
         return msg
     }
 
-    if(rv.content?.startsWith(PREFIX)){
+    if (rv.content?.startsWith(PREFIX)) {
         rv.content = `\\${rv.content}`
     }
 
@@ -374,8 +414,8 @@ async function handleSending(
         //
         //an example of the scenario described above:
         //user runs `for i 1..Infinity { s:coin }`
-            //without the microsleep, no one can run `stop` as the js eventloop is not processing other events
-            //with the microsleep, the js eventloop can do other things (like process the `stop` command)
+        //without the microsleep, no one can run `stop` as the js eventloop is not processing other events
+        //with the microsleep, the js eventloop can do other things (like process the `stop` command)
         await sleep(0)
         return msg
     }

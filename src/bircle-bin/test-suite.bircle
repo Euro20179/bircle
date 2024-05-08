@@ -1,6 +1,6 @@
 s:export OLDPIPE = ${&pipe-symbol||>pipe>} ;;
 @ {user} unsetting pipe-symbol for testing ;;
-s:option pipe-symbol ;;
+y:s:option pipe-symbol ;;
 
 s:export FAILEDTESTS = ;;
 
@@ -18,10 +18,13 @@ s:export some-pipes = $(n:assert -title=Some-pipes $(echo -D $["this is neat"] >
 
 s:export macros = $(n:assert -title=macros $(s:export test = echo -D hi ;; ${test>!>}) >test> = hi) ;;
 
-s:export advanced-macros = $(n:assert -title=advanced-macros $(s:export test = echo -D {%0} {%1} ;; ${test>!>one+two}) >test> = one two) ;;
+s:export advanced-macros = $(n:assert -title=advanced-macros $(s:export test = echo -D \${#0} \${#1} ;; ${test>!>one+two}) >test> = one two) ;;
+
+s:export and = $(n:assert -title=and $(echo -D before and >and> echo -D after and ;; raw {"status": 1, "content": "fail"} >and> echo -D FAIL ;; echo -D should run) >test> = before andafter andfailshould run) ;;
+s:export and2 = $(n:assert -title=and2 $(echo -D before and >pipe> rev >and> echo -D after and ;; raw {"status": 1, "content": "fail"} >and> echo -D FAIL ;; echo -D should run) >test> = dna erofebafter andfailshould run) ;;
 
 @ {user} setting pipe-symbol back ;;
-s:option pipe-symbol ${OLDPIPE} ;;
+y:s:option pipe-symbol ${OLDPIPE} ;;
 
 paged-embed ${line-number}
 ${calc-syntax}
@@ -30,3 +33,5 @@ ${option-parsing}
 ${some-pipes}
 ${macros}
 ${advanced-macros}
+${and}
+${and2}

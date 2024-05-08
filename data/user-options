@@ -22,6 +22,8 @@ enable-mail:Whether or not to enable the [mail command (true/false)
 
 pipe-symbol:The symbol to use for piping commands (>pipe> by default)
 
+and-symbol:The symbol to use for anding commands (>and> by default)
+
 money-format:The text to send when someone checks your balance with [money<br>&nbsp;<b>{amount}</b> will be replaced with the amount of money you have
 
 currency-sign:The symbol to use for your currency (${GLOBAL_CURRENCY_SIGN} by default)
