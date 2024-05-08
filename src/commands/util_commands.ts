@@ -32,6 +32,7 @@ import { attach } from 'neovim'
 
 import cmds from '../command-parser/cmds'
 import configManager from '../config-manager'
+import stackl2 from '../stackl2'
 
 const handleSending = cmds.handleSending
 
@@ -3426,6 +3427,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }, "Idk it pollifies what do you want", {
         })
     ]
+
+    yield ["stackl2", ccmdV2(async function({args}){
+        const res = stackl2.run(args.join(" ").replace(/^```/, "").replace(/```$/, ""))
+        return crv(String(res.map(v => v[0]).join("\n")))
+    }, "stackl2")]
 
     yield [
         'stackl', ccmdV2(async function({ msg, rawArgs: args }) {

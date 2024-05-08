@@ -1,6 +1,6 @@
 import { isBetween } from "./util";
 
-class Iter{
+export class Iter{
     constructor(private iterable: Generator<any>){}
 
     enumerate(){
@@ -30,6 +30,10 @@ class Iter{
     filterMap(filterMapFn: (item: any, idx: number) => [false] | [true, any]){
         this.iterable = filterMap(this.iterable, filterMapFn)
         return this
+    }
+
+    next(){
+        return this.iterable.next().value
     }
 
     *[Symbol.iterator](){

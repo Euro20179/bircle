@@ -296,13 +296,15 @@ async function* runcmdv2({
 
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
 
+
     if (runtime_opts.get("recursion", 0) >= runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
         yield common_to_commands.cre("Recursion limit reached")
         return
     }
 
-
     symbols ??= new SymbolTable()
+
+    symbols.set("RECURSION", String(runtime_opts.get("recursion", 1)))
 
     let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
 
