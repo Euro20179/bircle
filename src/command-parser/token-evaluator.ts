@@ -157,10 +157,13 @@ class TokenEvaluator {
                 case ">!>": {
                     let args = operatorArg.split("+")
                     for(let i = 0; i < args.length; i++){
-                        val = val.replaceAll(`{%${i}}`, args[i])
+                        this.symbols.set(`#${i}`, args[i])
                     }
                     const syn = await cmds.expandSyntax(val, this.msg, this.symbols, this.runtime_opts)
                     this.add_list_of_strings(syn)
+                    for(let i = 0; i < args.length; i++){
+                        this.symbols.delete(`#${i}`)
+                    }
                     return
                 }
                 default:
