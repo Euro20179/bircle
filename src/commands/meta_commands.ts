@@ -11,10 +11,10 @@ import API from '../api'
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, iterGenerator, GOODVALUE } from '../util'
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from '../util'
 
 
-import { Guild, EmbedBuilder, User, Status } from 'discord.js'
+import { Guild, EmbedBuilder, User } from 'discord.js'
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
@@ -48,6 +48,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         //we want the inside to evaluate as well, if the user doesn't want this then they can use n:
         runtimeOpts.set("skip", false)
         const evaledSyntax = await cmds.expandSyntax(syntax as string, msg, symbols, runtimeOpts)
+        console.log(evaledSyntax)
 
         const joined = evaledSyntax.join(" ")
 

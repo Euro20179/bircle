@@ -460,7 +460,8 @@ export class AliasV2 {
             ["pipe-symbol", ">pipe>"],
             ["1-arg-string", ""],
             ["opts-parser", "normal"],
-            ["and-symbol", ">and>"]
+            ["and-symbol", ">and>"],
+            ["or-symbol", ">or>"]
         ] as const
         let oldOpts = optsThatNeedStandardizing.map(([name, def]) => [name, user_options.getOpt(msg.author.id, name, def)])
 

@@ -8,7 +8,7 @@ import common_to_commands, { StatusCode, isCmd } from '../common_to_commands'
 
 import configManager from '../config-manager'
 import userOptions, { getOpt } from '../user-options'
-import parser from './parser'
+import parser, { LineNode, LogicNode, PipeNode } from './parser'
 
 import { RECURSION_LIMIT } from '../config-manager'
 import { PROCESS_MANAGER } from '../globals'
@@ -94,16 +94,23 @@ export class RuntimeOptions {
     }
 }
 
-async function* handlePipe(
-    tokens: TT<any>[],
-    pipeChain: TT<any>[][],
+export type RunCmdOptions = {
+    command: string,
+    prefix: string,
+    msg: Message,
+    sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
+    runtime_opts?: RuntimeOptions,
+    pid_label?: string,
+    symbols?: SymbolTable,
+}
+
+async function* runcmdpipe(pipes: PipeNode[],
     msg: Message,
     symbols: SymbolTable,
     runtime_opts: RuntimeOptions,
     sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
     pid_label?: string
 ): AsyncGenerator<CommandReturn> {
-
     //we set this up here because we need access to stdin:* BEFORE tokens get parsed
     //if the r: modifier is set, these symbols will still exist
     //that's not a problem because the user opted into using them
@@ -129,7 +136,7 @@ async function* handlePipe(
     //parse tokens after because we need them to get the modifier
     //since we do this before modifiers, {%} will still work if stdin exists
     //this is consistent with the ${stdin:*} variables
-    let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg, runtime_opts)
+    let evaulator = new tokenEvaluator.TokenEvaluator(pipes[0].tokens, symbols, msg, runtime_opts)
 
     let new_tokens = await evaulator.evaluate()
 
@@ -144,7 +151,7 @@ async function* handlePipe(
     //modifiers might have removed stdin
     stdin = runtime_opts.get("stdin", null)
 
-    let pipe_to = pipeChain.slice(1)
+    let pipeChain = pipes.slice(1)
 
     for await (let item of runner.command_runner(
         new_tokens,
@@ -159,7 +166,7 @@ async function* handlePipe(
             continue
         }
         if (runtime_opts.get("no-send", false)) {
-            item.noSend = true
+            item.noSend == true
         }
         //although this could technically be done in the command_runner it's simply easier to do it here
         if (runtime_opts.get("silent", false)) {
@@ -177,9 +184,8 @@ async function* handlePipe(
             runtime_opts.set("stdin", item)
 
             //pipe this result to the next pipe in the chain
-            yield* handlePipe(
-                pipeChain[0],
-                pipe_to,
+            yield* runcmdpipe(
+                pipeChain,
                 msg,
                 symbols,
                 runtime_opts,
@@ -195,57 +201,51 @@ async function* handlePipe(
     for (let modifier of modifier_dat[1]) {
         modifier.unset_runtime_opt(runtime_opts)
     }
-
 }
 
-async function* runcmdlogicline({
-    tokens,
-    logicChain,
+async function* runcmdlogicline2({
+    tree,
     msg,
     sendCallback,
     runtime_opts,
     pid_label,
     symbols,
+    success
 }: {
-    tokens: TT<any>[][],
-    logicChain: TT<any>[][][],
+    tree: LogicNode,
     msg: Message,
     sendCallback?: RunCmdOptions['sendCallback'],
     symbols: SymbolTable,
     runtime_opts: RuntimeOptions,
     pid_label?: string,
+    success?: boolean
 }): AsyncGenerator<CommandReturn> {
-
-    let andDo = logicChain.slice(1)
-    let success = false
-    for await (let res of handlePipe(tokens[0], tokens.slice(1), msg, symbols, runtime_opts, sendCallback, pid_label)) {
-        success = res.status === StatusCode.RETURN
-        yield res
+    if(success !== false && tree.logic !== parser.logicType.Or){
+        for await (let res of runcmdpipe(tree.todo, msg, symbols, runtime_opts, sendCallback, pid_label)) {
+            success = res.status === StatusCode.RETURN
+            yield res
+        }
+    } else if(success === false && tree.logic !== parser.logicType.And){
+        for await (let res of runcmdpipe(tree.todo, msg, symbols, runtime_opts, sendCallback, pid_label)) {
+            success = res.status === StatusCode.RETURN
+            yield res
+        }
     }
-    if (success && logicChain.length) {
-        yield* runcmdlogicline({
-            tokens: logicChain[0],
-            logicChain: andDo,
-            msg, sendCallback,
+    if(tree.next.length){
+        yield* runcmdlogicline2({
+            tree: tree.next[0],
+            msg,
+            sendCallback,
             runtime_opts,
             pid_label,
-            symbols
+            symbols,
+            success
         })
     }
 }
 
-export type RunCmdOptions = {
-    command: string,
-    prefix: string,
-    msg: Message,
-    sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>),
-    runtime_opts?: RuntimeOptions,
-    pid_label?: string,
-    symbols?: SymbolTable,
-}
-
-async function* runcmdlinev2({
-    tokens,
+async function* runcmdline({
+    tree,
     msg,
     sendCallback,
     runtime_opts,
@@ -253,7 +253,7 @@ async function* runcmdlinev2({
     symbols,
     line_no,
 }: {
-    tokens: TT<any>[][][],
+    tree: LineNode,
     msg: Message,
     sendCallback?: RunCmdOptions['sendCallback'],
     symbols: SymbolTable,
@@ -263,55 +263,44 @@ async function* runcmdlinev2({
 }) {
     symbols.set("LINENO", String(line_no))
     if (runtime_opts.get("verbose", false)) {
-        let text = ""
-        for (let logic_line of tokens) {
-            let logic_line_text = ""
-            for (let pipe_line of logic_line) {
-                for (let token of pipe_line) {
-                    logic_line_text += token.data
-                }
-            }
-            text += logic_line_text.trim() + " >pipe> "
-        }
-        text = `${line_no} ${text.slice(0, text.length - " >pipe> ".length)}`
-        yield { content: text, status: StatusCode.INFO }
-        // console.log(tokens)
-        // yield { content: "Work in progress", status: StatusCode.INFO }
+        yield { content: tree.sprint(), status: StatusCode.INFO }
     }
 
     try {
         if (runtime_opts.get("no-run", false)) {
             return
         }
-        for await (let result of runcmdlogicline({
-            tokens: tokens[0],
-            logicChain: tokens.slice(1),
-            msg,
-            symbols,
-            runtime_opts,
-            sendCallback,
-            pid_label
-        })) {
-            if (result.recurse
-                && result.content
-                && isCmd(result.content, PREFIX)
-                && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
-            ) {
-                let old_disable = runtime_opts.get('disable', false)
-                if (typeof result.recurse === 'object') {
-                    result.recurse.categories ??= []
-                    result.recurse.commands ??= []
-                    runtime_opts.set("disable", result.recurse)
+
+        for(const logic of tree.childs){
+            for await (let result of runcmdlogicline2({
+                tree: logic,
+                msg,
+                symbols,
+                runtime_opts,
+                pid_label,
+                sendCallback
+            })) {
+                if (result.recurse
+                    && result.content
+                    && isCmd(result.content, PREFIX)
+                    && runtime_opts.get("recursion", 1) < runtime_opts.get("recursion_limit", RECURSION_LIMIT)
+                ) {
+                    let old_disable = runtime_opts.get('disable', false)
+                    if (typeof result.recurse === 'object') {
+                        result.recurse.categories ??= []
+                        result.recurse.commands ??= []
+                        runtime_opts.set("disable", result.recurse)
+                    }
+                    yield* runcmdv2({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
+                    runtime_opts.set("disable", old_disable)
+                    continue
                 }
-                yield* runcmdv2({ command: result.content, prefix: PREFIX, msg, runtime_opts, symbols })
-                runtime_opts.set("disable", old_disable)
-                continue
+                yield result
             }
-            yield result
         }
     }
     catch (err: any) {
-        console.log(err)
+        console.error(err)
         yield { content: common_to_commands.censor_error(err.toString()), status: StatusCode.ERR }
     }
 }
@@ -330,14 +319,7 @@ async function* runcmdv2({
 
     runtime_opts ??= new RuntimeOptions()
 
-    //this is a special case modifier that basically has to happen here
-    if (command.startsWith(`${prefix}n:`)) {
-        runtime_opts.set("skip", true)
-        command = command.slice(2)
-    }
-
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) + 1)
-
 
     if (runtime_opts.get("recursion", 0) >= runtime_opts.get("recursion_limit", RECURSION_LIMIT)) {
         yield common_to_commands.cre("Recursion limit reached")
@@ -350,32 +332,68 @@ async function* runcmdv2({
 
     let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
 
+    //this is a special case modifier that basically has to happen here
+    if (command.startsWith(`${prefix}n:`)) {
+        runtime_opts.set("skip", true)
+        command = command.slice(2)
+    }
+
     let lex = new lexer.Lexer(command, {
         prefix,
         skip_parsing: runtime_opts.get("skip", false),
         pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
         and_sign: getOpt(msg.author.id, "and-symbol", ">and>"),
+        or_sign: getOpt(msg.author.id, "or-symbol", ">or>"),
         enable_1_arg_string: enable_arg_string === 'true' ? true : false
     })
 
-    let toks = [...lex.gen_tokens()]
-    let cmd = parser.createCommandFromTokens(toks[Symbol.iterator]() as any)
+    const p = new parser.Parser([...lex.gen_tokens()])
 
-    for (let lineNo = 1; lineNo <= cmd.length; lineNo++) {
-        yield* runcmdlinev2({
-            tokens: cmd[lineNo - 1],
+    const tree = p.buildCommandTree()
+    //
+    //await handleSending(msg, {
+    //    content: tree.sprint(),
+    //    status: 0
+    //})
+
+    let lineNo = 1
+    for (let child of tree.childs) {
+        yield* runcmdline({
+            tree: child,
+            runtime_opts,
+            symbols,
             msg,
             sendCallback,
             line_no: lineNo,
-            pid_label,
-            symbols,
-            runtime_opts,
+            pid_label
         })
+        lineNo++
     }
-
     runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
 
     return { noSend: true, status: 0 }
+
+    //
+    //
+    //
+    //let toks = [...lex.gen_tokens()]
+    //let cmd = parser.createCommandFromTokens(toks[Symbol.iterator]() as any)
+    //
+    //for (let lineNo = 1; lineNo <= cmd.length; lineNo++) {
+    //    yield* runcmdlinev2({
+    //        tokens: cmd[lineNo - 1],
+    //        msg,
+    //        sendCallback,
+    //        line_no: lineNo,
+    //        pid_label,
+    //        symbols,
+    //        runtime_opts,
+    //    })
+    //}
+    //
+    //runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
+    //
+    //return { noSend: true, status: 0 }
 }
 
 async function handleSending(
