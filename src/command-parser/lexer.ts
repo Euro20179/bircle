@@ -548,9 +548,11 @@ export class Lexer {
                         //@ts-ignore
                         var string = this.parseName(pipe_sign, string || this.curChar)
                         if (string === pipe_sign) {
+                            string = ""
                             yield new TTPipe(string, this.i - string.length, this.i)
                         }
                         else {
+                            string = ""
                             yield new TTString(string, this.i - string.length, this.i)
                         }
                         break;
