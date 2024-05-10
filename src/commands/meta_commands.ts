@@ -1206,7 +1206,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         lastrv = result
                     }
                 } else {
-                    lastrv = { content: code === StatusCode.RETURN ? "true" : "false", status: code }
+                    lastrv = { noSend: true, status: code }
                 }
                 return lastrv
             }
