@@ -447,7 +447,7 @@ export default function*(): Generator<[string, CommandV2]> {
         )
     })]
 
-    yield ["chat", ccmdV2(async ({ msg, opts, args, sendCallback }) => {
+    yield ["chat", ccmdV2(async function ({ msg, opts, args, sendCallback }) {
         if (!configManager.getConfigValue("general.enable-chat")) {
             return crv("This command is not enabled", { status: StatusCode.ERR })
         }
@@ -512,6 +512,11 @@ export default function*(): Generator<[string, CommandV2]> {
                 role: "system",
                 content: sys_msg
             })
+            let state = this[1].state ?? {}
+            if(state[msg.author.id]){
+                return { noSend: true, status: StatusCode.ERR }
+            }
+            state[msg.author.id] = true
             do {
                 let resp = await promptUser(msg, "Input message:", sendCallback, {
                     filter: m => m.author.id === msg.author.id,
@@ -557,6 +562,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     reply: true
                 }, sendCallback)
             } while (true)
+            state[msg.author.id] = false
             return crv("Chat session ended")
         }
         const result = await fetch(`${baseurl}:11434/api/generate`, {
