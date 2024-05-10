@@ -11,6 +11,7 @@ import htmlRenderer from '../html-renderer'
 import userOptions from '../user-options'
 import amountParser from '../amount-parser'
 import stackl2 from '../stackl2'
+import dateParsing from '../date-parsing'
 
 
 
@@ -90,9 +91,9 @@ class TokenEvaluator {
                     val = vars.getVar(this.msg, varName)
                 }
             }
-            switch(operator){
-                case '||': if(!val) val = operatorArg; break 
-                case '&&': if(val) val = operatorArg; break
+            switch (operator) {
+                case '||': if (!val) val = operatorArg; break
+                case '&&': if (val) val = operatorArg; break
                 case '#': val = val.replace(new RegExp(`^${operatorArg}`), ""); break
                 case '%': val = val.replace(new RegExp(`${operatorArg}$`), ""); break
                 case '/':
@@ -106,18 +107,18 @@ class TokenEvaluator {
                     break
                 case ">!>": {
                     let args = operatorArg.split("+")
-                    for(let i = 0; i < args.length; i++){
+                    for (let i = 0; i < args.length; i++) {
                         this.symbols.set(`#${i}`, args[i])
                     }
                     const syn = await cmds.expandSyntax(val, this.msg, this.symbols, this.runtime_opts)
                     this.add_list_of_strings(syn)
-                    for(let i = 0; i < args.length; i++){
+                    for (let i = 0; i < args.length; i++) {
                         this.symbols.delete(`#${i}`)
                     }
                     return
                 }
                 case "<<": {
-                    switch(varName.trim()){
+                    switch (varName.trim()) {
                         case "rel": {
                             val = amountParser.runRelativeCalculator(0, operatorArg).toString()
                             break
@@ -130,7 +131,7 @@ class TokenEvaluator {
                     break
                 }
                 default:
-                    if(val == undefined || val === "") val = `\${${varName}}`
+                    if (val == undefined || val === "") val = `\${${varName}}`
             }
             this.add_to_cur_tok(val)
         }
@@ -349,7 +350,7 @@ const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq:
         if (user === undefined || member === undefined || member === null) {
             return `{${args.join(" ")}}`
         }
-        return  formatMember(member, fmt)
+        return formatMember(member, fmt)
     },
     rand: async (_, __, ___, args) => {
         if (args && args?.length > 0)
@@ -531,6 +532,19 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
             return seq.split("")
         }
         return ""
+    },
+    p: async (token, _sym, msg) => {
+        let [_, seq] = token.data
+        let relative = false
+        if(seq.startsWith("r:")){
+            relative = true
+            seq = seq.slice(2)
+        }
+        const date = dateParsing.parseDate(seq, userOptions.getOpt(msg.author.id, "time-zone", "-800"))
+        if(relative){
+            return `<t:${Math.floor(date.getTime() / 1000)}:R>`
+        }
+        return `<t:${Math.floor(date.getTime() / 1000)}>`
     },
     T: async (token) => {
         let [_, seq] = token.data

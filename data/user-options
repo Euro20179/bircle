@@ -49,3 +49,5 @@ opts-parser:There are 3 opts parsers, normal, with-negate, and unix, with-negate
 location:Your location
 
 css:Custom css to use on the website
+
+time-zone:Your timezone, must be in the format of "(+|-)<offset>" where offset is <hours><minutes> offset from UTC, no :, + for ahead, - for behind

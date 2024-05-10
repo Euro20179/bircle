@@ -453,6 +453,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             else {
                 let optVal = value.join(" ")
+                if(!user_options.validateOption(optname, optVal)){
+                    return crv(`${optname} cannot be set to ${optVal}`, { status: StatusCode.ERR })
+                }
                 user_options.setOpt(msg.author.id, optname, optVal)
                 user_options.saveUserOptions()
                 return { content: `<@${msg.author.id}> set ${optname}=${optVal}`, status: StatusCode.RETURN }

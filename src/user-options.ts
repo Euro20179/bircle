@@ -1,9 +1,74 @@
 import fs from "fs"
 import common from "./common"
 
-export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "dm-when-online", "currency-sign", "puffle-find", "enable-mail", "mail-signature", "no-pingresponse", "pipe-symbol", "1-arg-string", "warn-cmds", "connect4-win", "connect4-symbol", "warn-categories", "error-on-no-cmd", "opts-parser", "location", "css", "and-symbol", "or-symbol"] as const
+export const allowedOptions = [
+    "prefix",
+    "default-bj-bet",
+    "bj-screen",
+    "money-format",
+    "pingresponse",
+    "heist-join",
+    "lottery-win",
+    "count-text",
+    "dm-when-online",
+    "currency-sign",
+    "puffle-find",
+    "enable-mail",
+    "mail-signature",
+    "no-pingresponse",
+    "pipe-symbol",
+    "1-arg-string",
+    "warn-cmds",
+    "connect4-win",
+    "connect4-symbol",
+    "warn-categories",
+    "error-on-no-cmd",
+    "opts-parser",
+    "location",
+    "css",
+    "and-symbol",
+    "or-symbol",
+    "time-zone"
+] as const
+
 
 export type UserOption = typeof allowedOptions[number]
+
+type OptionValidator = (value: string) => boolean
+
+const optionValidators: Record<UserOption, OptionValidator> = {
+    "time-zone": value => value.match(/^[+-]\d{3}$/) ? true : false,
+    "or-symbol": _ => true,
+    "css": _ => true,
+    "prefix": _ => true,
+    "location": _ => true,
+    "bj-screen": _ => true,
+    "warn-cmds": _ => true,
+    "and-symbol": _ => true,
+    "count-text": _ => true,
+    "heist-join": _ => true,
+    "enable-mail": value => ["false", "true"].includes(value),
+    "lottery-win": _ => true,
+    "opts-parser": value => ["with-negate", "unix", "normal"].includes(value),
+    "puffle-find": _ => true,
+    "1-arg-string": value => ["false", "true"].includes(value),
+    "connect4-win": _ => true,
+    "pingresponse": _ => true,
+    "currency-sign": _ => true,
+    "default-bj-bet": _ => true,
+    "dm-when-online": _ => true,
+    "error-on-no-cmd": value => ["false", "true"].includes(value),
+    "no-pingresponse": value => ["false", "true"].includes(value),
+    "mail-signature": _ => true,
+    "connect4-symbol": _ => true,
+    "warn-categories": _ => true,
+    "money-format": _ => true,
+    "pipe-symbol": _ => true
+} as const
+
+export function validateOption(name: UserOption, value: string){
+    return optionValidators[name](value)
+}
 
 export const userOptionsInfo: {[name: string]: string} = {}
 
@@ -71,5 +136,5 @@ export default{
     unsetOpt,
     isValidOption,
     formatMoney,
-
+    validateOption
 }

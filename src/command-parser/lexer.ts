@@ -432,7 +432,7 @@ export class Lexer {
     }
 
     parseEscape() {
-        const escChars = "ntUusyYAbiSdDTVv\\ a"
+        const escChars = "ntUusyYAbiSdDTVv\\ ap"
         if (!this.advance()) {
             return ""
         }
