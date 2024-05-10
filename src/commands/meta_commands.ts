@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, clearSnipes, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
+import { aliasesV2, AliasV2, ccmdV2, clearSnipes, commands, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, helpArg, lastCommand, promptUser, StatusCode } from '../common_to_commands'
 import globals from '../globals'
 import useTracker from '../use-tracker'
 import user_options from '../user-options'
@@ -2501,8 +2501,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             argList = argList.slice(2)
         }
 
+        const stopAtCmd = !opts.getBool("E", true)
+
         let result = v2.expand(argList, simulatedOpts, (alias: any, preArgs: any) => {
             chain.push(showArgs ? preArgs : alias)
+            if(commands.get(alias) && stopAtCmd){
+                return false
+            }
             return true
         }, !opts.getBool("F", false))
 
@@ -2534,7 +2539,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         n: createHelpOption("put the names of the expanded commands only"),
         F: createHelpOption("Dont fill placeholders such as {args..}"),
         l: createHelpOption("Get the last expansion of the chain", ["last"]),
-        i: createHelpOption("Get the ith expansion of the chain")
+        i: createHelpOption("Get the ith expansion of the chain"),
+        E: createHelpOption("Keep expanding even after hitting a real command")
     })]
 
     yield ["rccmd", createCommandV2(async ({ msg, args, }) => {
