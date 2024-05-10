@@ -22,6 +22,19 @@ export class TT<T>{
         this.start = start
         this.end = end
     }
+
+    isTok(type: any){
+        return this instanceof type.constructor
+    }
+
+    isAny(tt: any[]){
+        for(const t of tt){
+            if (this instanceof t){
+                return true
+            }
+        }
+        return false
+    }
 }
 
 class TTString extends TT<string> { }
@@ -38,8 +51,10 @@ class TTFormat extends TT<string> { }
 class TTRange extends TT<[number, number]> { }
 class TTIFS extends TT<string> { }
 class TTEsc extends TT<[string, string]>{ }
+class TTOr extends TT<string> { }
+class TTAnd extends TT<string> { }
 
-class TTAnd extends TT<string> {  }
+class TTNop extends TT<string> { }
 
 
 export abstract class Modifier {
@@ -64,7 +79,7 @@ class WebModifier extends Modifier {
 class CmdConfirmationModifier extends Modifier {
     static repr = "y"
 
-    set_runtime_opt(options: RuntimeOptions){
+    set_runtime_opt(options: RuntimeOptions) {
         options.set("disableCmdConfirmations", true)
     }
 
@@ -202,6 +217,7 @@ function getModifiers(command: string): [string, Modifier[]] {
 type LexerOptions = {
     pipe_sign?: string
     and_sign?: string
+    or_sign?: string
     prefix?: string
     is_command?: boolean
     skip_parsing?: boolean,
@@ -232,8 +248,12 @@ export class Lexer {
         return this.options.pipe_sign ?? ">pipe>"
     }
 
-    private get and_sign(){
+    private get and_sign() {
         return this.options.and_sign ?? ">and>"
+    }
+
+    private get or_sign() {
+        return this.options.or_sign ?? ">or>"
     }
 
     advance(amount = 1) {
@@ -286,15 +306,15 @@ export class Lexer {
 
         let bracketNo = 1
 
-        while(this.advance()){
+        while (this.advance()) {
             const ch = this.curChar
-            if(ch === "{"){
+            if (ch === "{") {
                 bracketNo++
                 continue
-            } else if(ch === "}"){
+            } else if (ch === "}") {
                 bracketNo--
             }
-            if(bracketNo === 0){
+            if (bracketNo === 0) {
                 break
             }
             //variable is guaranteed to be 1+ char
@@ -486,6 +506,7 @@ export class Lexer {
     *gen_tokens() {
         let pipe_sign = this.pipe_sign()
         const and_sign = this.and_sign
+        const or_sign = this.or_sign
         if (this.options.is_command !== false) {
             let prefix = this.prefix()
             this.advance(prefix.length)
@@ -495,7 +516,7 @@ export class Lexer {
             yield* this.parse_simple()
         }
         else {
-            while (this.advance()) {
+            lexing: while (this.advance()) {
                 if (this.IFS.includes(this.curChar)) {
                     while (this.IFS.includes(this.curChar)) {
                         this.advance()
@@ -503,6 +524,20 @@ export class Lexer {
                     this.back()
                     yield new TTIFS(this.IFS[0], this.i, this.i)
                     continue;
+                }
+                let variableSyntaxString = ""
+                for (const [sign, tt] of [
+                    [or_sign, TTOr],
+                    [and_sign, TTAnd],
+                    [pipe_sign, TTPipe]
+                ] as const) {
+                    if (sign[0] === this.curChar) {
+                        variableSyntaxString = this.parseName(sign, variableSyntaxString || this.curChar)
+                        if (variableSyntaxString === sign) {
+                            yield new tt(variableSyntaxString, this.i - variableSyntaxString.length, this.i)
+                            continue lexing
+                        }
+                    }
                 }
                 switch (this.curChar) {
                     case "%": {
@@ -526,34 +561,6 @@ export class Lexer {
                             yield new TTEsc(data as [string, string], start, this.i)
                         }
                         break
-                    }
-                    case and_sign[0]: 
-                        //this must be var because we want it to hoist for pipe_sign
-                        var string = this.parseName(and_sign, this.curChar)
-                        if(string === and_sign){
-                            yield new TTAnd(string, this.i - string.length, this.i)
-                            //reset because if and_Sign and pipe_sign are different
-                            //pipe_sign wont be parsed properly
-                            string = ""
-                            break
-                        }
-                        else if(!pipe_sign.startsWith(string)){
-                            yield new TTString(string, this.i - string.length, this.i)
-                            string = ""
-                            break
-                        }
-                        //fall through
-                    case pipe_sign[0]: {
-                        //string will be defined if it we first hit and_sign
-                        //@ts-ignore
-                        var string = this.parseName(pipe_sign, string || this.curChar)
-                        if (string === pipe_sign) {
-                            yield new TTPipe(string, this.i - string.length, this.i)
-                        }
-                        else {
-                            yield new TTString(string, this.i - string.length, this.i)
-                        }
-                        break;
                     }
                     case "$": {
                         let token_or_str = this.parseDollar()
@@ -680,6 +687,8 @@ export default {
     TTRange,
     TTSyntax,
     TTAnd,
+    TTOr,
+    TTNop,
     CmdConfirmationModifier,
     getModifiers
 }
