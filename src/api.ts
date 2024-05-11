@@ -6,6 +6,7 @@ import shop, { hasItem } from "./shop"
 import { getAliasesV2 } from "./common_to_commands"
 import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"
 import cmds from "./command-parser/cmds"
+import { DEVBOT } from "./config-manager"
 
 export const APICmds: {
     [key: string]: {
@@ -106,6 +107,16 @@ export const APICmds: {
                 default:
                     return total
             }
+        }
+    },
+    fetch: {
+        requirements: ['url'],
+        exec: async ({ url }: { url: string }) => {
+            if(DEVBOT){
+                return "NOT ALLOWED"
+            }
+            let res = await fetch(url)
+            return await res.text()
         }
     },
     "getFonts": {
