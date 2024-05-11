@@ -80,7 +80,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }
         if (outputFmt === "{embed}") {
             let desc = `Expression: \`\`\`bircle\n${syntax}\n\`\`\`\nExpected (${assertionCmp}): \`\`\`bircle\n${assertion}\n\`\`\``
-            if(!pass){
+            if (!pass) {
                 desc += `\nGot: \`\`\`bircle\n${joined}\n\`\`\``
             }
             return {
@@ -102,9 +102,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             assert: assertion,
             result: pass ? "pass" : "fail"
         }), {
-                status: StatusCode.CMDSTATUS,
-                statusNr: pass ? 0 : 101
-            })
+            status: StatusCode.CMDSTATUS,
+            statusNr: pass ? 0 : 101
+        })
     }, "Returns green embed if assert succeeds, red if fails")]
 
     yield ['runas', ccmdV2(async function*({ msg, args, runtime_opts, symbols }) {
@@ -453,7 +453,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             else {
                 let optVal = value.join(" ")
-                if(!user_options.validateOption(optname, optVal)){
+                if (!user_options.validateOption(optname, optVal)) {
                     return crv(`${optname} cannot be set to ${optVal}`, { status: StatusCode.ERR })
                 }
                 user_options.setOpt(msg.author.id, optname, optVal)
@@ -1516,6 +1516,76 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }),
     ]
 
+    yield ["IF", ccmdV2(async function*({ msg, args, symbols, runtime_opts, sendCallback }) {
+        args.beginIter()
+
+        let cmd = args.expectString(s => s !== 'THEN')
+        if (cmd === BADVALUE) {
+            return crv("Exepcted `THEN`", { status: StatusCode.ERR })
+        }
+
+        //skip past the ;then
+        args.expectString(2)
+
+        let invert = false
+
+        if (cmd[0] === "!") {
+            invert = true
+            cmd = cmd.slice(1)
+        }
+
+        let success = false
+        for await (let item of globals.PROCESS_MANAGER.spawn_cmd({ prefix: "", msg, command: cmd, symbols, runtime_opts, sendCallback })) {
+            success = item.status === StatusCode.RETURN
+            yield item
+        }
+        while (true) {
+            const body = args.expectString(s => !["ELSE", "ELIF", "FI"].includes(s.trim()))
+            //skip past last item in body
+            args.expectString(1)
+
+            if (body == BADVALUE) {
+                return crv("Expected `ELIF`, `ELSE` or `FI`", { status: StatusCode.ERR })
+            }
+
+            const ending = args.expectString(1)
+
+            if (success !== invert) {
+                return crv(`${configManager.PREFIX}${body}`, { recurse: true })
+            } else if (ending === "ELIF") {
+                let cmd = args.expectString(s => s !== "THEN")
+                //skip past last item in cmd and THEN
+                args.expectString(2)
+                if(cmd === BADVALUE){
+                    return crv("expected `THEN`", { status: StatusCode.ERR })
+                }
+                for await (let item of globals.PROCESS_MANAGER.spawn_cmd({ prefix: "", msg, command: cmd, symbols, runtime_opts, sendCallback })) {
+                    success = item.status === StatusCode.RETURN
+                    yield item
+                }
+            } else if (ending === "ELSE") {
+                success = !success
+                continue
+            } else if (ending === "FI") {
+                break
+            }
+        }
+
+        return { noSend: true, status: StatusCode.RETURN }
+    }, "an if/elif/else chain that runs based on the status code of the command", {
+            docs: "Syntax:<br><code>IF &lt;cmd&gt; THEN &lt;body&gt; [(ELIF &lt;cmd&gt; THEN body)* [ELSE body]] FI</code>",
+            helpArguments: {
+                "condition": createHelpArgument("The initial condition command"),
+                "body": createHelpArgument("The cmds to run if the condition returns status 0"),
+                "ELIF": createHelpArgument("Start an elif condition", false, "body"),
+                "elifcmd": createHelpArgument("The command to run for the ELIF (there can be as many ELIFs as you want)", false, "ELIF"),
+                "elifbody": createHelpArgument("The command if the elifcmd rreturns status 0", false, "ELIF"),
+                "ELSE": createHelpArgument("Start the else block", false, "body"),
+                "elsebody": createHelpArgument("The block to run if any of the above conditions failed", false, "ELSE"),
+                "FI": createHelpArgument("End the if chain", true, "body")
+            }
+        })]
+
     yield [
         "if", ccmdV2(async function*({ msg, rawArgs: args, runtime_opts, pid_label, symbols }) {
             let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label)
@@ -1870,15 +1940,15 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }
                 let end = performance.now()
                 const t = end - start
-                if(t > max){
+                if (t > max) {
                     max = t
-                } else if(t < min){
+                } else if (t < min) {
                     min = t
                 }
                 total += t
             }
-            if(count !== 1){
-                return crv(`total: ${total}ms\nmax: ${max}ms\nmin: ${min}ms\n${total/count}ms`)
+            if (count !== 1) {
+                return crv(`total: ${total}ms\nmax: ${max}ms\nmin: ${min}ms\n${total / count}ms`)
             }
             return { content: `${total / count}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
@@ -2239,7 +2309,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 realName = prefix
                 prefix = "__global__"
             }
-            if(realName.match(/[>|#%/&<]/)){
+            if (realName.match(/[>|#%/&<]/)) {
                 return crv("Name cannot contain any of: `>|#%/&<`", { status: StatusCode.ERR })
             }
             let type = String(opts['type'] || "string")
@@ -2510,7 +2580,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
         let result = v2.expand(argList, simulatedOpts, (alias: any, preArgs: any) => {
             chain.push(showArgs ? preArgs : alias)
-            if(commands.get(alias) && stopAtCmd){
+            if (commands.get(alias) && stopAtCmd) {
                 return false
             }
             return true

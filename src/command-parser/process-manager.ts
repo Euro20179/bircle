@@ -61,6 +61,7 @@ export class ProcessManager {
             if (!this.running(pid)) {
                 break
             }
+
             //checkin status is so that the process manager can stop the command if necessary
             //this also means it can't be above the if(!this.running) if statement
             if(result.status === StatusCode.CHECKIN) {

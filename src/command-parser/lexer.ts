@@ -227,7 +227,7 @@ type LexerOptions = {
 export class Lexer {
     private i = -1
     private curChar = ""
-    private IFS = " \t"
+    private IFS = " \t\n"
     private special_chars = `{$\\${this.IFS};`
     private options: LexerOptions
     public done: boolean = false
@@ -578,7 +578,8 @@ export class Lexer {
                             yield new TTSemi(";;", this.i - 1, this.i)
                         }
                         else {
-                            yield new TTString(`;${this.curChar}`, this.i, this.i)
+                            this.back()
+                            yield new TTString(`;`, this.i, this.i)
                         }
                         break
                     }
