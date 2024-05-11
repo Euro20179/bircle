@@ -100,6 +100,9 @@ function findClosest(needle: number, haystack: number[]): [number, number] {
 function rotCharN(char: string, n: number) {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     const idx = chars.indexOf(char)
+    if(idx > 25){
+        return chars[((idx + n) % (chars.length / 2)) + 26] //to lazy to figure out why this needs to be 26
+    }
     return chars[(idx + n) % (chars.length / 2)]
 }
 
