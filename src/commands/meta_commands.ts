@@ -2411,12 +2411,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         'get-source()', ccmdV2(async function({ args, opts }) {
-            if (opts.getBool("l", false)) {
-                return { content: `modules:\`\`\`\nutil\ncommon_to_commands\nglobals\ncommon\neconomy\ntimer\npets\`\`\``, status: StatusCode.RETURN }
-            }
 
             let data = {
                 util: await import("../util"),
+                parsing: await import("../parsing"),
+                cmds: await import("../command-parser/cmds"),
                 common_to_commands: await import("../common_to_commands"),
                 globals: await import("../globals"),
                 common: await import("../common"),
@@ -2424,6 +2423,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 timer: await import("../timer"),
                 pets: await import("../pets"),
                 amount_parser: await import("../amount-parser")
+            }
+            if (opts.getBool("l", false)) {
+                return { content: Object.keys(data).join("\n"), status: StatusCode.RETURN }
             }
             if (args[0].includes(".")) {
                 args = new ArgList(args.join(" ").split("."))
