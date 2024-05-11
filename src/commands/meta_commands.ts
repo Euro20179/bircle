@@ -48,7 +48,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         //we want the inside to evaluate as well, if the user doesn't want this then they can use n:
         runtimeOpts.set("skip", false)
         const evaledSyntax = await cmds.expandSyntax(syntax as string, msg, symbols, runtimeOpts)
-        console.log(evaledSyntax)
 
         const joined = evaledSyntax.join(" ")
 

@@ -227,7 +227,7 @@ type LexerOptions = {
 export class Lexer {
     private i = -1
     private curChar = ""
-    private IFS = " \t\n"
+    private IFS = " \t"
     private special_chars = `{$\\${this.IFS};`
     private options: LexerOptions
     public done: boolean = false
