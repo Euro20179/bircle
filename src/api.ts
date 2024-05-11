@@ -115,6 +115,9 @@ export const APICmds: {
             if(DEVBOT){
                 return "NOT ALLOWED"
             }
+            if(!url.startsWith("http")){
+                return "NOT ALLOWED"
+            }
             let res = await fetch(url)
             return await res.text()
         }
