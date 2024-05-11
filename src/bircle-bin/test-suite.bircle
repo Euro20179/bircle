@@ -1,6 +1,10 @@
 s:export OLDPIPE = ${&pipe-symbol||>pipe>} ;;
-@ {user} unsetting pipe-symbol for testing ;;
+s:export OLDAND = ${&and-symbol||>and>} ;;
+s:export OLDOR = ${&and-symbol||>or>} ;;
+@ {user} unsetting pipe-symbol, and-symbol, and or-symbol for testing ;;
 y:s:option pipe-symbol ;;
+y:s:option and-symbol ;;
+y:s:option or-symbol ;;
 
 s:export FAILEDTESTS = ;;
 
@@ -23,8 +27,10 @@ s:export advanced-macros = $(n:assert -title=advanced-macros $(s:export test = e
 s:export and = $(n:assert -title=and $(echo -D before and >and> echo -D after and ;; raw {"status": 1, "content": "fail"} >and> echo -D FAIL ;; echo -D should run) >test> = before andafter andfailshould run) ;;
 s:export and2 = $(n:assert -title=and2 $(echo -D before and >pipe> rev >and> echo -D after and ;; raw {"status": 1, "content": "fail"} >and> echo -D FAIL ;; echo -D should run) >test> = dna erofebafter andfailshould run) ;;
 
-@ {user} setting pipe-symbol back ;;
+@ {user} unsetting pipe-symbol, and-symbol, and or-symbol back;;
 y:s:option pipe-symbol ${OLDPIPE} ;;
+y:s:option and-symbol ${OLDAND} ;;
+y:s:option or-symbol ${OLDOR} ;;
 
 paged-embed ${line-number}
 ${calc-syntax}
