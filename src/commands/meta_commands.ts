@@ -1534,11 +1534,18 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             cmd = cmd.slice(1)
         }
 
+        let initalSkip = runtime_opts.get("skip", false)
+
+        //for running the condition, it's very unlikely the user wants skip, if they do they can enable it
+        runtime_opts.set("skip", false)
         let success = false
         for await (let item of globals.PROCESS_MANAGER.spawn_cmd({ prefix: "", msg, command: cmd, symbols, runtime_opts, sendCallback })) {
             success = item.status === StatusCode.RETURN
             yield item
         }
+
+        runtime_opts.set("skip", initalSkip)
+
         while (true) {
             const body = args.expectString(s => !["ELSE", "ELIF", "FI"].includes(s.trim()))
             //skip past last item in body
@@ -1556,13 +1563,21 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 let cmd = args.expectString(s => s !== "THEN")
                 //skip past last item in cmd and THEN
                 args.expectString(2)
-                if(cmd === BADVALUE){
+                if (cmd === BADVALUE) {
                     return crv("expected `THEN`", { status: StatusCode.ERR })
                 }
+
+                let initalSkip = runtime_opts.get("skip", false)
+
+                //for running the condition, it's very unlikely the user wants skip, if they do they can enable it
+                runtime_opts.set("skip", false)
+
                 for await (let item of globals.PROCESS_MANAGER.spawn_cmd({ prefix: "", msg, command: cmd, symbols, runtime_opts, sendCallback })) {
                     success = item.status === StatusCode.RETURN
                     yield item
                 }
+
+                runtime_opts.set("skip", initalSkip)
             } else if (ending === "ELSE") {
                 success = !success
                 continue
@@ -1573,18 +1588,18 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
         return { noSend: true, status: StatusCode.RETURN }
     }, "an if/elif/else chain that runs based on the status code of the command", {
-            docs: "Syntax:<br><code>IF &lt;cmd&gt; THEN &lt;body&gt; [(ELIF &lt;cmd&gt; THEN body)* [ELSE body]] FI</code>",
-            helpArguments: {
-                "condition": createHelpArgument("The initial condition command"),
-                "body": createHelpArgument("The cmds to run if the condition returns status 0"),
-                "ELIF": createHelpArgument("Start an elif condition", false, "body"),
-                "elifcmd": createHelpArgument("The command to run for the ELIF (there can be as many ELIFs as you want)", false, "ELIF"),
-                "elifbody": createHelpArgument("The command if the elifcmd rreturns status 0", false, "ELIF"),
-                "ELSE": createHelpArgument("Start the else block", false, "body"),
-                "elsebody": createHelpArgument("The block to run if any of the above conditions failed", false, "ELSE"),
-                "FI": createHelpArgument("End the if chain", true, "body")
-            }
-        })]
+        docs: "Syntax:<br><code>IF &lt;cmd&gt; THEN &lt;body&gt; [(ELIF &lt;cmd&gt; THEN body)* [ELSE body]] FI</code>",
+        helpArguments: {
+            "condition": createHelpArgument("The initial condition command"),
+            "body": createHelpArgument("The cmds to run if the condition returns status 0"),
+            "ELIF": createHelpArgument("Start an elif condition", false, "body"),
+            "elifcmd": createHelpArgument("The command to run for the ELIF (there can be as many ELIFs as you want)", false, "ELIF"),
+            "elifbody": createHelpArgument("The command if the elifcmd rreturns status 0", false, "ELIF"),
+            "ELSE": createHelpArgument("Start the else block", false, "body"),
+            "elsebody": createHelpArgument("The block to run if any of the above conditions failed", false, "ELSE"),
+            "FI": createHelpArgument("End the if chain", true, "body")
+        }
+    })]
 
     yield [
         "if", ccmdV2(async function*({ msg, rawArgs: args, runtime_opts, pid_label, symbols }) {
