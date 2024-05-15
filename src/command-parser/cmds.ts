@@ -165,6 +165,11 @@ async function* runcmdpipe(pipes: PipeNode[],
         if (runtime_opts.get("no-send", false)) {
             item.noSend == true
         }
+        if(runtime_opts.get("allowPings", false)){
+            item["allowedMentions"] = {
+                parse: ["users"]
+            }
+        }
         //although this could technically be done in the command_runner it's simply easier to do it here
         if (runtime_opts.get("silent", false)) {
             yield { noSend: true, status: item.status, statusNr: item.statusNr }

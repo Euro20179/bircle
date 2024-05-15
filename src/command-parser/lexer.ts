@@ -76,6 +76,16 @@ class WebModifier extends Modifier {
     }
 }
 
+class PingModifier extends Modifier {
+    static repr = "p"
+    set_runtime_opt(options: RuntimeOptions){
+        options.set("allowPings", true)
+    }
+    unset_runtime_opt(options: RuntimeOptions) {
+        options.delete("allowPings")
+    }
+}
+
 class CmdConfirmationModifier extends Modifier {
     static repr = "y"
 
@@ -192,7 +202,8 @@ function getModifiers(command: string): [string, Modifier[]] {
         CommandModifier,
         AliasModifier,
         ResetStdinModifier,
-        CmdConfirmationModifier
+        CmdConfirmationModifier,
+        PingModifier
     ]
 
     let used_modifiers = []
