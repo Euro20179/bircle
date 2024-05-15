@@ -4194,7 +4194,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     d: guild.description || "#N/A",
                     M: String(guild.members.cache.size),
                     m: guild.members.cache.reduce((p, c) => `${p}\n${c}`, ""),
-                    n: guild.name
+                    n: guild.name,
+                    s: guild.systemChannelId || "#N/A",
+                    o: guild.ownerId
                 }))
             }
             const e = new EmbedBuilder()
@@ -4215,7 +4217,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ["ban count", String((await guild.bans.fetch()).size), true],
                 ["description", guild.description || "#N/A", true],
                 ["emoji count", String(guild.emojis.cache.size), true],
-                ["rules channel", `<#${guild.rulesChannel?.id}>`, true]
+                ["rules channel", `<#${guild.rulesChannel?.id}>`, true],
+                ["system channel", `<#${guild.systemChannelId}>`, true],
+                ["owner", `<@${guild.ownerId}>`, true]
             ))
 
             return { embeds: [e], status: StatusCode.RETURN }
@@ -4233,7 +4237,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 <li>d: description</li>
 <li>M: member count</li>
 <li>m: members</li>
-<li>n: name</li>`)
+<li>n: name</li>
+<li>s: system channel id</li>
+<li>o: owner id</li>`)
             },
             helpOptions: {
                 fe: createHelpOption("Fetch all emojis before checking the cache"),
