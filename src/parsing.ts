@@ -212,7 +212,7 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
     return innerPairs
 }
 
-type Replacements = { [key: string]: (() => string) | string }
+type Replacements = { [key: string]: (() => string | Promise<string>) | string }
 
 function handleReplacement(replacement: Replacements[string]) {
     if (typeof replacement === 'function') {

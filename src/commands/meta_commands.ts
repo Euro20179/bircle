@@ -11,7 +11,7 @@ import API from '../api'
 import { parseBracketPair, formatPercentStr, format } from '../parsing'
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from '../util'
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, efd } from '../util'
 
 
 import { Guild, EmbedBuilder, User } from 'discord.js'

@@ -149,15 +149,15 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
-        "doesnothing", ccmdV2(async function({msg}){
-            if(!msg.guild){
+        "doesnothing", ccmdV2(async function({ msg }) {
+            if (!msg.guild) {
                 return crv("Not in a guild", { status: StatusCode.ERR })
             }
             let text = ""
-            for(let user of await msg.guild?.members.fetch()){
+            for (let user of await msg.guild?.members.fetch()) {
                 text += `${user[1].displayName}\n`
                 const rolesJson = user[1].roles.cache.toJSON()
-                for(let i = 0; i < rolesJson.length; i++){
+                for (let i = 0; i < rolesJson.length; i++) {
                     text += `${rolesJson[i].name}\n`
                 }
                 text += "\n\n"
@@ -2485,11 +2485,11 @@ middle
     ]
 
     yield [
-        "paged-embed", ccmdV2(async({args, msg}) => {
+        "paged-embed", ccmdV2(async ({ args, msg }) => {
             const embeds = []
-            for(let line of args.resplit("\n")){
+            for (let line of args.resplit("\n")) {
                 console.log(line)
-                if(!line) continue
+                if (!line) continue
                 embeds.push(JSON.parse(line))
             }
             let paged = new PagedEmbed(msg, embeds, `paged-embed:${msg.author.id}`)
@@ -3200,20 +3200,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
 
         class UserFormat extends Format {
-            constructor(private showType: string){
+            constructor(private showType: string) {
                 super()
             }
             async format(text: string) {
                 let user = await fetchUser(msg.guild as Guild, text)
-                if(!user){
+                if (!user) {
                     return text
                 }
                 if (this.showType === "@")
                     return `<@${user.id}>`
-                else if(this.showType === "#"){
+                else if (this.showType === "#") {
                     return user.displayHexColor || "NONE"
                 }
-                else if(this.showType === "a"){
+                else if (this.showType === "a") {
                     return user.displayAvatarURL() ?? "NONE"
                 }
                 return text
@@ -3428,7 +3428,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         })
     ]
 
-    yield ["stackl2", ccmdV2(async function({args}){
+    yield ["stackl2", ccmdV2(async function({ args }) {
         const res = stackl2.run(args.join(" ").replace(/^```/, "").replace(/```$/, ""))
         return crv(String(res.map(v => v[0]).join("\n")))
     }, "stackl2")]
@@ -3504,7 +3504,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 prefix = msg.author.id
             }
 
-            if(opts['e']) {
+            if (opts['e']) {
                 isEnv = true
             }
 
@@ -3516,7 +3516,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             let leftVal = convFn(left)
             if (isBad(leftVal)) {
-                if(!isEnv)
+                if (!isEnv)
                     leftVal = convFn(vars.getVar(msg, `${prefix}:${left}`))
                 else leftVal = convFn(symbols.get(left))
             }
@@ -3530,7 +3530,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             let rightVal = convFn(right)
             if (right && isBad(rightVal)) {
-                if(!isEnv)
+                if (!isEnv)
                     rightVal = convFn(vars.getVar(msg, `${prefix}:${right}`))
                 else rightVal = convFn(symbols.get(right))
             }
@@ -3598,7 +3598,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     else ans = leftVal % rightVal
                     break;
             }
-            if(!isEnv){
+            if (!isEnv) {
                 if (prefix === msg.author.id) prefix = "%"
                 vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
             } else {
@@ -3720,7 +3720,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "b64", createCommandV2(async ({ args, stdin,opts }) => {
+        "b64", createCommandV2(async ({ args, stdin, opts }) => {
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             let content = opts.getBool("d", false)
                 ? Buffer.from(text, "base64").toString("utf8")
@@ -3730,7 +3730,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "b64d", createCommandV2(async function({stdin, args}) {
+        "b64d", createCommandV2(async function({ stdin, args }) {
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return crv(Buffer.from(text, "base64").toString("utf8"))
         }, CommandCategory.UTIL, "Decodes base64 (use b64 -d instead)")
@@ -4162,6 +4162,89 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },)]
 
     yield [
+        "server-info", ccmdV2(async function({ msg, args, opts }) {
+
+            if (!msg.guild) {
+                return crv("Not in a server", { status: StatusCode.ERR })
+            }
+
+            const fmt = args.join(" ") || "{embed}"
+
+            const guild = msg.guild
+
+            const fetchAll = opts.getBool("fa", false)
+
+            if (opts.getBool("fe", fetchAll)) {
+                await guild.emojis.fetch()
+            }
+            if (opts.getBool("fr", fetchAll)) {
+                await guild.roles.fetch()
+            }
+            if (opts.getBool("fm", fetchAll)) {
+                await guild.members.fetch()
+            }
+            if (fmt !== "{embed}") {
+                return crv(format(fmt, {
+                    i: guild.id,
+                    E: String(guild.emojis.cache.size),
+                    e: guild.emojis.cache.reduce((p, c) => `${p}\n${c}`, ""),
+                    R: String(guild.roles.cache.size),
+                    r: guild.roles.cache.reduce((p, c) => `${p}\n${c}`, ""),
+                    B: String(guild.bans.cache.size),
+                    d: guild.description || "#N/A",
+                    M: String(guild.members.cache.size),
+                    m: guild.members.cache.reduce((p, c) => `${p}\n${c}`, ""),
+                    n: guild.name
+                }))
+            }
+            const e = new EmbedBuilder()
+
+            e.setThumbnail(guild.iconURL())
+
+            const banner = guild.bannerURL()
+
+            if (banner)
+                e.setAuthor({ iconURL: banner, name: guild.name })
+            else e.setAuthor({ name: guild.name })
+
+            e.addFields(efd(
+                ["id", guild.id, true],
+                ["role count", String(guild.roles.cache.size), true],
+                ["member count", String(guild.members.cache.size), true],
+                ["created at", guild.createdAt.toString(), true],
+                ["ban count", String((await guild.bans.fetch()).size), true],
+                ["description", guild.description || "#N/A", true],
+                ["emoji count", String(guild.emojis.cache.size), true],
+                ["rules channel", `<#${guild.rulesChannel?.id}>`, true]
+            ))
+
+            return { embeds: [e], status: StatusCode.RETURN }
+
+        }, "Gets info about the server", {
+            helpArguments: {
+                fmt: createHelpArgument(`Fmt to use instead of showing an embed<br><h3>Formats</h3>
+<ul>
+<li>i: guild id</li>
+<li>E: emoji count</li>
+<LI>e: emojis</li>
+<li>R: role count</li>
+<li>r: roles</li>
+<li>B: ban count</li>
+<li>d: description</li>
+<li>M: member count</li>
+<li>m: members</li>
+<li>n: name</li>`)
+            },
+            helpOptions: {
+                fe: createHelpOption("Fetch all emojis before checking the cache"),
+                fr: createHelpOption("Fetch all roles before checking the cache"),
+                fm: createHelpOption("Fetch all members before checking the cache"),
+                fa: createHelpOption("Fetch everything")
+            }
+        })
+    ]
+
+    yield [
         "user-info!", ccmdV2(async function({ argShapeResults }) {
             let search = argShapeResults['user'] as string
             let user = await fetchUserFromClient(common.client, search)
@@ -4436,43 +4519,43 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 else return { content: "no data given to search through", status: StatusCode.ERR }
             }
             let outputSep = opts.getString("o", "\n")
-            if(opts.getBool("G", false)){
+            if (opts.getBool("G", false)) {
                 let matcher = new RegExp(regex)
                 let results = ""
                 let lines = data.split("\n")
                 let number = opts.getBool("n", false)
                 let after = opts.getNumber("A", 0)
                 let afterGroupSep = opts.getString("Asep", "A===========\n")
-                
+
                 let untilMatching = opts.getString("until", "")
                 let untilMatchingR = untilMatching ? new RegExp(untilMatching) : false
 
                 let reverse = opts.getBool("v", false)
 
-                for(let i = 0; i < lines.length; i++){
+                for (let i = 0; i < lines.length; i++) {
                     const line = lines[i]
                     const matches = line.match(matcher)
-                    if((!reverse && matches) || (reverse && !matches)){
+                    if ((!reverse && matches) || (reverse && !matches)) {
                         let goingToAdd = ""
                         let shouldAdd = true
-                        if(number){
+                        if (number) {
                             goingToAdd += `${i + 1} ${line}${outputSep}`
                         } else {
                             goingToAdd += `${line}${outputSep}`
                         }
-                        if(after){
+                        if (after) {
                             const end = i + after
                             //i++ to start on next line
                             i++
-                            for(; i < lines.length && i < end; i++){
+                            for (; i < lines.length && i < end; i++) {
                                 goingToAdd += `${lines[i]}${outputSep}`
                             }
                             goingToAdd += afterGroupSep
-                        } else if(untilMatchingR){
+                        } else if (untilMatchingR) {
                             shouldAdd = false
                             i++
-                            for(; i < lines.length; i++){
-                                if(lines[i].match(untilMatchingR)){
+                            for (; i < lines.length; i++) {
+                                if (lines[i].match(untilMatchingR)) {
                                     shouldAdd = true
                                     break
                                 }
@@ -4481,7 +4564,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             goingToAdd += afterGroupSep
                         }
                         //this will only be false if --until is given and it fails to match
-                        if(shouldAdd){
+                        if (shouldAdd) {
                             results += goingToAdd
                         }
                     }
