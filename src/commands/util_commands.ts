@@ -834,7 +834,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
 
             if (!opts['txt'] && !args.length) {
-                return crv("http://bircle.euro20179.com:8080/commands")
+                return crv("http://5.78.105.163:80/commands")
             }
             if (opts["g"]) {
                 let text = fs.readFileSync("./website/help-web.html", "utf-8")

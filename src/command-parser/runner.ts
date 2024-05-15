@@ -107,9 +107,11 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     let cmdObject: CommandV2 | AliasV2 | undefined;
     if (runtime_options.get("alias", false)) {
         cmdObject = getAliasesV2()[cmd]
+        runtime_options.delete("alias")
     }
     else if (runtime_options.get('command', false)) {
         cmdObject = commands.get(cmd)
+        runtime_options.delete("command")
     }
     else {
         cmdObject = commands.get(cmd) || getAliasesV2()[cmd]
