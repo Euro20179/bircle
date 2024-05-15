@@ -864,9 +864,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "rect", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "rect", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
             let color: string = <string>opts['color'] || "white"
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
@@ -1019,10 +1017,8 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "scale", ccmdV2(async function({ }) {
+        "scale", ccmdV2(async function({ rawOpts: opts, }) {
             /*
-                let opts;
-                [opts, args] = getOpts(args)
                 let xScale = args[0] || "2.0"
                 let yScale = args[1] || "2.0"
                 let img = getImgFromMsgAndOpts(opts, msg)
@@ -1155,9 +1151,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "text", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
+        "text", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
 
             let img;
             let resize = true
@@ -1381,9 +1375,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "color", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "color", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let stringArgs = args.join(" ")
             let color = stringArgs || "RANDOM"
             let colors = stringArgs.split(">")

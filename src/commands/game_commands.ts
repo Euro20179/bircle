@@ -2048,12 +2048,10 @@ yield[
     ]
 
 yield[
-    "coin", ccmdV2(async function({ msg, rawArgs: args }) {
+    "coin", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
         if (!args.length) {
             return crv(choice(['heads', 'tails']))
         }
-        let opts;
-        [opts, args] = getOpts(args)
         let [betstr, guess] = args
         if (!guess) {
             guess = betstr
@@ -2431,10 +2429,8 @@ yield[
 ]
 
 yield[
-    "wordle", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+    "wordle", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-        let opts: Opts
-        [opts, args] = getOpts(args)
         let min = parseInt(opts["min"] as string) || 5
         let max = parseInt(opts["max"] as string) || 5
         if (min > max) {
@@ -2505,12 +2501,10 @@ yield[
 ]
 
 yield[
-    "hangman", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+    "hangman", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         if (!msg.guild || !msg.member) return crv("Not in a guild", { status: StatusCode.ERR })
         let opponent: GuildMember | undefined = msg.member
-        let opts: Opts;
-        [opts, args] = getOpts(args)
         let caseSensitive = opts['case']
         let wordstr: string;
         let everyone = false

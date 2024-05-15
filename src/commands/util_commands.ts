@@ -1617,9 +1617,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "abattle", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "abattle", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let text = args.join(" ")
             let damageUsers = opts['damage'] || opts['d']
             let healUsers = opts['heal'] || opts['h']
@@ -1698,9 +1696,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "calcm", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "calcm", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
             if (as && typeof as === 'string') {
@@ -1736,9 +1732,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "calcl", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "calcl", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
             if (as && typeof as === 'string') {
@@ -1767,9 +1761,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
 
     yield [
-        "calcms", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "calcms", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
             if (as && typeof as === 'string') {
@@ -1825,9 +1817,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     })]
 
     yield [
-        "calcam", ccmdV2(async function({ rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "calcam", ccmdV2(async function({ rawOpts: opts, rawArgs: args }) {
             let [moneyStr, ...reqAmount] = args
             let amountStr = reqAmount.join(" ")
             let money = Number(moneyStr)
@@ -1950,9 +1940,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "periodic-table", ccmdV2(async function({ rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "periodic-table", ccmdV2(async function({ rawOpts: opts, rawArgs: args }) {
 
 
             let reqElem = args.join(" ")
@@ -2737,9 +2725,7 @@ print(json.dumps({k: v for k, v in filter(lambda x: isinstance(x[1], str | int |
     ]
 
     yield [
-        "calc", ccmdV2(async function({ rawArgs: args, msg }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "calc", ccmdV2(async function({ rawOpts: opts, rawArgs: args, msg }) {
             let sep = opts['sep']
             if (!sep) {
                 sep = "\n"
@@ -3036,9 +3022,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "most-roles", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "most-roles", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let times = parseInt(args[0]) || 10
             await msg.guild?.members.fetch()
             let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
@@ -3415,9 +3399,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     })]
 
     yield [
-        "pollify", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
+        "pollify", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
             if (msg.deletable && opts['d']) await msg.delete()
             let message = await handleSending(msg, { content: args.join(" ") || "poll", status: StatusCode.RETURN }, sendCallback)
             await message.react("<:Blue_check:608847324269248512>")
@@ -3434,10 +3416,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     }, "stackl2")]
 
     yield [
-        'stackl', ccmdV2(async function({ msg, rawArgs: args }) {
+        'stackl', ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             const stackl = await import("../stackl")
-            let opts: Opts;
-            [opts, args] = getOpts(args)
             let useStart = true
             if (opts['no-start'] === true) {
                 useStart = false
@@ -3494,9 +3474,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "expr", ccmdV2(async function({ msg, rawArgs: args, symbols }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "expr", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, symbols }) {
 
             let prefix = ""
             let isEnv = false
@@ -3994,9 +3972,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "rand-user", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "rand-user", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let member
             if (!opts['f'])
                 member = (msg.channel as TextChannel).guild.members.cache.random()
