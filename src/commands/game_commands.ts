@@ -1154,8 +1154,7 @@ yield[
 ]
 
 yield[
-    "ticket", ccmdV2(async function({ msg, rawArgs: args, rawOpts: opts }) {
-        [opts, args] = getOpts(args)
+    "ticket", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args}) {
         let round = !opts['no-round']
         let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
         let numbers = args.slice(1, 4)

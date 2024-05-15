@@ -3,7 +3,7 @@ import https from 'https'
 
 import { Stream } from 'stream'
 
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile,  StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, StatusCode } from '../common_to_commands'
 import { cmdFileName, createGradient, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import iterators from '../iterators'
@@ -114,9 +114,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        'invert', ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        'invert', ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let channel = args.map(v => v.toLowerCase())
             let above = parseInt(opts['above'] as string) || 0
             let below = parseInt(opts['below'] as string) || 255
@@ -173,9 +171,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "img-channel", ccmdV2(async function({ msg, rawArgs: args }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "img-channel", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
             let channel = args.map(v => v.toLowerCase())
             if (!channel.length) {
                 return { content: "No channel", status: StatusCode.ERR }
@@ -802,9 +798,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "polygon", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
-            let opts;
-            [opts, args] = getOpts(args)
+        "polygon", ccmdV2(async function({rawOpts: opts, msg, rawArgs: args, sendCallback }) {
             let color = opts['color'] || "white"
             let img_link = getImgFromMsgAndOpts(opts, msg)
             if (!img_link) {
