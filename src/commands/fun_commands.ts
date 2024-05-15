@@ -1253,7 +1253,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (fmt == "{embed}") {
                     let embed = new EmbedBuilder()
                     let nChange = Number(data.change)
-                    let nPChange = Number(data["%change"]) * 100
+                    let nPChange = Number(data["%change"])
                     embed.setTitle(stock.toUpperCase().trim() || "N/A")
                     embed.addFields(efd(
                         ["price", String(data.price).trim() || "N/A", true],
