@@ -4364,9 +4364,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "rand-emote", ccmdV2(async function({ rawArgs: args, msg }) {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
+        "rand-emote", ccmdV2(async function({ msg, rawOpts: opts }) {
             let amount = parseInt(String(opts['count'] || opts['c'])) || 1
             let sep = opts['sep'] || opts['s'] || "\n"
             sep = String(sep)
