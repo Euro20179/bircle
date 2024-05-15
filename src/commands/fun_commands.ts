@@ -1736,6 +1736,11 @@ export default function*(): Generator<[string, CommandV2]> {
             if (opts['recurse']) {
                 rv.recurse = true
             }
+            if(opts['p']){
+                rv["allowedMentions"] = {
+                    parse: ["users"]
+                }
+            }
             if (opts['status']) {
                 rv.status = {
                     "return": StatusCode.RETURN,
@@ -1763,7 +1768,8 @@ export default function*(): Generator<[string, CommandV2]> {
                 "img": createHelpOption("Image of the embed<br>If not provided, an image will be chosen from chat (if exists)<br>set -img= to stop this"),
                 "wait": createHelpOption("The seconds to wait before deleting and sending the message"),
                 "mimetype": createHelpOption("The mimetype of the text"),
-                "status": createHelpOption(`The status  code of the  command, can be: <ul> <li> return </li> <li> err </li> <li> info </li> <li> prompt </li> <li> warning </li> </ul>`)
+                "status": createHelpOption(`The status  code of the  command, can be: <ul> <li> return </li> <li> err </li> <li> info </li> <li> prompt </li> <li> warning </li> </ul>`),
+                p: createHelpOption("Allow user pings")
             },
             helpArguments: {
                 text: createHelpArgument("What to say", true)
