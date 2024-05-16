@@ -100,7 +100,7 @@ function findClosest(needle: number, haystack: number[]): [number, number] {
 function rotCharN(char: string, n: number) {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     const idx = chars.indexOf(char)
-    if(idx > 25){
+    if (idx > 25) {
         return chars[((idx + n) % (chars.length / 2)) + 26] //to lazy to figure out why this needs to be 26
     }
     return chars[(idx + n) % (chars.length / 2)]
@@ -311,7 +311,7 @@ function* keysOf<T extends Object>(o: T): Generator<string> {
     }
 }
 
-function formatMember(member: GuildMember, fmt: string){
+function formatMember(member: GuildMember, fmt: string) {
     const user = member.user
     let status = (() => {
         return member.presence?.clientStatus?.desktop ?? member.presence?.clientStatus?.web ?? member.presence?.clientStatus?.mobile
@@ -319,27 +319,27 @@ function formatMember(member: GuildMember, fmt: string){
     let platform = member.presence?.clientStatus && Object.keys(member.presence.clientStatus)[0] || "offline"
     let platform_status = `${platform}/${status}`
     return format(fmt, {
-                                    "{id}": user.id || "#!N/A",
-                                    "{username}": user.username || "#!N/A",
-                                    "{nickname}": member.displayName || "#!N/A",
-                                    "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
-                                    "{color}": member.displayColor.toString() || "#!N/A",
-                                    "{created}": () => user.createdAt.toString() || "#!N/A",
-                                    "{joined}": () => member.joinedAt?.toString() || "#!N/A",
-                                    "{boost}": member.premiumSince?.toString() || "#!N/A",
-                                    "{status}": platform_status,
-                                    i: user.id || "#!N/A",
-                                    u: user.username || "#!N/A",
-                                    n: member.nickname || "#!N/A",
-                                    d: member.displayName,
-                                    X: () => member.displayHexColor.toString() || "#!N/A",
-                                    x: () => member.displayColor.toString() || "#!N/A",
-                                    c: user.createdAt.toString() || "#!N/A",
-                                    j: member.joinedAt?.toString() || "#!N/A",
-                                    b: member.premiumSince?.toString() || "#!N/A",
-                                    a: user.avatarURL() || "#!N/A",
-                                    s: platform_status
-                                })
+        "{id}": user.id || "#!N/A",
+        "{username}": user.username || "#!N/A",
+        "{nickname}": member.displayName || "#!N/A",
+        "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
+        "{color}": member.displayColor.toString() || "#!N/A",
+        "{created}": () => user.createdAt.toString() || "#!N/A",
+        "{joined}": () => member.joinedAt?.toString() || "#!N/A",
+        "{boost}": member.premiumSince?.toString() || "#!N/A",
+        "{status}": platform_status,
+        i: user.id || "#!N/A",
+        u: user.username || "#!N/A",
+        n: member.nickname || "#!N/A",
+        d: member.displayName,
+        X: () => member.displayHexColor.toString() || "#!N/A",
+        x: () => member.displayColor.toString() || "#!N/A",
+        c: user.createdAt.toString() || "#!N/A",
+        j: member.joinedAt?.toString() || "#!N/A",
+        b: member.premiumSince?.toString() || "#!N/A",
+        a: user.avatarURL() || "#!N/A",
+        s: platform_status
+    })
 }
 
 function mimeTypeToFileExtension(mime: MimeType) {
@@ -487,6 +487,28 @@ async function fetchChannel(guild: Guild, find: string) {
     let channels = await guild.channels.fetch()
     let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || (channel?.name?.indexOf(find) ?? -1) > -1).at(0)
     return channel
+}
+
+async function searchMsg(msg: Message, search?: string) {
+    let infoMsg;
+    if (msg.reference) {
+        infoMsg = await msg.fetchReference()
+    } else if (search?.length) {
+        const msgs = await msg.channel.messages.fetch()
+        if (search.match(/^\d+$/)) {
+            infoMsg = msgs.filter(m => m.id === search).at(0)
+        } else {
+            infoMsg = msgs.filter(m => m.content === search).at(0)
+            if (!infoMsg) {
+                infoMsg = msgs.filter(m => m.content.includes(search)).at(0)
+            }
+        }
+    } else {
+        const msgs = await msg.channel.messages.fetch()
+        return msgs.at(1)
+    }
+
+    return infoMsg
 }
 
 /**
@@ -1388,6 +1410,7 @@ export {
     fetchRoleFromServer,
     base10ToRoman,
     rotN,
-    formatMember
+    formatMember,
+    searchMsg
 }
 

@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg } from '../util'
 import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -4070,6 +4070,74 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             return { embeds: [embed], status: StatusCode.RETURN }
         }, "Gets info about a channel")
+    ]
+
+    yield [
+        "message-info", ccmdV2(async function({msg, args, opts}){
+
+            const infoMsg = await searchMsg(msg, args.join(" "))
+
+            if(!infoMsg){
+                return crv("No message found", { status: StatusCode.ERR })
+            }
+
+            const fmt = opts.getString("fmt", "{embed}")
+            if(fmt !== "{embed}"){
+                return crv(format(fmt, {
+                    c: infoMsg.content,
+                    a: infoMsg.author.displayName,
+                    A: infoMsg.author.id,
+                    U: infoMsg.author.avatarURL() || "#N/A",
+                    i: infoMsg.id,
+                    p: String(infoMsg.pinned),
+                    t: String(infoMsg.tts),
+                    C: infoMsg.createdAt.toString(),
+                    T: String(infoMsg.createdTimestamp),
+                    r: infoMsg.reference?.messageId || "#N/A",
+                    e: String(infoMsg.mentions.everyone)
+                }))
+            }
+
+            const e = new EmbedBuilder()
+
+            if(infoMsg.content){
+                e.setDescription(infoMsg.content)
+            }
+
+            if(infoMsg.attachments.at(0)){
+                e.setThumbnail(infoMsg.attachments.at(0)!.url)
+            }
+            e.setAuthor({ iconURL: infoMsg.author.avatarURL() as string, name: infoMsg.author.displayName})
+
+            e.addFields(efd(
+                ["id", infoMsg.id, true],
+                ['pinned', String(infoMsg.pinned), true],
+                ['tts', String(infoMsg.tts), true],
+                ['created at', infoMsg.createdAt.toString(), true],
+                ['reply id', infoMsg.reference?.messageId || "#N/A", true],
+                ['members mentions', infoMsg.mentions.members?.reduce((p, u) => `${p ? p + ", " : p}${u}`, "") || "#N/A", true],
+                ['everyone', String(infoMsg.mentions.everyone), true],
+            ))
+
+            return { embeds: [e] }
+        }, "Gets info about a message", {
+                helpOptions: {
+                    fmt: createHelpOption(`The format to use<br><h4>Formats</h4>
+<ul>
+<li>c: message content</li>
+<li>a: author displayName</li>
+<li>A: author id</li>
+<li>U: author avatar url</li>
+<li>i: message id</li>
+<li>p: message pinned state</li>
+<li>t: message tts state</li>
+<li>C: message created at</li>
+<li>T: unix timestamp</li>
+<li>r: message reply message id</li>
+<li>e: message mentions everyone</li>
+</ul>`)
+                }
+            })
     ]
 
     yield [
