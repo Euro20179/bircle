@@ -349,14 +349,9 @@ async function* runcmdv2({
         enable_1_arg_string: enable_arg_string === 'true' ? true : false
     })
 
-    const p = new parser.Parser([...lex.gen_tokens()])
+    const p = new parser.Parser(lex.gen_tokens())
 
     const tree = p.buildCommandTree()
-    //
-    //await handleSending(msg, {
-    //    content: tree.sprint(),
-    //    status: 0
-    //})
 
     let lineNo = 1
     for (let child of tree.childs) {
@@ -375,27 +370,6 @@ async function* runcmdv2({
 
     return { noSend: true, status: 0 }
 
-    //
-    //
-    //
-    //let toks = [...lex.gen_tokens()]
-    //let cmd = parser.createCommandFromTokens(toks[Symbol.iterator]() as any)
-    //
-    //for (let lineNo = 1; lineNo <= cmd.length; lineNo++) {
-    //    yield* runcmdlinev2({
-    //        tokens: cmd[lineNo - 1],
-    //        msg,
-    //        sendCallback,
-    //        line_no: lineNo,
-    //        pid_label,
-    //        symbols,
-    //        runtime_opts,
-    //    })
-    //}
-    //
-    //runtime_opts.set("recursion", runtime_opts.get("recursion", 0) - 1)
-    //
-    //return { noSend: true, status: 0 }
 }
 
 async function handleSending(

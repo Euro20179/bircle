@@ -111,15 +111,22 @@ ${mkt(tabCount + 1)}Command\n`
 }
 
 class Parser {
-    private i = 0
-    constructor(private tokens: TT<any>[]){ }
+    private i = -1
+    private genedToks: TT<any>[] = []
+    constructor(private tokens: Generator<TT<any>>){ }
 
     get curTok () {
-        return this.tokens[this.i]
+        if(this.genedToks.length === 0){
+            this.next()
+        }
+        return this.genedToks[this.i]
     }
 
     next(){
-        return ++this.i < this.tokens.length
+        const next = this.tokens.next()
+        this.genedToks.push(next.value)
+        this.i++
+        return !next.done
     }
 
     back(){
