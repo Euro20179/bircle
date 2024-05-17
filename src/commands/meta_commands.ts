@@ -2908,8 +2908,8 @@ ${styles}
 
     yield ["alias", createCommandV2(async ({ msg, args, opts, sendCallback }) => {
 
-        let appendArgs = !opts.getBool("no-args", false)
-        let appendOpts = !opts.getBool("no-opts", false)
+        let appendArgs = !opts.getBool("no-args", opts.getBool("no-all", false))
+        let appendOpts = !opts.getBool("no-opts", opts.getBool("no-all", false))
         let standardizeOpts = !opts.getBool("no-standardize", false)
 
         let aliasV2s = getAliasesV2()
@@ -3104,6 +3104,7 @@ ${styles}
         "rename": createHelpOption("Rename an aliasv2 (the first argument is the alias to rename) (the second argument is the new name)"),
         "no-args": createHelpOption("Do not append user arguments to the end of exec (does not requre -no-easy)", undefined, "false"),
         "no-opts": createHelpOption("Do not append user opts to the end of exec (does not require -no-easy)", undefined, "false"),
+        "no-all": createHelpOption("Same as -no-args -no-opts"),
         "no-easy": createHelpOption("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;"),
         "no-standardize": createHelpOption("Do not standardize the options, IFS, pipe-symbol, and 1-arg-string", undefined, "false"),
         "y": createHelpOption("If the alias already exists and you create it, override the alias")
