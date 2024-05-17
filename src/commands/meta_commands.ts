@@ -359,7 +359,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "(", createCommandV2(async ({ msg, rawArgs: args, symbols }) => {
+        "(", createCommandV2(async ({ msg, args, symbols }) => {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }

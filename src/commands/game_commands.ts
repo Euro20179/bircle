@@ -1154,7 +1154,7 @@ yield[
 ]
 
 yield[
-    "ticket", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args}) {
+    "ticket", ccmdV2(async function({ rawOpts: opts, msg, args}) {
         let round = !opts['no-round']
         let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
         let numbers = args.slice(1, 4)
@@ -2048,7 +2048,7 @@ yield[
     ]
 
 yield[
-    "coin", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
+    "coin", ccmdV2(async function({ rawOpts: opts, msg, args }) {
         if (!args.length) {
             return crv(choice(['heads', 'tails']))
         }
@@ -2429,7 +2429,7 @@ yield[
 ]
 
 yield[
-    "wordle", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
+    "wordle", ccmdV2(async function({ rawOpts: opts, msg, args, sendCallback }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         let min = parseInt(opts["min"] as string) || 5
         let max = parseInt(opts["max"] as string) || 5
@@ -2501,7 +2501,7 @@ yield[
 ]
 
 yield[
-    "hangman", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
+    "hangman", ccmdV2(async function({ rawOpts: opts, msg, args, sendCallback }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         if (!msg.guild || !msg.member) return crv("Not in a guild", { status: StatusCode.ERR })
         let opponent: GuildMember | undefined = msg.member

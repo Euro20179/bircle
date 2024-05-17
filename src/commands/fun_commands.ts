@@ -2060,7 +2060,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "edit", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
+        "edit", ccmdV2(async function({ rawOpts: opts, msg, args, sendCallback }) {
             if (opts['d'] && msg.deletable) await msg.delete()
             let edits = args.join(" ").split("|")
             let message

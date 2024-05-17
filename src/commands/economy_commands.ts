@@ -834,7 +834,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "give", ccmdV2(async function({ msg, rawArgs: args}) {
+        "give", ccmdV2(async function({ msg, args}) {
 
             if (!hasItem(msg.author.id, "donation card")) {
                 return crv("You must have the donation card", { status: StatusCode.ERR })

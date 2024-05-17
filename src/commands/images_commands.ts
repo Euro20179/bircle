@@ -114,7 +114,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        'invert', ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
+        'invert', ccmdV2(async function({ rawOpts: opts, msg, args }) {
             let channel = args.map(v => v.toLowerCase())
             let above = parseInt(opts['above'] as string) || 0
             let below = parseInt(opts['below'] as string) || 255
@@ -171,7 +171,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "img-channel", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
+        "img-channel", ccmdV2(async function({ rawOpts: opts, msg, args }) {
             let channel = args.map(v => v.toLowerCase())
             if (!channel.length) {
                 return { content: "No channel", status: StatusCode.ERR }
@@ -798,7 +798,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "polygon", ccmdV2(async function({rawOpts: opts, msg, rawArgs: args, sendCallback }) {
+        "polygon", ccmdV2(async function({rawOpts: opts, msg, args, sendCallback }) {
             let color = opts['color'] || "white"
             let img_link = getImgFromMsgAndOpts(opts, msg)
             if (!img_link) {
@@ -864,7 +864,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "rect", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args, sendCallback }) {
+        "rect", ccmdV2(async function({ rawOpts: opts, msg, args, sendCallback }) {
             let color: string = <string>opts['color'] || "white"
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
@@ -1151,7 +1151,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "text", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
+        "text", ccmdV2(async function({ rawOpts: opts, msg, args }) {
 
             let img;
             let resize = true
@@ -1375,7 +1375,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "color", ccmdV2(async function({ rawOpts: opts, msg, rawArgs: args }) {
+        "color", ccmdV2(async function({ rawOpts: opts, msg, args }) {
             let stringArgs = args.join(" ")
             let color = stringArgs || "RANDOM"
             let colors = stringArgs.split(">")
