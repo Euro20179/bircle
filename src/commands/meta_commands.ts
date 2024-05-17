@@ -950,8 +950,37 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "for", createCommandV2(async function*({ msg, args, sendCallback, runtime_opts, pid_label, symbols }) {
+            let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
+
             const var_name = args[0]
             const range = args[1]
+            if (range === "in") {
+                const startOfListDelim = args[2]
+                let endOfListDelim = startOfListDelim
+                if(startOfListDelim === "["){
+                    endOfListDelim = "]"
+                }
+                const endOfList = args.indexOf(endOfListDelim, 3)
+                if (endOfList === -1) {
+                    return crv("List of items never ended", { status: StatusCode.ERR })
+                }
+                const scriptWithBraces = args.slice(endOfList).join(" ").trim()
+                const scriptWithoutBraces = parseBracketPair(scriptWithBraces, "{}")
+                let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
+                for (let i = 3; i < endOfList; i++) {
+                    symbols.set(`%:${var_name}`, args[i])
+                    symbols.set("%:#", i.toString())
+                    for (let line of scriptLines) {
+                        for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
+                            { command: line, prefix: "", msg, sendCallback, runtime_opts, symbols }, `${pid_label}:for(${i})`, { parentPID }
+                        )) {
+                            yield result
+                            // await new Promise(res => setTimeout(res, 1000))
+                        }
+                    }
+                }
+                return { noSend: true, status: StatusCode.RETURN }
+            }
             let [startS, endS] = range.split("..")
             let [start, end] = [Number(startS), Number(endS)]
             const scriptWithBraces = args.slice(2).join(" ").trim()
@@ -968,13 +997,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return crv("No commands given to run (be sure to put the commands in {})", { status: StatusCode.ERR })
             }
 
-            let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
-
             for (let i = start; i < end; i++) {
                 symbols.set(`%:${var_name}`, String(i))
                 for (let line of scriptLines) {
                     for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
-                        { command: "(PREFIX)" + line, prefix: "(PREFIX)", msg, sendCallback, runtime_opts, symbols }, `${pid_label}:${i}`, { parentPID }
+                        { command: line, prefix: "", msg, sendCallback, runtime_opts, symbols }, `${pid_label}:for(${i})`, { parentPID }
                     )) {
                         yield result
                         // await new Promise(res => setTimeout(res, 1000))
