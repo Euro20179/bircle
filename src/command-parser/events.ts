@@ -38,7 +38,7 @@ type CmdResultEvent = {
 }
 
 commandEventListener.on(cmdRun, function(event: CmdRunEvent){
-    const excluded_cmds = ["!!"]
+    const excluded_cmds = ["!!", "do", "for"]
     if(!excluded_cmds.includes(event.cmd)){
         lastCommand[event.msg.author.id] = `${PREFIX}${event.cmd} ${event.raw_args.join(" ")}`
     }
