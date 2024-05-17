@@ -176,8 +176,6 @@ let _BLACKLISTED_USERS: string[], _BLACKLISTED_ROLES: string[];
 
 const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
-const GLOBAL_CURRENCY_SIGN = "$"
-
 export default {
     FILE_SHORTCUTS,
     WHITELIST,
@@ -192,7 +190,6 @@ export default {
     VERSION,
     USER_SETTINGS,
     client,
-    GLOBAL_CURRENCY_SIGN,
     getUserMatchCommands,
     saveMatchCommands,
     addUserMatchCommand,

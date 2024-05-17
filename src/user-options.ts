@@ -1,5 +1,6 @@
 import fs from "fs"
 import common from "./common"
+import { GLOBAL_CURRENCY_SIGN } from "./config-manager"
 
 export const allowedOptions = [
     "prefix",
@@ -121,7 +122,7 @@ export function isValidOption(opt: string): UserOption | false {
 }
 
 export function formatMoney(user: string, amount: string | number) {
-    return `${getOpt(user, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount}`
+    return `${getOpt(user, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount}`
 }
 
 export default{

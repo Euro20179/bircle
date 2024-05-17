@@ -33,7 +33,7 @@ import user_options from './src/user-options'
 import init from './src/init'
 import common_to_commands from './src/common_to_commands'
 
-import configManager from './src/config-manager'
+import configManager, { GLOBAL_CURRENCY_SIGN } from './src/config-manager'
 
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
@@ -167,7 +167,7 @@ async function handleEarnings(m: Message) {
                     stuff: stuff.money ? `${user_options.getOpt(
                         m.author.id,
                         "currency-sign",
-                        common.GLOBAL_CURRENCY_SIGN
+                        GLOBAL_CURRENCY_SIGN
                     )}${stuff.money}` : stuff.items.join(", ")
                 }),
                 status: command_commons.StatusCode.INFO,

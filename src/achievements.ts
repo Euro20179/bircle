@@ -6,6 +6,7 @@ import { giveItem } from './shop';
 import { UnixTime } from './util';
 import { getOpt } from './user-options';
 import common from './common';
+import { GLOBAL_CURRENCY_SIGN } from './config-manager';
 
 const ACHIVEMENT_ITEMS = [
     "capitalism hat",
@@ -73,7 +74,7 @@ class MoneyRewardAchievement extends Achievement{
         let amount =  economy.calculateAmountFromNetWorth(id, this.reward)
         //hack to make reward include the currency sign
         //must be done after the amount is calculated
-        this.reward = `${getOpt(id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${this.reward}`
+        this.reward = `${getOpt(id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${this.reward}`
         economy.addMoney(id, amount)
         return super.earn(id, String(amount))
     }

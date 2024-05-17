@@ -7,8 +7,9 @@ export const CLIENT_SECRET = BOT_CONFIG.secrets['client-secret']
 export let DEVBOT = BOT_CONFIG.general?.mode === "dev" ? true : false
 export let PREFIX = BOT_CONFIG.general.prefix
 export const ADMINS = BOT_CONFIG.general.admins
-
 export const RECURSION_LIMIT = BOT_CONFIG.general.recursion_limit ?? 200
+
+export const GLOBAL_CURRENCY_SIGN = "$"
 
 export function editConfig(path: string, newValue: any) {
     let WORKING_OBJ: any = BOT_CONFIG
@@ -50,4 +51,5 @@ export default {
     editConfig,
     getConfigValue,
     saveConfig,
+    GLOBAL_CURRENCY_SIGN
 }

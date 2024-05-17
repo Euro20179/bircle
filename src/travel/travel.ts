@@ -17,6 +17,7 @@ import { IUserCountry, UserCountryActivity } from './user-country'
 import amountParser from '../amount-parser'
 
 import cmds from '../command-parser/cmds'
+import { GLOBAL_CURRENCY_SIGN } from '../config-manager'
 const handleSending = cmds.handleSending
 
 class Activity {
@@ -53,7 +54,7 @@ class Country {
     }
 
     getSign(msg: Message) {
-        return user_options.getOpt(msg.author.id, "currency-sign", this.currencySign ?? common.GLOBAL_CURRENCY_SIGN)
+        return user_options.getOpt(msg.author.id, "currency-sign", this.currencySign ?? GLOBAL_CURRENCY_SIGN)
     }
 
     get activityNameList() {

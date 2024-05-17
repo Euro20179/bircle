@@ -5,9 +5,7 @@ import common from './common'
 import economy from "./economy"
 import { allowedOptions, getOpt } from "./user-options"
 
-import {PREFIX} from './config-manager'
-import { StatusCode } from './common_to_commands'
-import { VERSION } from 'lodash'
+import {GLOBAL_CURRENCY_SIGN, PREFIX} from './config-manager'
 
 export type VarName = `${string}:${string}` | string
 
@@ -88,7 +86,7 @@ let defaultVars: Record<string, Variable<"function" | "number">> = {
         "function",
         msg => String(msg.author.economyData.money)
     ),
-    "__global_currency_sign": new Variable("function", () => common.GLOBAL_CURRENCY_SIGN),
+    "__global_currency_sign": new Variable("function", () => GLOBAL_CURRENCY_SIGN),
     _: new Variable('function', msg => getVar(msg, "_!", msg.author.id))
 }
 

@@ -140,7 +140,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
                 await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
 
-                let sign = user_options.getOpt(player.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+                let sign = user_options.getOpt(player.id, "currency-sign", configManager.GLOBAL_CURRENCY_SIGN)
 
                 return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}\n+{amount_won}`), { wins: String(wins), losses: String(losses), amount_won: sign + String(winnings) }), status: StatusCode.RETURN, recurse: true }
             }
@@ -996,7 +996,7 @@ yield[
 
         args.beginIter()
 
-        let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+        let sign = user_options.getOpt(msg.author.id, "currency-sign", configManager.GLOBAL_CURRENCY_SIGN)
 
         let reqMoney = args.expectString(1)
         if (reqMoney === BADVALUE) {
@@ -1119,7 +1119,7 @@ yield[
                 text = `<@${playerId}> guessed the correct third of ${guess}`
             }
             economy.addMoney(playerId, winnings)
-            let sign = user_options.getOpt(playerId, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+            let sign = user_options.getOpt(playerId, "currency-sign", configManager.GLOBAL_CURRENCY_SIGN)
             if (winnings > 0)
                 text += `\nearnings: **${sign}${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
             totaltext += text + "\n--------------\n"
@@ -1710,7 +1710,7 @@ yield[
             fmt += `\n{earnings}`
             fs.writeFileSync("./command-results/last-run", String(Date.now()))
         }
-        return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
+        return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", configManager.GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
     }, "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>", {
         arguments: {
             fmt: {
@@ -1978,7 +1978,7 @@ yield[
 
         let status = "You won"
 
-        let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+        let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", configManager.GLOBAL_CURRENCY_SIGN)
 
         if (playerTotal > 21) {
             status = `You lost: $${bet} (over 21)`

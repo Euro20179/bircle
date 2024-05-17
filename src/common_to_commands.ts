@@ -1,8 +1,6 @@
 import { APIButtonComponent, ActionRowBuilder, AwaitMessagesOptions, ButtonBuilder, ButtonComponentData, ButtonInteraction, ButtonStyle, Collection, DMChannel, EmbedBuilder, Guild, Message, MessageCreateOptions, MessageFlagsBitField, MessageMentions, MessagePayload, MessageType, PartialMessage, ReactionManager, TextChannel, User } from 'discord.js';
 import fs from 'fs'
 
-import vars from './vars';
-
 
 import user_options  from "./user-options"
 import common from './common';
@@ -426,23 +424,16 @@ export class AliasV2 {
         return tempExec
     }
 
-    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, commandBans: _commandBans, legacy, symbols, runtime_opts }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, legacy?: boolean, context?: InterpreterContext, symbols?: SymbolTable, runtime_opts: RuntimeOptions }) {
-
-        if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
-            return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
-        }
+    async *run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, commandBans: _commandBans, symbols, runtime_opts }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, context?: InterpreterContext, symbols?: SymbolTable, runtime_opts: RuntimeOptions }) {
 
         let tempExec = ""
         let lastCmd = ""
 
-        for (let opt of Object.entries(opts)) {
-            vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
+        for(let opt in opts){
+            symbols?.set(`%:-${opt}`, String(opts[opt]))
         }
 
         //this.name does not get added to cmdUse in the events if it's legacy
-        if(legacy){
-            useTracker.cmdUsage.addToUsage(this.name)
-        }
         await this.expand(args, opts, ((a, preArgs) => {
             useTracker.cmdUsage.addToUsage(a)
             lastCmd = a
@@ -478,13 +469,11 @@ export class AliasV2 {
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
-        if (legacy !== true) {
-            for await (
-                let result of
-                globals.PROCESS_MANAGER.spawn_cmd({ command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback, symbols, runtime_opts }, `${this.name}(SUB)`,)
-            ) {
-                yield result
-            }
+        for await (
+            let result of
+            globals.PROCESS_MANAGER.spawn_cmd({ command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback, symbols, runtime_opts }, `${this.name}(SUB)`,)
+        ) {
+            yield result
         }
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
@@ -492,10 +481,6 @@ export class AliasV2 {
 
         // if(interpreter?.sendCallback)
         //     rv.sendCallback = interpreter?.sendCallback
-
-        for (let opt of Object.entries(opts)) {
-            vars.delVar(`${msg.author.id}:-${opt[0]}`)
-        }
 
         if (this.standardizeOpts) {
             for (let [name, val] of oldOpts) {

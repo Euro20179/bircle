@@ -25,6 +25,8 @@ import {
     MessageContextMenuCommandInteraction,
 } from 'discord.js';
 
+import { GLOBAL_CURRENCY_SIGN } from '../config-manager';
+
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
@@ -732,7 +734,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let lostAmount = Math.floor(Math.random() * 10)
                 let name = choice(["Johnny", "Jicky", "Aldo", "Yicky", "Jinky", "Mumbo"])
                 await handleSending(msg, crv(`${name} didnt like that - ${
-                    user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+                    user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
                 } ${lostAmount} 😳`), sendCallback)
                 return { noSend: true, status: StatusCode.RETURN }
             },
@@ -744,7 +746,7 @@ export default function*(): Generator<[string, CommandV2]> {
                         user_options.getOpt(
                             msg.author.id,
                             "currency-sign",
-                            common.GLOBAL_CURRENCY_SIGN
+                            GLOBAL_CURRENCY_SIGN
                         )
                     }${amount} in social security benifits`,
                     status: StatusCode.RETURN
@@ -864,7 +866,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let sign = user_options.getOpt(
                     msg.author.id,
                     "currency-sign",
-                    common.GLOBAL_CURRENCY_SIGN
+                    GLOBAL_CURRENCY_SIGN
                 )
                 let gallonToBarrel = 1 / 42
                 let res = await fetch("https://oilprice.com/oil-price-charts")
@@ -938,7 +940,7 @@ export default function*(): Generator<[string, CommandV2]> {
             [["a fine quarter"], async () => {
                 let amount = economy.economyLooseGrandTotal().total
                 economy.addMoney(msg.author.id, amount * 0.0026)
-                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount * 0.0026} :+1:`, status: StatusCode.RETURN }
+                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount * 0.0026} :+1:`, status: StatusCode.RETURN }
             }],
             [["pirate's gold tooth", "a fine quarter"], async () => {
                 giveItem(msg.author.id, "pawn shop", 1)
@@ -3123,7 +3125,7 @@ Valid formats:
         "travel", ccmdV2(async function({ msg, args, opts }) {
             args.beginIter()
 
-            let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
 
             let countries = travel_countries.getCountries()
 
