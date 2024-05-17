@@ -115,7 +115,7 @@ class TokenEvaluator {
                     for (let i = 0; i < args.length; i++) {
                         this.symbols.delete(`#${i}`)
                     }
-                    return
+                    return true
                 }
                 case "<<": {
                     switch (varName.trim()) {
@@ -137,7 +137,13 @@ class TokenEvaluator {
         }
         else if (token instanceof lexer.TTJSExpr) {
             let text = (await cmds.expandSyntax(token.data, this.msg, this.symbols, this.runtime_opts)).join(" ")
-            let new_text = String(safeEval(text, {}, {}))
+            let new_text
+            if(text.startsWith("#rel")){
+                new_text = amountParser.runRelativeCalculator(0, text.slice("#rel".length)).toString()
+            } else if(text.startsWith("#stk")){
+                new_text = stackl2.run(text.slice("#stk".length)).map(v => String(v[0])).join("\n")
+            }
+            else new_text = String(safeEval(text, {}, {}))
             this.add_to_cur_tok(new_text)
             // this.new_tokens.push(new lexer.TTString(new_text, token.start, token.end))
         }
