@@ -52,6 +52,9 @@ export class ProcessManager {
             return { noSend: true, status: StatusCode.ERR }
         }
         label ??= args.command
+        if(!label.includes(`:${args.msg.author.id}`)){
+            label += `:${args.msg.author.id}`
+        }
         args.pid_label = label
         let result_generator = cmds.runcmdv2(args)
         let pid = this.PIDS.size + 1
