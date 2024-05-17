@@ -600,7 +600,7 @@ const esc_parsers: Record<string, (token: TT<[string, string]>, symbols: SymbolT
         if (v === false)
             v = vars.getVar(msg, sequence)
         if (v !== false) {
-            v
+            return v
         }
         return `\\v{${sequence}}`
     },
