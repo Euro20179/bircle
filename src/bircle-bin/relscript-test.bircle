@@ -1,6 +1,11 @@
-echo -D relscript 3 + 3 -> $( relscript 3 + 3 ) = 6 ;;
-echo -D relscript var x = 10; x * 2 -> $( relscript var x = 10; x * 2 ) = 20 ;;
-echo -D relscript min(3, 4) -> $( relscript min(3, 4) ) = 3 ;;
-echo -D relscript var mul(x, y) -> $( relscript var mul(x, y) = x * y rav; mul(3, 4) ) = 12 ;;
-echo -D relscript setrel 50; all! -> $( relscript setrel 50; all! ) = 50 ;;
-echo -D relscript setrel 50; 50%! -> $( relscript setrel 50; 50% ) = 25 
+s:export addition = $(n:assert -title=addition $(relscript 3 + 3) >test> = 6) ;;
+s:export simple-var = $(n:assert -title=simple-var $(relscript var x = 10; x * 2) >test> = 20) ;;
+s:export simple-fn = $(n:assert -title=simple-fn $( relscript var mul(x, y) = x * y rav; mul(3, 4)) >test> = 12) ;;
+s:export builtin-fn = $(n:assert -title=builtin-fn $(relscript min(3, 4)) >test> = 3) ;;
+s:export set-rel = $(n:assert -title=set-rel $(relscript setrel 105; 50%) >test> = 52.5) ;;
+
+paged-embed ${addition}
+${simple-var}
+${simple-fn}
+${builtin-fn}
+${set-rel}
