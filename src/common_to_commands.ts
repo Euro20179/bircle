@@ -447,22 +447,9 @@ export class AliasV2 {
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
         useTracker.cmdUsage.removeFromUsage(lastCmd)
 
-        const optsThatNeedStandardizing = [
-            ["pipe-symbol", ">pipe>"],
-            ["1-arg-string", ""],
-            ["opts-parser", "normal"],
-            ["and-symbol", ">and>"],
-            ["or-symbol", ">or>"]
-        ] as const
-        let oldOpts = optsThatNeedStandardizing.map(([name, def]) => [name, user_options.getOpt(msg.author.id, name, def)])
-
-        if (this.standardizeOpts) {
-            for (let [name, def] of optsThatNeedStandardizing) {
-                user_options.setOpt(msg.author.id, name, def)
-            }
-        }
-
         runtime_opts.set("disableCmdConfirmations", false)
+
+        runtime_opts.set("optsParser", "normal")
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
@@ -471,7 +458,18 @@ export class AliasV2 {
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
         for await (
             let result of
-            globals.PROCESS_MANAGER.spawn_cmd({ command: `(PREFIX)${tempExec}`, prefix: "(PREFIX)", msg, sendCallback, symbols, runtime_opts }, `${this.name}(SUB)`,)
+            globals.PROCESS_MANAGER.spawn_cmd({
+                command: `(PREFIX)${tempExec}`,
+                prefix: "(PREFIX)",
+                msg,
+                sendCallback,
+                symbols,
+                runtime_opts,
+                and_sign: ">and>",
+                or_sign: ">or>",
+                one_arg_str: true,
+                pipe_sign: ">pipe>"
+            }, `${this.name}(SUB)`,)
         ) {
             yield result
         }
@@ -481,12 +479,6 @@ export class AliasV2 {
 
         // if(interpreter?.sendCallback)
         //     rv.sendCallback = interpreter?.sendCallback
-
-        if (this.standardizeOpts) {
-            for (let [name, val] of oldOpts) {
-                user_options.setOpt(msg.author.id, name, val)
-            }
-        }
     }
     toJsonString() {
         return JSON.stringify({ name: this.name, exec: this.exec, help: this.help, creator: this.creator, appendOpts: this.appendOpts, appendArgs: this.appendArgs })

@@ -47,7 +47,7 @@ export class ProcessManager {
         return { noSend: true, status: 1 }
     }
 
-    async* spawn_cmd(args: RunCmdOptions, label?: string, options?: {parentPID?: number}) {
+    async* spawn_cmd(args: RunCmdOptions, label?: string, options?: { parentPID?: number, }) {
         if (options?.parentPID && !this.getproc(options.parentPID)){
             return { noSend: true, status: StatusCode.ERR }
         }

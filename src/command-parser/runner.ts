@@ -161,7 +161,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         "with-negate": getOptsWithNegate,
         unix: getOptsUnix,
         normal: getOpts
-    }[user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
+    }[runtime_options.get("optsParser", "") || user_options.getOpt(msg.author.id, "opts-parser", "normal")]) ?? getOpts;
     let [opts, parsed_args] = opts_parser(raw_args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || [])
 
     if (opts['?']) {

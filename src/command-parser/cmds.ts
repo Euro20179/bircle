@@ -51,7 +51,8 @@ type RuntimeOptionValue = {
     disable: { categories?: CommandCategory[], commands?: string[] } | false
     "no-send": boolean,
     allowPings: boolean,
-    disableCmdConfirmations: boolean
+    disableCmdConfirmations: boolean,
+    optsParser: "with-negate" | "unix" | "normal" | ""
 }
 
 type RuntimeOption = keyof RuntimeOptionValue
@@ -102,6 +103,10 @@ export type RunCmdOptions = {
     runtime_opts?: RuntimeOptions,
     pid_label?: string,
     symbols?: SymbolTable,
+    or_sign?: string,
+    and_sign?: string,
+    pipe_sign?: string,
+    one_arg_str?: boolean
 }
 
 async function* runcmdpipe(pipes: PipeNode[],
@@ -315,6 +320,10 @@ async function* runcmdv2({
     runtime_opts,
     pid_label,
     symbols,
+    pipe_sign,
+    and_sign,
+    or_sign,
+    one_arg_str
 }: RunCmdOptions): AsyncGenerator<CommandReturn> {
     console.log(`Running cmd: ${command} ${new Date()} with runcmdV2`)
     console.assert(pid_label !== undefined, "Pid label is undefined")
@@ -332,7 +341,7 @@ async function* runcmdv2({
 
     symbols.set("RECURSION", String(runtime_opts.get("recursion", 1)))
 
-    let enable_arg_string = userOptions.getOpt(msg.author.id, "1-arg-string", false)
+    let enable_arg_string = one_arg_str ?? userOptions.getOpt(msg.author.id, "1-arg-string", false)
 
     //this is a special case modifier that basically has to happen here
     if (command.startsWith(`${prefix}n:`)) {
@@ -343,9 +352,9 @@ async function* runcmdv2({
     let lex = new lexer.Lexer(command, {
         prefix,
         skip_parsing: runtime_opts.get("skip", false),
-        pipe_sign: getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
-        and_sign: getOpt(msg.author.id, "and-symbol", ">and>"),
-        or_sign: getOpt(msg.author.id, "or-symbol", ">or>"),
+        pipe_sign: pipe_sign || getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
+        and_sign: and_sign || getOpt(msg.author.id, "and-symbol", ">and>"),
+        or_sign: or_sign || getOpt(msg.author.id, "or-symbol", ">or>"),
         enable_1_arg_string: enable_arg_string === 'true' ? true : false
     })
 
