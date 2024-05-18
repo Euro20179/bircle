@@ -48,7 +48,7 @@ class TTPrefix extends TT<string> { }
 class TTVariable extends TT<[string, string, string]> { }
 class TTSemi extends TT<string> { }
 class TTFormat extends TT<string> { }
-class TTRange extends TT<[number, number]> { }
+class TTRange extends TT<[string, number]> { }
 class TTIFS extends TT<string> { }
 class TTEsc extends TT<[string, string]>{ }
 class TTOr extends TT<string> { }
@@ -601,9 +601,9 @@ export class Lexer {
                         this.advance(inner.length)
                         //@ts-ignore
                         if (this.curChar === '}') {
-                            let match = inner.match(/^(\d+)\.\.(\d+)$/)
+                            let match = inner.match(/^(\d+(?:,\d+)*)\.\.(\d+)$/)
                             if (match) {
-                                yield new TTRange([Number(match[1]), Number(match[2])], start, this.i - 1)
+                                yield new TTRange([match[1], Number(match[2])], start, this.i - 1)
                             }
                             else {
                                 yield new TTFormat(inner, start, this.i - 1)

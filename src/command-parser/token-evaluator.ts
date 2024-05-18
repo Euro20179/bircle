@@ -12,6 +12,7 @@ import userOptions from '../user-options'
 import amountParser from '../amount-parser'
 import stackl2 from '../stackl2'
 import dateParsing from '../date-parsing'
+import iterators from '../iterators'
 
 
 
@@ -205,12 +206,17 @@ class TokenEvaluator {
             else {
                 this.back()
             }
-            let strings = []
-            end = end > 10000 ? 10000 : end
-            for (let i = start; i <= end; i++) {
-                strings.push(`${pre_data}${i}${post_data}`)
+            const seq = start.split(",").map(Number)
+            const filledSeq = iterators.sequence(...seq, end)
+            if(!filledSeq){
+                this.add_to_cur_tok(`{${start}..${end}}`)
+            } else {
+                const strings = []
+                for(const item of filledSeq.take(10000)){
+                    strings.push(`${pre_data}${item}${post_data}`)
+                }
+                this.add_list_of_strings(strings)
             }
-            this.add_list_of_strings(strings, true)
         }
         else if (token instanceof lexer.TTIFS) {
             this.complete_cur_tok()

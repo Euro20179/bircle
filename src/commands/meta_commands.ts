@@ -969,7 +969,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
                 for (let i = 3; i < endOfList; i++) {
                     symbols.set(`%:${var_name}`, args[i])
-                    symbols.set("%:#", i.toString())
                     for (let line of scriptLines) {
                         for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
                             { command: line, prefix: "", msg, sendCallback, runtime_opts, symbols }, `${pid_label}:for(${i})`, { parentPID }
