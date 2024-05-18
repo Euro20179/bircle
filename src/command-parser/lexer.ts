@@ -90,7 +90,10 @@ class CmdConfirmationModifier extends Modifier {
     static repr = "y"
 
     set_runtime_opt(options: RuntimeOptions) {
-        options.set("disableCmdConfirmations", true)
+        //if it wasn't set before, it's allowed to be set
+        if(options.get("disableCmdConfirmations", null) === null){
+            options.set("disableCmdConfirmations", true)
+        }
     }
 
     unset_runtime_opt(options: RuntimeOptions) {
