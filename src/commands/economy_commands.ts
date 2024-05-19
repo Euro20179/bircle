@@ -832,7 +832,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job`
                 if(degradeAmount){
                     amount *= degradeAmount
-                    rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job, it was degraded by ${degradeAmount*100}% because you worked recently`
+                    rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job, it was degraded by ${degradeAmount*100}%`
                 }
                 if (Math.random() > .95 && amount) {
                     let event = choice(Object.values(events))(amount)
