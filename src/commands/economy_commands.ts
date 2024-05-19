@@ -9,7 +9,7 @@ import vars from '../vars'
 
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, PagedEmbed, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, fetchUserFromClientOrGuild, entriesOf, ArgList } from '../util'
+import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, fetchUserFromClientOrGuild, entriesOf, ArgList, clamp } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -752,7 +752,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (text) {
                     return { content: text, status: StatusCode.RETURN }
                 }
-                if(runtime_opts){
+                if (runtime_opts) {
                     runtime_opts.set("disable", generateDefaultRecurseBans())
                 }
                 if (opts['no-round']) {
@@ -782,17 +782,17 @@ export default function*(): Generator<[string, CommandV2]> {
             let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
             const gradFile = "data/graduates.list"
             const graduates = fs.readFileSync(gradFile, "utf-8").split("\n")
-            if(!graduates.includes(msg.author.id)){
+            if (!graduates.includes(msg.author.id)) {
                 let ip = getToolIp()
                 if (!ip) {
                     return crv("No ip", { status: StatusCode.ERR })
                 }
                 let res = await fetch(`http://${ip}`)
                 let json = await res.json()
-                if (json[msg.author.id]?.major === "graduated"){
+                if (json[msg.author.id]?.major === "graduated") {
                     fs.appendFileSync(gradFile, `${msg.author.id}\n`)
                 }
-                else{
+                else {
                     return { content: "No working for you bubs", status: StatusCode.ERR }
                 }
             }
@@ -800,19 +800,21 @@ export default function*(): Generator<[string, CommandV2]> {
             if (canWork === 0) {
                 const timePassed = timer.do_lap(msg.author.id, '%work', 'h') as number
                 let workStreak = Number(vars.getVar(msg, "%:!work-streak", msg.author.id))
-                if(timePassed < 8){
+                if (timePassed < 8) {
                     //the longer the user waits, the less the work streak increases
                     //if they wait exactly 1 hour, it increases by 14 which will decrease what they get by 14%
                     //this works out so that after ~7 hours, the user will get 0 from working
                     workStreak += (7 / timePassed) * 2
                 } else {
                     workStreak -= timePassed * 2
+                } if (workStreak < 0) {
+                    workStreak = 0
                 }
                 vars.setVarEasy("%:!work-streak", workStreak.toString(), msg.author.id)
                 //if the user consecutively works within 8 hours, the work streak increases
                 //after 8 hours it decreases by the amount they waited * 2
                 //as the workStreak increases take out 1% per increase in the workStreak from what the user would normally get
-                const degradeAmount = Math.min(100 - workStreak, 0) / 100
+                const degradeAmount = clamp(0, 100 - workStreak, 100) / 100
                 let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                     fired: (amount) => {
                         return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
@@ -830,9 +832,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
                 let amount = economy.work(msg.author.id) as number
                 let rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job`
-                if(degradeAmount){
+                if (degradeAmount) {
                     amount *= degradeAmount
-                    rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job, it was degraded by ${degradeAmount*100}%`
+                    rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job, it was degraded by ${degradeAmount * 100}%`
                 }
                 if (Math.random() > .95 && amount) {
                     let event = choice(Object.values(events))(amount)
@@ -855,7 +857,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "give", ccmdV2(async function({ msg, args}) {
+        "give", ccmdV2(async function({ msg, args }) {
 
             if (!hasItem(msg.author.id, "donation card")) {
                 return crv("You must have the donation card", { status: StatusCode.ERR })
@@ -1069,8 +1071,8 @@ export default function*(): Generator<[string, CommandV2]> {
             if (user.user.bot) {
                 return { content: "Looks like ur taxing a fake person", status: StatusCode.ERR }
             }
-            if(!economy.getEconomy()[user.id]){
-                return crv("This person is not currently in the economy", {status: StatusCode.ERR})
+            if (!economy.getEconomy()[user.id]) {
+                return crv("This person is not currently in the economy", { status: StatusCode.ERR })
             }
             let ct = economy.canTax(user.id)
             if (hasItem(user.id, "tax evasion")) {
@@ -1229,12 +1231,12 @@ export default function*(): Generator<[string, CommandV2]> {
         })
     ]
 
-yield[
-    "savee", ccmdV2(async function() {
-        economy.saveEconomy()
-        saveItems()
-        pet.savePetData()
-        return { content: "Economy saved", status: StatusCode.RETURN }
-    }, "Saves the economy (by default, on every message send, there is a 45% chance to save the economy)")
-]
+    yield [
+        "savee", ccmdV2(async function() {
+            economy.saveEconomy()
+            saveItems()
+            pet.savePetData()
+            return { content: "Economy saved", status: StatusCode.RETURN }
+        }, "Saves the economy (by default, on every message send, there is a 45% chance to save the economy)")
+    ]
 }

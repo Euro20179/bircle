@@ -61,6 +61,10 @@ async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
     } while (!prev.done)
 }
 
+function clamp(low: number, n: number, high: number){
+    return Math.max(Math.min(high, n), low)
+}
+
 /**
     * @!
 *
@@ -734,6 +738,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         findClosest,
         base10ToRoman,
         rotN,
+        clamp,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -1411,6 +1416,7 @@ export {
     base10ToRoman,
     rotN,
     formatMember,
-    searchMsg
+    searchMsg,
+    clamp
 }
 
