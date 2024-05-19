@@ -798,6 +798,21 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             //0 means that it has been an hour, but they are not broke
             if (canWork === 0) {
+                const timePassed = timer.do_lap(msg.author.id, '%work', 'h') as number
+                let workStreak = Number(vars.getVar(msg, "%:!work-streak", msg.author.id))
+                if(timePassed < 8){
+                    //the longer the user waits, the less the work streak increases
+                    //if they wait exactly 1 hour, it increases by 14 which will decrease what they get by 14%
+                    //this works out so that after ~7 hours, the user will get 0 from working
+                    workStreak += (7 / timePassed) * 2
+                } else {
+                    workStreak -= timePassed * 2
+                }
+                vars.setVarEasy("%:!work-streak", workStreak.toString(), msg.author.id)
+                //if the user consecutively works within 8 hours, the work streak increases
+                //after 8 hours it decreases by the amount they waited * 2
+                //as the workStreak increases take out 1% per increase in the workStreak from what the user would normally get
+                const degradeAmount = Math.min(100 - workStreak, 0) / 100
                 let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                     fired: (amount) => {
                         return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
@@ -813,7 +828,12 @@ export default function*(): Generator<[string, CommandV2]> {
                         return { message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0 }
                     }
                 }
-                let amount = economy.work(msg.author.id)
+                let amount = economy.work(msg.author.id) as number
+                let rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job`
+                if(degradeAmount){
+                    amount *= degradeAmount
+                    rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job, it was degraded by ${degradeAmount*100}% because you worked recently`
+                }
                 if (Math.random() > .95 && amount) {
                     let event = choice(Object.values(events))(amount)
                     if (event) {
@@ -822,7 +842,8 @@ export default function*(): Generator<[string, CommandV2]> {
                         return { content: event.message, status: StatusCode.RETURN }
                     }
                 }
-                return { content: `Congrats, you grad student, here's ${currency_sign}${amount} from your job`, status: StatusCode.RETURN }
+                vars.setVarEasy("%:!w", `${amount}`, msg.author.id)
+                return { content: rvMsg, status: StatusCode.RETURN }
             }
             if (canWork) {
                 let amount = economy.work(msg.author.id)

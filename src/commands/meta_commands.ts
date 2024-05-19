@@ -2349,8 +2349,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 realName = prefix
                 prefix = "__global__"
             }
-            if (realName.match(/[>|#%/&<]/)) {
-                return crv("Name cannot contain any of: `>|#%/&<`", { status: StatusCode.ERR })
+            if (realName.match(/[>|#%/&!<]/)) {
+                return crv("Name cannot contain any of: `>|#%/&!<`", { status: StatusCode.ERR })
             }
             let type = String(opts['type'] || "string")
             if (type === 'function') {

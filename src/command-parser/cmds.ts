@@ -177,6 +177,7 @@ async function* runcmdpipe(pipes: PipeNode[],
         }
         //although this could technically be done in the command_runner it's simply easier to do it here
         if (runtime_opts.get("silent", false)) {
+            console.log(item)
             yield { noSend: true, status: item.status, statusNr: item.statusNr }
         }
         //there will always be at least one item in the pipe chain (if there is 1, that is the one we are on)
