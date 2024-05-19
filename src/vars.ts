@@ -270,6 +270,39 @@ function setVar(varName: VarName, value: string, id?: string) {
     return true
 }
 
+function setVar2(scope: "__global__" | string, prefix: string, varname: string, value: Variable<any>){
+    let scopeObject = vars[scope]
+    if(!scopeObject){
+        return false
+    }
+    if(prefix){
+        scopeObject = scopeObject[prefix] as VarPrefix
+    }
+    if(!scopeObject){
+        vars[scope][prefix] = {}
+        scopeObject = vars[scope][prefix] as VarPrefix
+    }
+    scopeObject[varname] = value
+    return true
+}
+
+function getVar2(msg: Message, scope: "__global__" | string, prefix: string, varname: string){
+    let scopeObject = vars[scope]
+    if(!scopeObject){
+        return false
+    }
+    if(prefix){
+        scopeObject = scopeObject[prefix] as VarPrefix
+    }
+    if(!scopeObject){
+        return false
+    }
+    if(!scopeObject[varname]){
+        return false
+    }
+    return readVarValRaw(msg, scopeObject[varname])
+}
+
 function readVarVal(msg: Message, variableData: Variable<any> | VarPrefix) {
     if (variableData.type === 'string') {
         return variableData.value
@@ -282,6 +315,27 @@ function readVarVal(msg: Message, variableData: Variable<any> | VarPrefix) {
     }
     else if(variableData.type === 'amount'){
         return String(economy.calculateAmountFromString(msg.author.id, variableData.value))
+    }
+    else if (typeof variableData === 'object') {
+        return JSON.stringify(variableData)
+    }
+    else {
+        return String(variableData)
+    }
+}
+
+function readVarValRaw(msg: Message, variableData: Variable<any> | VarPrefix){
+    if (variableData.type === 'string') {
+        return variableData.value
+    }
+    else if (variableData.type === 'function') {
+        return variableData.value(msg)
+    }
+    else if (variableData.type === 'number') {
+        return variableData.value
+    }
+    else if(variableData.type === 'amount'){
+        return economy.calculateAmountFromString(msg.author.id, variableData.value)
     }
     else if (typeof variableData === 'object') {
         return JSON.stringify(variableData)
@@ -333,5 +387,9 @@ export default {
     delPrefix,
     createVar,
     VarType,
-    changeVar
+    changeVar,
+    setVar2,
+    getVar2,
+    readVarValRaw,
+    Variable
 }

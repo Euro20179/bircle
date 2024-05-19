@@ -1728,7 +1728,11 @@ yield[
         if (!betStr) {
             betStr = user_options.getOpt(msg.author.id, "default-bj-bet", "0")
         }
-        let bet = economy.calculateAmountFromString(msg.author.id, betStr)
+        const lastBet = vars.getVar2(msg, msg.author.id, "", "!bj")
+        let bet = economy.calculateAmountFromString(msg.author.id, betStr, {
+            last: lastBet || 0,
+            l: lastBet || 0
+        })
         if (!bet) {
             return { content: "no bet given", status: StatusCode.ERR }
         }
@@ -1737,6 +1741,8 @@ yield[
         }
         if (hardMode)
             bet *= 2
+
+        vars.setVar2(msg.author.id, "", "!bj", new vars.Variable('number', bet))
 
         if (!economy.canBetAmount(msg.author.id, bet)) {
             return { content: "That bet is too high for you", status: StatusCode.ERR }
