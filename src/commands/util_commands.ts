@@ -2526,6 +2526,10 @@ The order these are given does not matter, excpet for field, which will be added
         const cmd = spawn("bash")
         let dataToSend = ""
         let sendingTimeout: NodeJS.Timeout | undefined = undefined;
+        function stop(){
+            collector.stop()
+            cmd.kill()
+        }
         cmd.stdout.on("data", data => {
             dataToSend += data.toString("utf-8")
 
@@ -2548,10 +2552,10 @@ The order these are given does not matter, excpet for field, which will be added
         })
         const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
         const TO_INTERVAL = 30000
-        let timeout = setTimeout(cmd.kill, TO_INTERVAL)
+        let timeout = setTimeout(stop, TO_INTERVAL)
         collector.on("collect", m => {
             clearTimeout(timeout)
-            timeout = setTimeout(cmd.kill, TO_INTERVAL)
+            timeout = setTimeout(stop, TO_INTERVAL)
             cmd.stdin.write(m.content + "\n")
         })
         return { noSend: true, status: StatusCode.ERR }
