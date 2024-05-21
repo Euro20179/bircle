@@ -62,7 +62,7 @@ async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
 }
 
 function clamp(low: number, n: number, high: number){
-    return Math.max(Math.min(high, n), low)
+    return Math.max(Math.min(n, high), low)
 }
 
 /**

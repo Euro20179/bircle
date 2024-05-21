@@ -781,25 +781,31 @@ export default function*(): Generator<[string, CommandV2]> {
             let canWork = economy.canWork(msg.author.id)
             let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
             const gradFile = "data/graduates.list"
-            const graduates = fs.readFileSync(gradFile, "utf-8").split("\n")
-            if (!graduates.includes(msg.author.id)) {
-                let ip = getToolIp()
-                if (!ip) {
-                    return crv("No ip", { status: StatusCode.ERR })
-                }
-                let res = await fetch(`http://${ip}`)
-                let json = await res.json()
-                if (json[msg.author.id]?.major === "graduated") {
-                    fs.appendFileSync(gradFile, `${msg.author.id}\n`)
-                }
-                else {
-                    return { content: "No working for you bubs", status: StatusCode.ERR }
+            if(!DEVBOT){
+
+                const graduates = fs.readFileSync(gradFile, "utf-8").split("\n")
+                if (!graduates.includes(msg.author.id)) {
+                    let ip = getToolIp()
+                    if (!ip) {
+                        return crv("No ip", { status: StatusCode.ERR })
+                    }
+                    let res = await fetch(`http://${ip}`)
+                    let json = await res.json()
+                    if (json[msg.author.id]?.major === "graduated") {
+                        fs.appendFileSync(gradFile, `${msg.author.id}\n`)
+                    }
+                    else {
+                        return { content: "No working for you bubs", status: StatusCode.ERR }
+                    }
                 }
             }
             //0 means that it has been an hour, but they are not broke
-            if (canWork === 0) {
-                const timePassed = timer.do_lap(msg.author.id, '%work', 'h') as number
-                let workStreak = Number(vars.getVar(msg, "%:!work-streak", msg.author.id))
+            if (canWork === 0 || DEVBOT) {
+                const timePassed = timer.do_lap(msg.author.id, '%work', 'h') as number || 8
+                let workStreak = vars.getVar2(msg, msg.author.id, "", "!work-streak")
+                if(workStreak === Infinity || isNaN(workStreak)){
+                    workStreak = 0
+                }
                 if (timePassed < 8) {
                     //the longer the user waits, the less the work streak increases
                     //if they wait exactly 1 hour, it increases by 14 which will decrease what they get by 14%
@@ -810,11 +816,11 @@ export default function*(): Generator<[string, CommandV2]> {
                 } if (workStreak < 0) {
                     workStreak = 0
                 }
-                vars.setVarEasy("%:!work-streak", workStreak.toString(), msg.author.id)
+                vars.setVar2(msg.author.id, "", "!work-streak", new vars.Variable("number", workStreak))
                 //if the user consecutively works within 8 hours, the work streak increases
                 //after 8 hours it decreases by the amount they waited * 2
                 //as the workStreak increases take out 1% per increase in the workStreak from what the user would normally get
-                const degradeAmount = clamp(0, 100 - workStreak, 100) / 100
+                const degradeAmount = clamp(0, workStreak, 100) / 100
                 let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                     fired: (amount) => {
                         return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
@@ -833,7 +839,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let amount = economy.work(msg.author.id) as number
                 let rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job`
                 if (degradeAmount) {
-                    amount *= degradeAmount
+                    amount *= 1 - degradeAmount
                     rvMsg = `Congrats, you grad student, here's ${currency_sign}${amount} from your job, it was degraded by ${degradeAmount * 100}%`
                 }
                 if (Math.random() > .95 && amount) {
