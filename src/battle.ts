@@ -900,7 +900,7 @@ async function battle(msg: Message, args: ArgumentList) {
         return { content: "You must bet at least 0.2%", status: StatusCode.ERR }
     }
 
-    let players: { [key: string]: Player } = { [msg.author.id]: new Player(msg.author.id, nBet, pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100) }
+    let players: { [key: string]: Player } = { [msg.author.id]: new Player(msg.author.id, nBet, pet.getActivePet(msg.author.id) == 'dog' ? 150 : 100) }
     let cooldowns: { [key: string]: number } = { [msg.author.id]: 0 }
 
     await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
@@ -926,7 +926,7 @@ async function battle(msg: Message, args: ArgumentList) {
         }
 
         if (!Object.keys(players).includes(m.author.id)) {
-            let p = new Player(m.author.id, nBet, pet.getActivePet(m.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100)
+            let p = new Player(m.author.id, nBet, pet.getActivePet(m.author.id) == 'dog' ? 150 : 100)
             cooldowns[m.author.id] = 0
             players[m.author.id] = p
         }
