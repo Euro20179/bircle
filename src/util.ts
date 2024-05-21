@@ -25,6 +25,26 @@ export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
 
+function binStrToDec(str: string){
+    let ans = 0n
+    for(let i = 0n; i < str.length; i++){
+        if(str[Number(i)] === '1'){
+            ans += 2n ** (BigInt(str.length) - i - 1n)
+        }
+    }
+    return ans
+}
+
+function fracBinStrToDec(str: string){
+    let ans = 0
+    for(let i = 0; i < str.length; i++){
+        if(str[i] === '1'){
+            ans += 1 / (2 ** (i + 1))
+        }
+    }
+    return ans
+}
+
 //these pair of functions exist because using a for loop on a generator that *returns* a value
 //doesn't use the return value from the return statement and breaks before the loop can do
 //something with the return value
@@ -1417,6 +1437,8 @@ export {
     rotN,
     formatMember,
     searchMsg,
-    clamp
+    clamp,
+    binStrToDec,
+    fracBinStrToDec,
 }
 

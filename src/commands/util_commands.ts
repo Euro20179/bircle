@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec } from '../util'
 import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -189,6 +189,40 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             },
             gen_opts: true
         })
+    ]
+
+    yield [
+        "f32", ccmdV2(async function({ args }){
+            const f = args[0]
+            const signS = f[0]
+            const expS = f.slice(1, 9)
+            const mantS = "1" + f.slice(9) as string
+            let decimalLocation = 1n
+
+            const sign = signS === "1" ? "-" : ""
+
+            const exp = binStrToDec(expS) - 127n
+
+            decimalLocation += exp
+
+            let intPart, fracPart
+            if(decimalLocation > 24){
+                intPart = mantS + "0".repeat(Number(decimalLocation) - 24)
+                fracPart = "0"
+            } else if(decimalLocation > 0){
+                intPart = mantS.slice(0, Number(decimalLocation))
+                fracPart = mantS.slice(Number(decimalLocation))
+            } else {
+                intPart = "0"
+                fracPart = "0".repeat(Number(-decimalLocation)) + mantS
+            }
+
+            const ans = Number(binStrToDec(intPart)) + fracBinStrToDec(fracPart)
+
+
+            return crv(`${sign}${ans}`)
+
+        }, "Float32 calculator")
     ]
 
     yield [

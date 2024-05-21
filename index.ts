@@ -2,6 +2,7 @@
 import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js'
 import cmds from './src/command-parser/cmds'
 
+
 import { REST } from '@discordjs/rest'
 
 import { Routes } from 'discord-api-types/v9'
