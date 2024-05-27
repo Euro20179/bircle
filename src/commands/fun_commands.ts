@@ -1490,8 +1490,8 @@ export default function*(): Generator<[string, CommandV2]> {
                 const rank = JSONData.players.indexOf(userData)
                 let [
                     xp_needed,
-                    max_messages_for_next_level,
                     min_messages_for_next_level,
+                    max_messages_for_next_level,
                     avg_messages_for_next_level
                 ] = getAmountUntil(userData)
                 const embed = new EmbedBuilder()
