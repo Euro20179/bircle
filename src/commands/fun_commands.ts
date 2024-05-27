@@ -99,7 +99,7 @@ const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
-    yield ["cpj-search", ccmdV2(async function({msg, args, opts}){
+    yield ["cpj-search", ccmdV2(async function({ msg, args, opts }) {
         const resultsPerPage = opts.getNumber("items", 5)
         const search = args.join(" ")
         const url = `https://clubpenguinjourney.fandom.com/wiki/Special:Search?query=${search}`
@@ -109,7 +109,7 @@ export default function*(): Generator<[string, CommandV2]> {
         const $ = cheerio.load(text)
         let matches = $("li.unified-search__result")
 
-        if(matches.length < 1){
+        if (matches.length < 1) {
             return crv("No results", { status: StatusCode.ERR })
         }
 
@@ -117,13 +117,13 @@ export default function*(): Generator<[string, CommandV2]> {
         let curEmbed = new EmbedBuilder()
         let curText = ""
 
-        for(let i = 0; i < matches.length; i++){
+        for (let i = 0; i < matches.length; i++) {
             let match = matches[i]
 
             let lines = $(match).text().split("\n").map(v => v.trim()).filter(Boolean)
             curText += `### [${lines[0]}](${lines[lines.length - 1]})\n${lines.slice(1, -1).join("\n")}\n\n`
 
-            if(i % (resultsPerPage - 1) == 0 && i !== 0){
+            if (i % (resultsPerPage - 1) == 0 && i !== 0) {
                 curEmbed.setDescription(curText)
                 pages.push(curEmbed)
                 curText = ""
@@ -136,13 +136,13 @@ export default function*(): Generator<[string, CommandV2]> {
 
         return { noSend: true, status: StatusCode.RETURN }
     }, "Searches the club penguin journey wiki", {
-            helpOptions: {
-                items: createHelpOption("Number of results per page", undefined, "5", true)
-            },
-            helpArguments: {
-                "...search": createHelpArgument("The search query")
-            }
-        })]
+        helpOptions: {
+            items: createHelpOption("Number of results per page", undefined, "5", true)
+        },
+        helpArguments: {
+            "...search": createHelpArgument("The search query")
+        }
+    })]
 
     yield ['mastermind', ccmdV2(async function({ msg, opts }) {
         globals.startCommand(msg.author.id, "mastermind")
@@ -162,7 +162,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let res = await promptUser(msg, `Guess (options: ${chars})`, undefined, {
                 timeout: 120000,
                 filter: m => {
-                    if(["cancel", "stop", "quit"].includes(m.content.toLowerCase())){
+                    if (["cancel", "stop", "quit"].includes(m.content.toLowerCase())) {
                         return true
                     }
                     if (
@@ -187,7 +187,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
             guess = res.content.toUpperCase()
 
-            if(["CANCEL", "STOP", "QUIT"].includes(guess)){
+            if (["CANCEL", "STOP", "QUIT"].includes(guess)) {
                 console.log('stopped')
                 return crv("Cancelled", { status: StatusCode.CMDSTATUS, statusNr: 100 })
             }
@@ -336,9 +336,8 @@ export default function*(): Generator<[string, CommandV2]> {
             if (opts.getBool("launch-rate", opts.getBool("lr", false)) || DO_ALL) {
                 let launch_min = opts.getNumber("launch-rate-min", opts.getNumber("lr-min", 0.5))
                 let launch_max = opts.getNumber("launch-rate-max", opts.getNumber("lr-max", 2.1))
-                text += `# Launch Rate\n${
-                    (Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)
-                }\n`
+                text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)
+                    }\n`
             }
             if (opts.getBool("ud-boost", false) || DO_ALL) {
                 text += `# Underdog Boost\n${Math.random() > .5 ? "true" : "false"}\n`
@@ -449,7 +448,7 @@ export default function*(): Generator<[string, CommandV2]> {
         )
     })]
 
-    yield ["chat", ccmdV2(async function ({ msg, opts, args, sendCallback }) {
+    yield ["chat", ccmdV2(async function({ msg, opts, args, sendCallback }) {
         if (!configManager.getConfigValue("general.enable-chat")) {
             return crv("This command is not enabled", { status: StatusCode.ERR })
         }
@@ -499,7 +498,7 @@ export default function*(): Generator<[string, CommandV2]> {
 {{ .Response }}<|eot_id|>
 `
         }
-        if(opts.getBool("l", false)){
+        if (opts.getBool("l", false)) {
             return crv(Object.keys(approved_models).join("\n"))
         }
         if (!(model in approved_models))
@@ -515,7 +514,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 content: sys_msg
             })
             let state = this[1].state ?? {}
-            if(state[msg.author.id]){
+            if (state[msg.author.id]) {
                 return { noSend: true, status: StatusCode.ERR }
             }
             state[msg.author.id] = true
@@ -580,7 +579,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
             })
         })
-        return {content: (await result.json())["response"], status: StatusCode.RETURN, reply: true}
+        return { content: (await result.json())["response"], status: StatusCode.RETURN, reply: true }
         // if (!CHAT_LL) {
         //     return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
         // }
@@ -633,47 +632,49 @@ export default function*(): Generator<[string, CommandV2]> {
             return { content: `Could not find user`, status: StatusCode.ERR }
         }
         if (user_options.getOpt(toUser.id, "enable-mail", "false").toLowerCase() !== "true") {
-            return { content: `${
-                toUser instanceof GuildMember ? toUser.displayName : toUser.username
-            } does not have mail enabled`, status: StatusCode.ERR }
+            return {
+                content: `${toUser instanceof GuildMember ? toUser.displayName : toUser.username
+                    } does not have mail enabled`, status: StatusCode.ERR
+            }
         }
         try {
             await toUser.createDM()
         }
         catch (err) {
-            return { content: `Could not create dm channel with ${
-                toUser instanceof GuildMember ? toUser.displayName : toUser.username
-            }`, status: StatusCode.ERR }
+            return {
+                content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username
+                    }`, status: StatusCode.ERR
+            }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, configManager.PREFIX.length) === configManager.PREFIX) {
-            if(runtime_opts){
+            if (runtime_opts) {
                 let rv: CommandReturn = { noSend: true, status: 0 }
                 let old_disable = runtime_opts.get('disable', false)
                 runtime_opts.set("disable", generateDefaultRecurseBans())
-                for await(let result of cmds.runcmdv2({
+                for await (let result of cmds.runcmdv2({
                     command: signature,
                     runtime_opts,
                     msg,
                     prefix: configManager.PREFIX
-                })){
+                })) {
                     rv = result
                 }
                 runtime_opts.set("disable", old_disable)
                 signature = getContentFromResult(rv)
             }
-            else{
+            else {
                 let ctx = new cmds.RuntimeOptions()
                 ctx.set("recursion", recursionCount)
                 ctx.set("disable", { ...(commandBans || {}), ...generateDefaultRecurseBans() })
                 const results = []
-                for await(const res of globals.PROCESS_MANAGER.spawn_cmd({
+                for await (const res of globals.PROCESS_MANAGER.spawn_cmd({
                     msg, command: signature.slice(configManager.PREFIX.length), prefix: "",
-                })){
+                })) {
                     results.push(getContentFromResult(res))
                 }
                 signature = results.join("\n")
-                if(signature.startsWith(configManager.PREFIX)){
+                if (signature.startsWith(configManager.PREFIX)) {
                     signature = `\\${signature}`
                 }
             }
@@ -712,9 +713,8 @@ export default function*(): Generator<[string, CommandV2]> {
             return crv("You are not retired", { status: StatusCode.ERR })
         }
         if (!timer.has_x_s_passed(msg.author.id, "%retirement-activity", 1800) && !firstTime) {
-            return crv(`You must wait ${
-                (1800 - ((timer.do_lap(msg.author.id, "%retirement-activity") || 0) / 1000)) / 60
-            } minutes`)
+            return crv(`You must wait ${(1800 - ((timer.do_lap(msg.author.id, "%retirement-activity") || 0) / 1000)) / 60
+                } minutes`)
         }
         timer.restartTimer(msg.author.id, "%retirement-activity")
         let activities: { [activity: string]: () => Promise<CommandReturn> } = {
@@ -733,22 +733,20 @@ export default function*(): Generator<[string, CommandV2]> {
             "spanking": async () => {
                 let lostAmount = Math.floor(Math.random() * 10)
                 let name = choice(["Johnny", "Jicky", "Aldo", "Yicky", "Jinky", "Mumbo"])
-                await handleSending(msg, crv(`${name} didnt like that - ${
-                    user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
-                } ${lostAmount} 😳`), sendCallback)
+                await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+                    } ${lostAmount} 😳`), sendCallback)
                 return { noSend: true, status: StatusCode.RETURN }
             },
             "social security": async () => {
                 let amount = economy.economyLooseGrandTotal().total * 0.04
                 economy.addMoney(msg.author.id, amount)
                 return {
-                    content: `You got ${
-                        user_options.getOpt(
-                            msg.author.id,
-                            "currency-sign",
-                            GLOBAL_CURRENCY_SIGN
-                        )
-                    }${amount} in social security benifits`,
+                    content: `You got ${user_options.getOpt(
+                        msg.author.id,
+                        "currency-sign",
+                        GLOBAL_CURRENCY_SIGN
+                    )
+                        }${amount} in social security benifits`,
                     status: StatusCode.RETURN
                 }
             },
@@ -769,7 +767,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 economy.addMoney(msg.author.id, -5)
                 return crv("Your grandchild visits and you give them $5")
             },
-            "tickle time": async() => {
+            "tickle time": async () => {
                 return crv("You got tickled :face_with_hand_over_mouth:")
             },
             "getting a retirement massage": async () => crv(choice([
@@ -912,9 +910,10 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (Math.random() > .85) {
                     let amount = economy.playerLooseNetWorth(msg.author.id) * 0.01
                     economy.loseMoneyToBank(msg.author.id, amount)
-                    return { content: `You get sued for ${
-                        user_options.getOpt(msg.author.id, "currency-sign", "$")
-                    }${amount} for being so stinky`, status: StatusCode.RETURN }
+                    return {
+                        content: `You get sued for ${user_options.getOpt(msg.author.id, "currency-sign", "$")
+                            }${amount} for being so stinky`, status: StatusCode.RETURN
+                    }
                 }
                 return { content: "You got rid of the mumbo stink", status: StatusCode.RETURN }
             }],
@@ -951,9 +950,10 @@ export default function*(): Generator<[string, CommandV2]> {
             }],
             [["a fine grain of sand"], async () => {
                 economy.increaseSandCounter(msg.author.id, 1)
-                return { content: `You have increased your sand counter by 1, you are now at ${
-                    economy.getSandCounter(msg.author.id)
-                }`, status: StatusCode.RETURN }
+                return {
+                    content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)
+                        }`, status: StatusCode.RETURN
+                }
             }],
             [["stinky ol' boot", "mumbo meal"], async () => {
                 giveItem(msg.author.id, "balanced breakfast", 1)
@@ -1145,15 +1145,13 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             let first_time_embed = new EmbedBuilder()
             first_time_embed.setTitle(`${score.first_team_away} @ ${score.first_team_home}`)
-            first_time_embed.setDescription(`First time during ${
-                (new Date(score.first_date)).toDateString()
-            }`)
+            first_time_embed.setDescription(`First time during ${(new Date(score.first_date)).toDateString()
+                }`)
             first_time_embed.setFooter({ text: score.first_link })
             let last_time_embed = new EmbedBuilder()
             last_time_embed.setTitle(`${score.last_team_away} @ ${score.last_team_home}`)
-            last_time_embed.setDescription(`Most recent during ${
-                (new Date(score.last_date)).toDateString()
-            }`)
+            last_time_embed.setDescription(`Most recent during ${(new Date(score.last_date)).toDateString()
+                }`)
             last_time_embed.setFooter({ text: score.last_link })
             let info_embed = new EmbedBuilder()
             info_embed.setTitle(`Count:  ${score.count}`)
@@ -1216,7 +1214,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 let parentPID = globals.PROCESS_MANAGER.getprocidFromLabel(pid_label) ?? 0
 
                 let rv;
-                for await(rv of globals.PROCESS_MANAGER.spawn_cmd({
+                for await (rv of globals.PROCESS_MANAGER.spawn_cmd({
                     msg,
                     command: count_text,
                     prefix: configManager.PREFIX,
@@ -1343,19 +1341,56 @@ export default function*(): Generator<[string, CommandV2]> {
                 requestedUsers[0] = msg.author.id
             }
             let embeds = []
+
             const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${configManager.GUILD_ID}`
-            let data
-            try {
-                data = await fetch(url)
+            let page = 0
+            let lastPage = false
+
+            let JSONData: { players: any[], [key: string]: any } = { players: [] }
+
+            async function fetchNextPage() {
+                let data;
+                try {
+                    data = await fetch(`${url}?page=${page}`)
+                } catch (err) {
+                    return err as object
+                }
+
+                let json = await data.json()
+
+                //we've reached the last page
+                if (!json.players.length) {
+                    lastPage = true
+                    return
+                }
+
+                JSONData.players = JSONData.players.concat(json.players)
+
+                page++
             }
-            catch (err) {
-                return { content: "Could not fetch data", status: StatusCode.ERR }
+
+            async function getPlayerFromMee6(id: string): Promise<any> {
+
+                let userData = JSONData.players.filter((v: any) => v.id == id)?.[0]
+
+                while (!userData && !lastPage) {
+                    await fetchNextPage()
+                    userData = JSONData.players.filter((v: any) => v.id == id)?.[0]
+                }
+
+                return userData
             }
-            let text = await data.text()
-            if (!text) {
-                return { content: "No data found", status: StatusCode.ERR }
+
+            async function getRankFromMee6(rankNo: number): Promise<any> {
+                let userData = JSONData.players[rankNo]
+                while (!userData && !lastPage) {
+                    await fetchNextPage()
+                    userData = JSONData.players[rankNo]
+                }
+
+                return userData
             }
-            const JSONData = JSON.parse(text)
+
             function getAmountUntil(userData: any) {
                 const desired_rank = userData.level + 1
                 const xp_to_desired_rank = 5 / 6 * desired_rank * (
@@ -1373,9 +1408,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (ruser1.trim() && ruser2?.trim()) {
                     let member1: any, member2: any;
                     if (getRankMode) {
-                        member1 = JSONData.players[Number(ruser1) - 1]
+                        member1 = await getRankFromMee6(Number(ruser1) - 1)
                         member1 = await fetchUser(msg.guild, member1.id)
-                        member2 = JSONData.players[Number(ruser2) - 1]
+                        member2 = await getRankFromMee6(Number(ruser2) - 1)
                         member2 = await fetchUser(msg.guild, member2.id)
                     }
                     else {
@@ -1388,8 +1423,8 @@ export default function*(): Generator<[string, CommandV2]> {
                     if (!member2) {
                         return { content: `Could not find ${ruser2}`, status: StatusCode.ERR }
                     }
-                    const user1Data = JSONData.players.filter((v: any) => v.id == member1.id)?.[0]
-                    const user2Data = JSONData.players.filter((v: any) => v.id == member2.id)?.[0]
+                    const user1Data = await getPlayerFromMee6(member1.id)
+                    const user2Data = await getPlayerFromMee6(member2.id)
                     if (!user1Data) {
                         return {
                             content: `No data for ${member1.user.username} found`,
@@ -1437,7 +1472,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
                 let member: GuildMember;
                 if (getRankMode) {
-                    member = JSONData.players[Number(requestedUser.trim()) - 1]
+                    member = await getRankFromMee6(Number(requestedUser.trim()) - 1)
                     member = await fetchUser(msg.guild, member.id) as GuildMember
                 }
                 else
@@ -1445,7 +1480,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 if (!member) {
                     member = msg.member as GuildMember
                 }
-                const userData = JSONData.players.filter((v: any) => v.id == member.id)?.[0]
+                const userData = await getPlayerFromMee6(member.id)
                 if (!userData) {
                     return {
                         content: `No data for ${member.user.username} found`,
@@ -1650,7 +1685,7 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "@", ccmdV2(async function({args, stdin}){
+        "@", ccmdV2(async function({ args, stdin }) {
             return crv(stdin ? getContentFromResult(stdin) : args.join(" "), {
                 allowedMentions: { parse: ["users"] }
             })
@@ -1738,7 +1773,7 @@ export default function*(): Generator<[string, CommandV2]> {
             if (opts['recurse']) {
                 rv.recurse = true
             }
-            if(opts['p']){
+            if (opts['p']) {
                 rv["allowedMentions"] = {
                     parse: ["users"]
                 }
@@ -2135,9 +2170,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv("expected list")
             }
             let ans = iterators.range(0, times)
-                     .map(() => choice(items as string[]))
-                     .reduce("", (p: string, cur: string) => p + cur + "\n")
-                     .trim()
+                .map(() => choice(items as string[]))
+                .reduce("", (p: string, cur: string) => p + cur + "\n")
+                .trim()
             return ans ? crv(ans) : crv("```invalid message```", { status: StatusCode.ERR })
 
         }, "Choose a random item from a list of items separated by a |", {
@@ -2271,7 +2306,7 @@ Valid formats:
             }
             let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg: _, weather, wind_gust, pressure, uvi, clouds } = weatherJson.current
 
-            function getTempColor(temp: number){
+            function getTempColor(temp: number) {
                 return {
                     [110 < tempF ? 1 : 0]: "#aa0000",
                     [isBetween(100, tempF, 111) ? 1 : 0]: "#ff0000",
