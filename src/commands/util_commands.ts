@@ -14,7 +14,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed } from '../common_to_commands'
+import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed, crvFile } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec } from '../util'
 import iterators from '../iterators'
 
@@ -1745,6 +1745,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin }) {
+        if(opts.getBool('docs', false)){
+            return {
+                files: [
+                    crvFile("src/amount-parser-docs.md", "amount-parser.md", "amount parser docs")
+                ]
+            }
+        }
         let text = stdin ? getContentFromResult(stdin) : args.join(" ")
         if (!text) return crv("Expected code", { status: StatusCode.ERR })
         let relativeTo = opts.getNumber("r", 0)
@@ -1768,7 +1775,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         helpOptions: {
             r: createHelpOption("Set the relative number", undefined, "0"),
             s: createHelpOption("run a REPL<br>type <code>.exit</code> to exit the REPL"),
-            tree: createHelpOption("See the ast")
+            tree: createHelpOption("See the ast"),
+            docs: createHelpOption("Send the docs"),
         }, helpArguments: {
             code: createHelpArgument("The code to run")
         },

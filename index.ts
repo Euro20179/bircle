@@ -196,9 +196,9 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         timer.createTimer(m.author.id, "%can-earn")
     }
 
-    //you get reset if you have less than -40% of the economy
+    //you get reset if you have less than -99% of the economy
     if (
-        (economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4
+        (economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.99
     ) {
         economy.createPlayer(m.author.id)
         economy.setMoney(m.author.id, 0)
