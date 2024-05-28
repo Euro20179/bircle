@@ -188,9 +188,6 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     if (m.channel.type !== ChannelType.DM && m.guild && m.guild?.id !== configManager.GUILD_ID)
         return
 
-    if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
-        economy.createPlayer(m.author.id)
-    }
     if (!timer.getTimer(m.author.id, "%can-earn") && !m.author.bot) {
         //for backwards compatibility
         timer.createTimer(m.author.id, "%can-earn")

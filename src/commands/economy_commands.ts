@@ -32,7 +32,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 "currency-sign",
                 GLOBAL_CURRENCY_SIGN
             )
-            if(!economy.getEconomy()[msg.author.id] && !msg.author.bot){
+            if(!economy.playerExists(msg.author.id) && !msg.author.bot){
                 economy.createPlayer(msg.author.id, 100)
                 return crv(`You joined the economy with ${currency_sign}100`)
             }

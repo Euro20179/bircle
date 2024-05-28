@@ -12,6 +12,7 @@ import globals from '../globals';
 
 import events from './events'
 import configManager, { PREFIX } from '../config-manager';
+import economy from '../economy';
 
 const CMD_CACHE: Map<string, CommandReturn[]> = new Map()
 
@@ -133,7 +134,9 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
 
     let doWarn = !runtime_options.get("disableCmdConfirmations", false)
 
-    if (doWarn && (warn_cmds.includes(cmd) || warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true))) {
+    const cmdCategory = cmdCatToStr(cmdObject?.category)
+
+    if (doWarn && (warn_cmds.includes(cmd) || warn_categories.includes(cmdCategory) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true))) {
         let m = await promptUser(msg, `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
 
         if (!m || m.content.toLowerCase() !== 'y') {
