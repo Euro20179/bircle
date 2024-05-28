@@ -751,17 +751,28 @@ export default function*(): Generator<[string, CommandV2]> {
                 }
             },
             "doing bingo night": async () => {
-                economy.addMoney(
+                const currency_sign = user_options.getOpt(
                     msg.author.id,
-                    economy.calculateAmountFromString(msg.author.id, "1%")
+                    "currency-sign",
+                    GLOBAL_CURRENCY_SIGN
                 )
-                return crv("YOU WIN!!!!", {
-                    files: [
-                        {
-                            attachment: './assets/elderly-woman.webp'
-                        }
-                    ]
-                })
+                const amount = economy.calculateAmountFromString(msg.author.id, "1%")
+                if (Math.random() > .5) {
+                    economy.addMoney(
+                        msg.author.id,
+                        amount
+                    )
+                    return crv(`YOU WIN!!!!\nYou won: ${currency_sign}${amount}`, {
+                        files: [
+                            {
+                                attachment: './assets/elderly-woman.webp'
+                            }
+                        ]
+                    })
+                } else {
+                    economy.loseMoneyToBank(msg.author.id, -amount)
+                    return crv(`YOU LOSE!!!!\nYou lost: ${currency_sign}${amount}`)
+                }
             },
             "grandkids visit": async () => {
                 economy.addMoney(msg.author.id, -5)
