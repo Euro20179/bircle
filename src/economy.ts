@@ -156,7 +156,7 @@ function newLottery() {
     lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 }
 
-function createPlayer(id: string, startingCash = 100) {
+function createPlayer(id: string, startingCash = 0) {
     timer.createTimer(id, "%can-earn")
     ECONOMY[id] = { money: startingCash, stocks: {}, retired: false }
 }

@@ -756,7 +756,12 @@ export default function*(): Generator<[string, CommandV2]> {
                     "currency-sign",
                     GLOBAL_CURRENCY_SIGN
                 )
-                const amount = economy.calculateAmountFromString(msg.author.id, "1%")
+                const amount = economy.calculateAmountFromString(msg.author.id, "10%")
+                if(Math.random() <= (1/500)){
+                    const amount = economy.calculateAmountFromString(msg.author.id, "100%")
+                    economy.addMoney(msg.author.id, amount)
+                    return crv(`YOU WON THE JACKPOT: ${currency_sign}${amount}`)
+                }
                 if (Math.random() > .5) {
                     economy.addMoney(
                         msg.author.id,
