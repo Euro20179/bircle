@@ -25,6 +25,21 @@ const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
+    yield [
+        "join-economy", ccmdV2(async function({ msg }){
+            const currency_sign = user_options.getOpt(
+                msg.author.id,
+                "currency-sign",
+                GLOBAL_CURRENCY_SIGN
+            )
+            if(!economy.getEconomy()[msg.author.id] && !msg.author.bot){
+                economy.createPlayer(msg.author.id, 100)
+                return crv(`You joined the economy with ${currency_sign}100`)
+            }
+            return crv("Failed to join economy", { status: StatusCode.ERR })
+        }, "Joins the economy for real, lets you starrt with $100")
+    ]
+
     yield ["#calcet", ccmdV2(async function() {
         let ip = getToolIp()
 

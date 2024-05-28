@@ -142,7 +142,7 @@ function handleMinuteInterest(activePet: string | false, m: Message) {
 
 async function handleEarnings(m: Message) {
     if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
-        economy.createPlayer(m.author.id, 100)
+        return;
     }
 
     let deaths = pet.damageUserPetsRandomly(m.author.id)
