@@ -123,6 +123,7 @@ async function* runcmdpipe(pipes: PipeNode[],
     if (stdin) {
         symbols.set("stdin:content", stdin.content ?? "")
         symbols.set("stdin:%", stdin.content ?? "")
+        symbols.set("stdin:raw", JSON.stringify(stdin))
         if (stdin.status === StatusCode.CMDSTATUS) {
             symbols.set("stdin:status", String(stdin.statusNr || 0))
         } else {
