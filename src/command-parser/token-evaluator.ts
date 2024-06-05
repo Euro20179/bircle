@@ -87,9 +87,17 @@ class TokenEvaluator {
                 val = userOptions.getOpt(this.msg.author.id, varName.slice(1) as "currency-sign", "")
             }
             else {
-                val = this.symbols.get(varName)
-                if (val === undefined) {
+                let symbolValue = this.symbols.get(varName)
+                if(typeof symbolValue === 'function'){
+                    let res = ""
+                    for await(let item of symbolValue()){
+                        res += getContentFromResult(item, "\n")
+                    }
+                    val = res
+                } else if(symbolValue === undefined){
                     val = vars.getVar(this.msg, varName)
+                } else {
+                    val = symbolValue
                 }
             }
             switch (operator) {
@@ -111,8 +119,11 @@ class TokenEvaluator {
                     for (let i = 0; i < args.length; i++) {
                         this.symbols.set(`#${i}`, args[i])
                     }
-                    const syn = await cmds.expandSyntax(val, this.msg, this.symbols, this.runtime_opts)
-                    this.add_list_of_strings(syn)
+                    const strings = []
+                    for await(const r of cmds.runcmdv2({prefix: "", command: val, msg: this.msg, symbols: this.symbols, runtime_opts: this.runtime_opts})){
+                        strings.push(getContentFromResult(r, '\n'))
+                    }
+                    this.add_list_of_strings(strings)
                     for (let i = 0; i < args.length; i++) {
                         this.symbols.delete(`#${i}`)
                     }
@@ -310,7 +321,7 @@ class TokenEvaluator {
 
 const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq: string, args: string[], msg: Message, runtime_opts: RuntimeOptions) => Promise<string>> = {
     ["%"]: async (_token, symbols) => {
-        return symbols.get("stdin:%") ?? "{%}"
+        return String(symbols.get("stdin:%")) ?? "{%}"
     },
     //TODO: cmd: async()
     fhex: async (_token, _, __, args) => {

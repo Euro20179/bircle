@@ -16,11 +16,11 @@ import { PROCESS_MANAGER } from '../globals'
 const PREFIX = configManager.PREFIX
 
 export class SymbolTable {
-    symbols: Record<string, string>
+    symbols: Record<string, string | (() => AsyncGenerator<CommandReturn>)>
     constructor() {
         this.symbols = {}
     }
-    set(name: string, value: string) {
+    set(name: string, value: string | (() => AsyncGenerator<CommandReturn>)) {
         this.symbols[name] = value
     }
     get(name: string) {

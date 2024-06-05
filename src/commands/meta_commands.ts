@@ -289,7 +289,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         },
     })]
 
-    yield ["export", ccmdV2(async ({ args, symbols, opts }) => {
+    yield ["export", ccmdV2(async ({ args, symbols, opts, msg }) => {
         let [name, ...val] = args
         let value = val.join(" ")
         if (value[0] === "=") {
@@ -302,15 +302,23 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             return crv("Name must be alphanumeric + _- only", { status: StatusCode.ERR })
         }
 
-        if (symbols)
-            symbols.set(name, value)
+        if (symbols){
+            if(opts.getBool("f", false)){
+                const parsedValue = parseBracketPair(value, "{}")
+                symbols.set(name, async function*(){
+                    yield* cmds.runcmdv2({command: parsedValue, prefix: "", msg})
+                })
+            }
+            else symbols.set(name, value)
+        }
 
         return opts.getBool("s", false)
             ? { noSend: true, status: StatusCode.RETURN }
             : crv(`${name} = ${value}`)
     }, "Sets a variable for the current runtime", {
         helpOptions: {
-            s: createHelpOption("Send nothing after creating the variable")
+            s: createHelpOption("Send nothing after creating the variable"),
+            f: createHelpOption("Make a function")
         }
     })]
 
