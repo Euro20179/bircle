@@ -1,10 +1,12 @@
 s:export OLDPIPE = ${&pipe-symbol||>pipe>} ;;
 s:export OLDAND = ${&and-symbol||>and>} ;;
 s:export OLDOR = ${&and-symbol||>or>} ;;
-@ {user} unsetting pipe-symbol, and-symbol, and or-symbol for testing ;;
+s:export OLDOPTS = ${&opts-parser||normal} ;;
+@ {user} unsetting pipe-symbol, and-symbol, or-symbol and opts-parser for testing ;;
 y:s:option pipe-symbol ;;
 y:s:option and-symbol ;;
 y:s:option or-symbol ;;
+y:s:option opts-parser ;;
 
 s:export FAILEDTESTS = ;;
 
@@ -27,10 +29,11 @@ s:export advanced-macros = $(n:assert -title=advanced-macros $(s:export test = e
 s:export and = $(n:assert -title=and $(echo -D before and >and> echo -D after and ;; raw {"status": 1, "content": "fail"} >and> echo -D FAIL ;; echo -D should run) >test> = before andafter andfailshould run) ;;
 s:export and2 = $(n:assert -title=and2 $(echo -D before and >pipe> rev >and> echo -D after and ;; raw {"status": 1, "content": "fail"} >and> echo -D FAIL ;; echo -D should run) >test> = dna erofebafter andfailshould run) ;;
 
-@ {user} unsetting pipe-symbol, and-symbol, and or-symbol back;;
+@ {user} unsetting pipe-symbol, and-symbol, or-symbol and opts-parser back ;;
 y:s:option pipe-symbol ${OLDPIPE} ;;
 y:s:option and-symbol ${OLDAND} ;;
 y:s:option or-symbol ${OLDOR} ;;
+y:s:option opts-parser ${OLDOPTS} ;;
 
 paged-embed ${line-number}
 ${calc-syntax}
