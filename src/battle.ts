@@ -645,7 +645,9 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                     damage *= 2
                 }
                 allPlayers[player].damageThroughShield(damage)
-                allPlayers[player].kill(m, gameState)
+                if(!allPlayers[player].shielded){
+                    allPlayers[player].kill(m, gameState)
+                }
                 return true
             }
         }),
