@@ -358,10 +358,22 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             const cmd = stdin ? getContentFromResult(stdin) : args.join(" ")
             let oldStdin = stdin
             runtime_opts.delete("stdin")
-            yield* globals.PROCESS_MANAGER.spawn_cmd({ command: cmd, msg, prefix: "", runtime_opts, symbols })
+            const optsParser = user_options.getOpt(msg.author.id, "opts-parser", "normal")
+            yield* globals.PROCESS_MANAGER.spawn_cmd({
+                command: cmd,
+                msg,
+                prefix: "",
+                runtime_opts,
+                symbols,
+                and_sign: ">and>",
+                or_sign: ">or>",
+                pipe_sign: ">pipe>",
+                one_arg_str: false
+            })
             if(oldStdin){
                 runtime_opts.set("stdin", oldStdin)
             }
+            user_options.setOpt(msg.author.id, "opts-parser", optsParser)
         }, "Runs a command as is, sets stdin to nothing")
     ]
 
