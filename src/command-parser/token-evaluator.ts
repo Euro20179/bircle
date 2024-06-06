@@ -119,11 +119,12 @@ class TokenEvaluator {
                     for (let i = 0; i < args.length; i++) {
                         this.symbols.set(`#${i}`, args[i])
                     }
-                    const strings = []
-                    for await(const r of cmds.runcmdv2({prefix: "", command: val, msg: this.msg, symbols: this.symbols, runtime_opts: this.runtime_opts})){
-                        strings.push(getContentFromResult(r, '\n'))
-                    }
-                    this.add_list_of_strings(strings)
+                    const syn = await cmds.expandSyntax(val, this.msg, this.symbols, this.runtime_opts)
+                    this.add_list_of_strings(syn)
+                    // for await(const r of cmds.runcmdv2({prefix: "", command: val, msg: this.msg, symbols: this.symbols, runtime_opts: this.runtime_opts})){
+                    //     strings.push(getContentFromResult(r, '\n'))
+                    // }
+                    // this.add_list_of_strings(strings)
                     for (let i = 0; i < args.length; i++) {
                         this.symbols.delete(`#${i}`)
                     }
