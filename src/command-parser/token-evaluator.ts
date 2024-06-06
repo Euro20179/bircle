@@ -230,7 +230,9 @@ class TokenEvaluator {
             }
         }
         else if (token instanceof lexer.TTIFS) {
-            this.complete_cur_tok()
+            if(this.cur_tok.data.length){
+                this.complete_cur_tok()
+            }
         }
         else if (token instanceof lexer.TTEsc) {
             let char = token.data[0]

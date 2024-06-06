@@ -354,11 +354,19 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     })]
 
     yield [
+        "exec", ccmdV2(async function*({msg, args, stdin, runtime_opts, symbols}){
+            const cmd = stdin ? getContentFromResult(stdin) : args.join(" ")
+            console.log(cmd)
+            yield* globals.PROCESS_MANAGER.spawn_cmd({ command: cmd, msg, prefix: "", runtime_opts, symbols })
+        }, "Runs a command as is")
+    ]
+
+    yield [
         "```bircle", createCommandV2(async function*({ msg, args, runtime_opts, symbols }) {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg, symbols })) {
+                for await (let result of globals.PROCESS_MANAGER.spawn_cmd({ command: line, prefix: "", runtime_opts, msg, symbols})) {
                     yield result
                 }
             }
