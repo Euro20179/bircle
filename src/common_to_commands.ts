@@ -467,7 +467,7 @@ export class AliasV2 {
                 runtime_opts,
                 and_sign: ">and>",
                 or_sign: ">or>",
-                one_arg_str: true,
+                one_arg_str: false,
                 pipe_sign: ">pipe>"
             }, `${this.name}(SUB)`,)
         ) {
