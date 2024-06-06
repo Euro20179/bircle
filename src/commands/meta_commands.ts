@@ -356,9 +356,13 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     yield [
         "exec", ccmdV2(async function*({msg, args, stdin, runtime_opts, symbols}){
             const cmd = stdin ? getContentFromResult(stdin) : args.join(" ")
-            console.log(cmd)
+            let oldStdin = stdin
+            runtime_opts.delete("stdin")
             yield* globals.PROCESS_MANAGER.spawn_cmd({ command: cmd, msg, prefix: "", runtime_opts, symbols })
-        }, "Runs a command as is")
+            if(oldStdin){
+                runtime_opts.set("stdin", oldStdin)
+            }
+        }, "Runs a command as is, sets stdin to nothing")
     ]
 
     yield [
