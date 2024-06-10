@@ -9,10 +9,10 @@ import fs from 'fs'
 import { getOpts } from './parsing'
 
 import economy from './economy'
-import { StatusCode, crv } from './common_to_commands'
+import { StatusCode, crv, promptUser } from './common_to_commands'
 import cmds from './command-parser/cmds'
 
-import { efd, isMsgChannel } from './util'
+import { choice, efd, isMsgChannel, randInt } from './util'
 
 const handleSending = cmds.handleSending
 
@@ -63,6 +63,7 @@ class Player {
     #lowestHp: number = 100
     #lastItemUsage: number | null = null
     #itemUsageTable: { [key: string]: number }
+    #hp100Requirement = 50
     constructor(id: string, bet: number, hp: number) {
         this.hp = hp
         this.bet = bet
@@ -72,6 +73,14 @@ class Player {
         this.id = id
         this.#itemUsageTable = {}
         this.dead = false
+    }
+
+    use100Hp(){
+        this.#hp100Requirement -= 15
+    }
+
+    get hp100Requirement () {
+        return this.#hp100Requirement
     }
 
     get lowestHp() {
@@ -305,6 +314,10 @@ class Item {
         this.#allowedAfter = options.allowedAfter ?? 8000
     }
 
+    get useCount(){
+        return this.#useCount
+    }
+
     get allowedAfter() {
         return this.#allowedAfter
     }
@@ -471,6 +484,81 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 }
                 return true
             }
+        }),
+        "100 hp": new Item({
+            percentCost: 0.002,
+            async onUse(m, embed) {
+                if(allPlayers[m.author.id].hp > allPlayers[m.author.id].hp100Requirement){
+                    await m.channel.send(`You must be below ${allPlayers[m.author.id].hp100Requirement} to use this`)
+                    return false
+                }
+
+                allPlayers[m.author.id].use100Hp()
+
+                embed.setTitle("100 HP FAIL")
+                embed.setColor("Red")
+                embed.setDescription(`# ${m.author} failed to get 100 hp`)
+
+                const restrictions = [
+                    "alive",
+                    "losehp",
+                    "none",
+                    "overtime"
+                ]
+
+                const restrict = choice(restrictions)
+
+                const n1 = Math.floor(randInt(1, 100))
+
+                const n2 = Math.floor(randInt(1, 100))
+
+                const ans = await promptUser(m,  `You got the ${restrict} restriction\n${m.author} what is "${n1} + ${n2}", you have 4 seconds`, undefined, {
+                    filter: u => u.author.id === m.author.id,
+                    timeout: 4000
+                })
+
+                if(!ans){
+                    if(restrict === "losehp"){
+                        embed.setDescription(`# ${m.author} lost 100 hp`)
+                        allPlayers[m.author.id].damageThroughShield(100)
+                    }
+                    return true
+                }
+
+                if(ans.content === String(n1 + n2)) {
+                    if(restrict !== "alive"){
+                        embed.setTitle("100 HP")
+                        embed.setColor("Green")
+                        if(restrict !== "overtime"){
+                            embed.setDescription(`# ${m.author} GOT 100 HP`)
+                            allPlayers[m.author.id].heal(100)
+                        } else {
+                            const step = 100 / (Math.random() * 99 + 1)
+                            const time = Math.random() * 10000
+                            embed.setDescription(`# ${m.author} will get ${step} hp every ${time} seconds`)
+                            let totalEarned = 0
+                            let int = setInterval(() => {
+                                allPlayers[m.author.id].heal(step)
+                                totalEarned += step
+                                if(!BATTLEGAME || totalEarned >= 100){
+                                    clearInterval(int)
+                                }
+                            }, time)
+                        }
+                    }
+                    else {
+                        embed.setDescription(`# ${m.author} did not get 100 hp because they died`)
+                    }
+                    return true
+                }
+
+                if(restrict === "losehp"){
+                    embed.setDescription(`# ${m.author} lost 100 hp`)
+                    allPlayers[m.author.id].damageThroughShield(100)
+                }
+
+                return true
+            },
         }),
         "anger toolbox": new Item({
             numberCost: 3,
@@ -874,7 +962,7 @@ function mostUsedBonus(players: { [key: string]: Player }) {
     if (bonusAmount && economy.playerExists(mostUsed[0].id)) {
         const fullAmount = economy.calculateAmountFromNetWorth(mostUsed[0].id, `${bonusAmount}+${bonusAmount}%`)
         economy.addMoney(mostUsed[0].id, fullAmount)
-        return `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} ITEMS AND WON $${bonusAmount}\n`
+        return `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} ITEMS AND WON $${fullAmount}\n`
     }
     return ""
 }

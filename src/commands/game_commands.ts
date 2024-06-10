@@ -959,8 +959,9 @@ yield[
                     <b>triple</b>: Triple the damage of the next game attack (cost: $3 + 10%)
                 </li>
                 <li>
-                    <b>blue shll</b>: Deal 50 damage to the player with the most health (if they have more than 50 health) (cost: $0.5 + 2%)
+                    <b>blue shell</b>: Deal 50 damage to the player with the most health (if they have more than 50 health) (cost: $0.5 + 2%)
                 </li>
+                <li>
                     <b>shield</b>: Block the next game attack (cost: $0.5 + 0.3%)
                 </li>
                 <li>
@@ -968,6 +969,24 @@ yield[
                 </li>
                 <li>
                     <b>suicide*</b>: Deal randomly 2-10 damage to yourself (cost: $1 + 0.1%)
+                </li>
+                <li>
+                    <b>100 hp</b>: gives you 100 hp if you pass the test (cost: 0.2%)
+                </li>
+                <li>
+                    <b>chance</b>: Randomly heal or take 2 to 80 damage (cost 0.1 + 0.5%)
+                </li>
+                <li>
+                    <b>half</b>: take half damage (cannot be used with shield) (cost: 1%)
+                </li>
+                <li>
+                    <b>axe</b>: hit a random player for 0 to playercount*5 damage (kills) (cost: 1 + 0.1%)
+                </li>
+                <li>
+                    <b>split</b>: reduce all player's hp by half (if all players are above 200) (cost: 5)
+                </li>
+                <li>
+                    <b>rheal</b>: randomly heal a player who has less than 50 hp for 0 to playerCount * 15 damage (cost: 0.1 + 0.1%)
                 </li>
             </ul>
             <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
