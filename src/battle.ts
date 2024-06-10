@@ -403,6 +403,20 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
     let start = Date.now() / 1000
 
     let items: { [key: string]: Item } = {// {{{
+        round: new Item({
+            numberCost: 5,
+            allowedAfter: 4000,
+            async onUse(m, embed){
+                embed.setTitle(`${m.author} made some nice whole numbers`)
+                allPlayers[m.author.id].hp = Math.ceil(allPlayers[m.author.id].hp / 10) * 10
+                for(let player in allPlayers){
+                    if(allPlayers[player].alive){
+                        allPlayers[player].hp = Math.floor(allPlayers[player].hp / 10) * 10
+                    }
+                }
+                return true
+            }
+        }),
         split: new Item({
             numberCost: 5,
             async onUse(m, embed) {
