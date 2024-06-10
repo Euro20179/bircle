@@ -850,7 +850,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         }
         if (winner[1].hp >= 100) {
             if (economy.playerExists(winner[0])) {
-                economy.addMoney(winner[0], winner[1].hp - 100)
+                economy.addMoney(winner[0], winner[1].hp)
                 bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
             }
         }
