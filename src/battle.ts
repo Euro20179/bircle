@@ -917,7 +917,7 @@ async function battle(msg: Message, args: ArgumentList) {
     collector.on("collect", async (m) => {
         if (!isMsgChannel(msg.channel)) return
         if (players[m.author.id]) return
-        let bet = m.content.split(" ")[1]
+        let bet = m.content.trim().split(" ")[1] || "min"
         let nBet = economy.calculateAmountFromString(m.author.id, bet, { min: (t, _a) => t * 0.002 })
         if (!nBet || !economy.canBetAmount(m.author.id, nBet) || nBet < 0) {
             await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
