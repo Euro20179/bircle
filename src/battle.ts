@@ -404,7 +404,8 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
     let items: { [key: string]: Item } = {// {{{
         round: new Item({
-            numberCost: 5,
+            numberCost: 10,
+            percentCost: 0.008,
             allowedAfter: 4000,
             async onUse(m, embed){
                 embed.setTitle(`${m.author} made some nice whole numbers`)
@@ -461,7 +462,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             }
         }),
         "heal": new Item({
-            percentCost: 0.01,
+            percentCost: 0.008,
             numberCost: 0.1,
             async onUse(m, e) {
                 let amount = Math.floor(Math.random() * 19 + 1)
