@@ -526,7 +526,10 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 }
 
                 if(ans.content === String(n1 + n2)) {
-                    if(restrict !== "alive"){
+                    if(restrict === "alive" && !allPlayers[m.author.id].alive){
+                        embed.setDescription(`# ${m.author} did not get 100 hp because they died`)
+                    }
+                    else{
                         embed.setTitle("100 HP")
                         embed.setColor("Green")
                         if(restrict !== "overtime"){
@@ -545,9 +548,6 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                                 }
                             }, time)
                         }
-                    }
-                    else {
-                        embed.setDescription(`# ${m.author} did not get 100 hp because they died`)
                     }
                     return true
                 }
