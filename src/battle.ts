@@ -958,11 +958,12 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
 function mostUsedBonus(players: { [key: string]: Player }) {
     let mostUsed = Object.values(players).sort((a, b) => b.itemUses - a.itemUses)
-    let bonusAmount = mostUsed[0].itemUses - (mostUsed[1] || { itemUses: 0 }).itemUses
+    const itemUseGap = mostUsed[0].itemUses - (mostUsed[1] || { itemUses: 0 }).itemUses 
+    let bonusAmount = itemUseGap
     if (bonusAmount && economy.playerExists(mostUsed[0].id)) {
-        const fullAmount = economy.calculateAmountFromNetWorth(mostUsed[0].id, `${bonusAmount}+${bonusAmount}%`)
+        const fullAmount = economy.calculateAmountFromNetWorth(mostUsed[0].id, `${bonusAmount}+${bonusAmount/10}%`)
         economy.addMoney(mostUsed[0].id, fullAmount)
-        return `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} ITEMS AND WON $${fullAmount}\n`
+        return `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} (${itemUseGap} more items) ITEMS AND WON $${fullAmount}\n`
     }
     return ""
 }
