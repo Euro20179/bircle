@@ -2957,6 +2957,14 @@ ${styles}
         fs.writeFileSync("./database/battleV2", JSON.stringify(responses))
         return crv(`added: ${JSON.stringify(added)}`)
     }, "Creates a battle response", {
+            docs: `Example: <code lang="bircle">[abattle tiny this is some message that happens to {user1}
+heal | 1</code>
+<br>
+Example 2: <code lang="bircle">[abattle huge this is some message that happens to user 1 and 2
+heal | 1 2</code>
+<br>
+Example 3: <code lang="bircle">[abattle small this is some message that happens to all users {userall}
+damage | all</code>`,
         helpArguments: {
             size: helpArg("Amount of damage, can be<ul><li>tiny</li><li>small</li><li>medium</li><li>big</li><li>huge</li></ul>"),
             response: helpArg("Must be on its own line<br>What it says, <code>{user&lt;n&gt;}</code> will be replaced with a player, if n is all it gets replaced with everyone in the game, if it is 1, it will be replaced with player 1, and so on, <code>{amount}</code> will be replaced with the amount of damage/heal it does"),

@@ -10,7 +10,8 @@ function renderElementChildren(elem: cheerio.Element, indentation = 0, baseUrl =
 
     for (let child of elem.children) {
         if (child.type === "text") {
-            text += child.data?.replaceAll(/\s+/g, " ")
+            text += child.data
+            // text += child.data?.replaceAll(/\s+/g, " ")
         }
         else if (child.type === "tag") {
             text += renderELEMENT(child, indentation, baseUrl)
