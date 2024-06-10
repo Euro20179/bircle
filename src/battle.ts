@@ -797,8 +797,9 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                             e.setDescription(`<@${player.id}> BLOCKED THE ATTACK`)
                             e.setColor("Navy")
                             await msg.channel.send({ embeds: [e] })
+                        } else {
+                            player.kill(msg, gameState)
                         }
-                        player.kill(msg, gameState)
                     }
                     break
                 }
