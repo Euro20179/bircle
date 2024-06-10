@@ -836,8 +836,9 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
     else {
         economy.addMoney(winner[0], betTotal * BATTLE_GAME_BONUS)
         if (winner[1].lowestHp < 0) {
-            bonusText += `<@${winner[0]}> GOT THE NEGATIVE HP BONUS FOR ${winner[1].lowestHp}\n`
-            economy.addMoney(winner[0], Math.abs(winner[1].lowestHp))
+            const amount = economy.calculateAmountFromString(winner[0], `${Math.abs(winner[1].lowestHp)}%`)
+            bonusText += `<@${winner[0]}> GOT THE NEGATIVE HP BONUS FOR ${amount} by reaching a low of ${winner[1].lowestHp} hp\n`
+            economy.addMoney(winner[0], amount)
         }
         e.setTitle("GAME OVER!")
         e.setColor("Green")
@@ -848,7 +849,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1].hp} HEALTH REMAINING\nAND WON THE REMAINING: $${betTotal * BATTLE_GAME_BONUS}`)
         }
         if (winner[1].hp >= 100) {
-            if (economy.getEconomy()[winner[0]]) {
+            if (economy.playerExists(winner[0])) {
                 economy.addMoney(winner[0], winner[1].hp - 100)
                 bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
             }

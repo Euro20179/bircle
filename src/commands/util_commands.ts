@@ -1576,66 +1576,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "abattle", ccmdV2(async function({ rawOpts: opts, msg, args }) {
-            let text = args.join(" ")
-            let damageUsers = opts['damage'] || opts['d']
-            let healUsers = opts['heal'] || opts['h']
-            let amounts = ['huge', 'big', 'medium', 'small', 'tiny']
-            let givenAmount = opts['amount'] || opts['a']
-            if (typeof givenAmount !== 'string') {
-                return { content: `You must provide an amount (${amounts.join(", ")})`, status: StatusCode.ERR }
-            }
-            if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
-                return { content: `You must provide a user to damage/heal`, status: StatusCode.ERR }
-            }
-            if (damageUsers !== undefined && typeof damageUsers !== 'string') {
-                return { content: "-damage must be a user number or all", status: StatusCode.ERR }
-            }
-            if (healUsers !== undefined && typeof healUsers !== 'string') {
-                return { content: "-heal must be a user number or all", status: StatusCode.ERR }
-            }
-            if (!amounts.includes(givenAmount)) {
-                return { content: `You did not provide a valid amount (${amounts.join(", ")})`, status: StatusCode.ERR }
-            }
-            let damageHealText = ""
-            if (damageUsers) {
-                if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
-                    return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
-                }
-                damageHealText += ` DAMAGE=${damageUsers}`
-            }
-            if (healUsers) {
-                if (!healUsers.match(/(?:(\d+|all),?)+/)) {
-                    return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
-                }
-                damageHealText += ` HEAL=${healUsers}`
-            }
-            fs.appendFileSync("./command-results/battle", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText};END\n`)
-            return { content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}`, status: StatusCode.RETURN }
-        }, "Add a battle command with a nice ui ™️", {
-            arguments: {
-                "text": {
-                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc..."
-                }
-            },
-            options: {
-                "heal": {
-                    alternatives: ['u'],
-                    description: "The user(s) to heal"
-                },
-                "damage": {
-                    alternatives: ['d'],
-                    description: "The user(s) to damage"
-                },
-                "amount": {
-                    alternatives: ["a"],
-                    description: "The amount to damage/heal, (huge, big, medium, small, tiny)"
-                }
-            }
-        })
-    ]
-
-    yield [
         "calcet", ccmdV2(async function({ args, rawOpts: opts }) {
             let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
             let reqAmount = args.join(" ") || "all!"
