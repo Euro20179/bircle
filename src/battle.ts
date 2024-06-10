@@ -870,7 +870,8 @@ function mostUsedBonus(players: { [key: string]: Player }) {
     let mostUsed = Object.values(players).sort((a, b) => b.itemUses - a.itemUses)
     let bonusAmount = mostUsed[0].itemUses - (mostUsed[1] || { itemUses: 0 }).itemUses
     if (bonusAmount && economy.getEconomy()[mostUsed[0].id]) {
-        economy.addMoney(mostUsed[0].id, bonusAmount)
+        const fullAmount = economy.calculateAmountFromNetWorth(mostUsed[0].id, `${bonusAmount}+${bonusAmount}%`)
+        economy.addMoney(mostUsed[0].id, fullAmount)
         return `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} ITEMS AND WON $${bonusAmount}\n`
     }
     return ""
