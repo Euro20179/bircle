@@ -500,8 +500,9 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 return true
             }
         }),
-        "100 hp": new Item({
+        "50 hp": new Item({
             percentCost: 0.002,
+            allowedAfter: 4000,
             async onUse(m, embed) {
                 if(allPlayers[m.author.id].hp > allPlayers[m.author.id].hp100Requirement){
                     await m.channel.send(`You must be below ${allPlayers[m.author.id].hp100Requirement} to use this`)
@@ -510,9 +511,9 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
                 allPlayers[m.author.id].use100Hp()
 
-                embed.setTitle("100 HP FAIL")
+                embed.setTitle("50 HP FAIL")
                 embed.setColor("Red")
-                embed.setDescription(`# ${m.author} failed to get 100 hp`)
+                embed.setDescription(`# ${m.author} failed to get 50 hp`)
 
                 const restrictions = [
                     "alive",
@@ -523,42 +524,64 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
                 const restrict = choice(restrictions)
 
-                const n1 = Math.floor(randInt(1, 100))
+                const restrictText = `You got the ${restrict} restriction\n`
 
-                const n2 = Math.floor(randInt(1, 100))
+                const challenges: {[key: string]: () => Promise<[Message | false, string]>}= {
+                    "math-add": async() => {
+                        const n1 = Math.floor(randInt(1, 100))
 
-                const ans = await promptUser(m,  `You got the ${restrict} restriction\n${m.author} what is "${n1} + ${n2}", you have 4 seconds`, undefined, {
-                    filter: u => u.author.id === m.author.id,
-                    timeout: 4000
-                })
+                        const n2 = Math.floor(randInt(1, 100))
+                        return [await promptUser(m,  `${restrictText}${m.author} what is "${n1} + ${n2}", you have 4 seconds`, undefined, {
+                            filter: u => u.author.id === m.author.id,
+                            timeout: 4000
+                        }), String(n1 + n2)]
+                    },
+                    "math-sub": async() => {
+                        const n1 = Math.floor(randInt(1, 100))
+                        const n2 = Math.floor(randInt(1, 100))
+
+                        const ans = n1 > n2 ? n1 - n2 : n2 - n1
+
+                        const text = n1 > n1 ? `what is ${n1} - ${n2}` : `what is ${n2} - ${n1}`
+
+                        return [await promptUser(m, `${restrictText}${m.author} ${text}, you have 5 seconds`, undefined, {
+                            filter: u => u.author.id === m.author.id,
+                            timeout: 5000
+                        }), String(ans)]
+                    }
+                } as const
+
+                const challenge = choice(Object.keys(challenges))
+
+                const [ans, correct] = await challenges[challenge as keyof typeof challenges]()
 
                 if(!ans){
                     if(restrict === "losehp"){
-                        embed.setDescription(`# ${m.author} lost 100 hp`)
-                        allPlayers[m.author.id].damageThroughShield(100)
+                        embed.setDescription(`# ${m.author} lost 50 hp`)
+                        allPlayers[m.author.id].damageThroughShield(50)
                     }
                     return true
                 }
 
-                if(ans.content === String(n1 + n2)) {
+                if(ans.content === correct) {
                     if(restrict === "alive" && !allPlayers[m.author.id].alive){
-                        embed.setDescription(`# ${m.author} did not get 100 hp because they died`)
+                        embed.setDescription(`# ${m.author} did not get 50 hp because they died`)
                     }
                     else{
-                        embed.setTitle("100 HP")
+                        embed.setTitle("50 HP")
                         embed.setColor("Green")
                         if(restrict !== "overtime"){
-                            embed.setDescription(`# ${m.author} GOT 100 HP`)
-                            allPlayers[m.author.id].heal(100)
+                            embed.setDescription(`# ${m.author} GOT 50 HP`)
+                            allPlayers[m.author.id].heal(50)
                         } else {
-                            const step = 100 / (Math.random() * 99 + 1)
-                            const time = Math.random() * 10000
+                            const step = 50 / (Math.random() * 49 + 1)
+                            const time = Math.random() * 5000
                             embed.setDescription(`# ${m.author} will get ${step} hp every ${time} seconds`)
                             let totalEarned = 0
                             let int = setInterval(() => {
                                 allPlayers[m.author.id].heal(step)
                                 totalEarned += step
-                                if(!BATTLEGAME || totalEarned >= 100){
+                                if(!BATTLEGAME || totalEarned >= 50){
                                     clearInterval(int)
                                 }
                             }, time)
@@ -568,8 +591,8 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 }
 
                 if(restrict === "losehp"){
-                    embed.setDescription(`# ${m.author} lost 100 hp`)
-                    allPlayers[m.author.id].damageThroughShield(100)
+                    embed.setDescription(`# ${m.author} lost 50 hp`)
+                    allPlayers[m.author.id].damageThroughShield(50)
                 }
 
                 return true

@@ -988,6 +988,9 @@ yield[
                 <li>
                     <b>rheal</b>: randomly heal a player who has less than 50 hp for 0 to playerCount * 15 damage (cost: 0.1 + 0.1%)
                 </li>
+                <li>
+                    <b>round</b>: round yourself up to the nearest 10 hp, round all other users down to the nearest 10 hp (cost: 10 + 0.8%)
+                </li>
             </ul>
             <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
             `,
