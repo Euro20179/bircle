@@ -423,6 +423,10 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             numberCost: 10,
             percentCost: 0.008,
             async onUse(m, embed) {
+                if(allPlayers[m.author.id].sacrificing){
+                    await m.channel.send("You are already sacrificing")
+                    return false
+                }
                 if(allPlayers[m.author.id].hp > 50){
                     await m.channel.send("You must have < 50 hp to use sacrifice")
                     return false
