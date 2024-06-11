@@ -525,7 +525,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             percentCost: 0.005,
             numberCost: 0.1,
             async onUse(m, e) {
-                if(allPlayers[m.author.id].hp < 150){
+                if(allPlayers[m.author.id].hp > 150){
                     await m.channel.send("You must be < 150 hp to use chance")
                     return false
                 }
