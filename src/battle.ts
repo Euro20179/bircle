@@ -981,14 +981,6 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                         } else {
                             player.kill(msg, gameState)
                         }
-                        if(player.sacrificing && player.shouldEndSacrifice()){
-                            await msg.channel.send(`${player.id} has reached 50 hp, ending sacrificing`)
-                            player.endSacrifice()
-                            for(let playerId in allPlayers){
-                                if(playerId === player.id) continue
-                                allPlayers[playerId].damageMultiplier -= 1.5
-                            }
-                        }
                     }
                     break
                 }
@@ -996,6 +988,15 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         }
 
         for (let player in players) {
+            if(players[player].sacrificing && players[player].shouldEndSacrifice()){
+                await msg.channel.send(`${players[player].id} has reached 50 hp, ending sacrificing`)
+                players[player].endSacrifice()
+                for(let playerId in players){
+                    if(playerId === players[player].id) continue
+                    players[playerId].damageMultiplier -= 1.5
+                }
+            }
+
             embed.addFields(players[player].createStatusEmbed(msg))
         }
 
