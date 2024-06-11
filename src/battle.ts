@@ -60,10 +60,12 @@ class Player {
     id: string
     itemUses: number
     protected dead: boolean
+    damageMultiplier: number = 1
     #lowestHp: number = 100
     #lastItemUsage: number | null = null
     #itemUsageTable: { [key: string]: number }
     #hp100Requirement = 50
+    sacrificing: boolean | NodeJS.Timer = false
     constructor(id: string, bet: number, hp: number) {
         this.hp = hp
         this.bet = bet
@@ -77,6 +79,19 @@ class Player {
 
     use100Hp(){
         this.#hp100Requirement -= 15
+    }
+
+    startSacrifice(){
+        this.sacrificing = setInterval(() => this.hp -= 1, 1000)
+    }
+
+    shouldEndSacrifice(){
+        return this.hp > 50
+    }
+
+    endSacrifice() {
+        clearInterval(this.sacrificing as NodeJS.Timer)
+        this.sacrificing = false
     }
 
     get hp100Requirement () {
@@ -149,6 +164,7 @@ class Player {
     }
 
     #damage(amount: number) {
+        amount *= this.damageMultiplier
         this.hp -= amount
         if (this.hp < this.#lowestHp) {
             this.#lowestHp = this.hp
@@ -403,6 +419,37 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
     let start = Date.now() / 1000
 
     let items: { [key: string]: Item } = {// {{{
+        sacrifice: new Item({
+            numberCost: 10,
+            percentCost: 0.008,
+            async onUse(m, embed) {
+                if(allPlayers[m.author.id].hp > 50){
+                    await m.channel.send("You must have < 50 hp to use sacrifice")
+                    return false
+                }
+
+                for(let player in allPlayers){
+                    if(player === m.author.id) continue
+                    if(allPlayers[player].hp < 100){
+                        await m.channel.send("All other players must be > 100 to use sacrifice")
+                        return false
+                    }
+                }
+
+                allPlayers[m.author.id].startSacrifice()
+
+                for(let player in allPlayers){
+                    if(player === m.author.id) continue
+                    allPlayers[player].damageMultiplier += 1.5
+                }
+
+                embed.setTitle(`${m.author.username} has began sacrificing their hp`)
+
+                embed.setColor("#890000")
+
+                return true
+            },
+        }),
         round: new Item({
             numberCost: 10,
             percentCost: 0.008,
@@ -478,6 +525,10 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             percentCost: 0.005,
             numberCost: 0.1,
             async onUse(m, e) {
+                if(allPlayers[m.author.id].hp < 150){
+                    await m.channel.send("You must be < 150 hp to use chance")
+                    return false
+                }
                 let randItems = ["heal", "suicide"]
                 let name = randItems[Math.floor(Math.random() * randItems.length)]
                 let multiplier = Math.floor(Math.random() * (4 - 2) + 2)
@@ -542,7 +593,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
                         const ans = n1 > n2 ? n1 - n2 : n2 - n1
 
-                        const text = n1 > n1 ? `what is ${n1} - ${n2}` : `what is ${n2} - ${n1}`
+                        const text = n1 > n2 ? `what is ${n1} - ${n2}` : `what is ${n2} - ${n1}`
 
                         return [await promptUser(m, `${restrictText}${m.author} ${text}, you have 5 seconds`, undefined, {
                             filter: u => u.author.id === m.author.id,
@@ -925,6 +976,14 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                             await msg.channel.send({ embeds: [e] })
                         } else {
                             player.kill(msg, gameState)
+                        }
+                        if(player.sacrificing && player.shouldEndSacrifice()){
+                            await msg.channel.send(`${player.id} has reached 50 hp, ending sacrificing`)
+                            player.endSacrifice()
+                            for(let playerId in allPlayers){
+                                if(playerId === player.id) continue
+                                allPlayers[playerId].damageMultiplier -= 1.5
+                            }
                         }
                     }
                     break
