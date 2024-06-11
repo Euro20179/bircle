@@ -971,7 +971,7 @@ yield[
                     <b>suicide*</b>: Deal randomly 2-10 damage to yourself (cost: $1 + 0.1%)
                 </li>
                 <li>
-                    <b>100 hp</b>: gives you 100 hp if you pass the test (cost: 0.2%)
+                    <b>50 hp</b>: gives you 50 hp if you pass the test (cost: 0.2%)
                 </li>
                 <li>
                     <b>chance</b>: Randomly heal or take 2 to 80 damage (cost 0.1 + 0.5%)
