@@ -879,7 +879,6 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "give", ccmdV2(async function({ msg, args }) {
-
             if (!hasItem(msg.author.id, "donation card")) {
                 return crv("You must have the donation card", { status: StatusCode.ERR })
             }
@@ -918,7 +917,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
             }
 
-            if (economy.getEconomy()[user.id] === undefined) {
+            if (!economy.playerExists(user.id)) {
                 return { content: `${user.id} is not in the economy`, status: StatusCode.ERR }
             }
             if (economy.canBetAmount(msg.author.id, realAmount) && !user.bot) {

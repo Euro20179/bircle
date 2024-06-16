@@ -2615,7 +2615,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             const data = args.slice(1).join(" ")
             if (!data)
                 return crv("No data given")
-
             fs.appendFileSync(`./command-results/${file}`, `${msg.author.id}: ${data};END\n`)
             return crv(`appended \`${data}\` to \`${file}\``)
         }, "Adds a line to a command file", {
