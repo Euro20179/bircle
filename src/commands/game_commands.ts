@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
-import { StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from '../common_to_commands'
+import { StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv, promptUser } from '../common_to_commands'
 
 import globals from '../globals'
 import economy from '../economy'
@@ -27,12 +27,65 @@ import amountParser from '../amount-parser'
 import cmds from '../command-parser/cmds'
 
 import shop from '../shop'
-import configManager from '../config-manager'
+import configManager, { GLOBAL_CURRENCY_SIGN } from '../config-manager'
+import userOptions from '../user-options'
 
 const handleSending = cmds.handleSending
 
 
 export default function*(): Generator<[string, CommandV2]> {
+    yield ["anagrams", ccmdV2(async function*({ msg, args, opts }){
+        const LETTERS = "abcdefghijklmnoqprstuvwxyz".split("")
+        const VOWELS = "aeiou".split("")
+        const letterCount = opts.getNumber("count", 5)
+        const words = fs.readFileSync("/home/cloud/DRIVE/www/words", "utf-8").split("\n")
+        for(let i = 0; i < words.length; i++){
+            words[i] = words[i].toLowerCase()
+        }
+        if(args.length === 0){
+            return crv("No bet", { status: StatusCode.ERR })
+        }
+        const betS = args.join(" ")
+        let bet = economy.calculateAmountFromString(msg.author.id, betS)
+        if(!bet){
+            return crv("No bet", { status: StatusCode.ERR })
+        }
+        let playerLetters = choice(VOWELS)
+        for(let i = 0; i < letterCount - 1; i++){
+            playerLetters += choice(LETTERS)
+        }
+        let points = 0
+        gameLoop: while(true){
+            const r = await promptUser(msg, `### Your letters\n${playerLetters}\n\nType a word (type DONE) to finish`, undefined, { filter: m => m.author.id ===  msg.author.id, timeout: 60000 })
+            if(!r || !r.content.length){
+                return crv("Timeout or no answer", { status: StatusCode.ERR })
+            }
+            if(r.content === "DONE"){
+                break
+            }
+            for(let letter of r.content.toLowerCase()){
+                if (!playerLetters.includes(letter)){
+                    yield `You do not have a ${letter}`
+                    continue gameLoop
+                }
+            }
+            if(words.includes(r.content.toLowerCase())){
+                points += r.content.length
+                yield `You got ${points} points`
+            } else {
+                yield "That's not a word"
+            }
+        }
+        let reward = (((100 - letterCount * 5) + points) / 100) * bet - bet
+
+        let symbol = userOptions.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
+        economy.addMoney(msg.author.id, reward)
+
+        return crv(`POINTS: ${points}\nYou WON ${symbol}${reward}!!!`)
+
+    }, "Make as many words as you can!")]
+
     yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 

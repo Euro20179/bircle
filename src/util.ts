@@ -6,7 +6,7 @@ import htmlRenderer from "./html-renderer"
 import vm from 'vm'
 import fs from 'fs'
 
-import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
+import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel, TextChannel } from "discord.js"
 import { existsSync } from "fs"
 import common from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
@@ -25,20 +25,20 @@ export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
 
-function binStrToDec(str: string){
+function binStrToDec(str: string) {
     let ans = 0n
-    for(let i = 0n; i < str.length; i++){
-        if(str[Number(i)] === '1'){
+    for (let i = 0n; i < str.length; i++) {
+        if (str[Number(i)] === '1') {
             ans += 2n ** (BigInt(str.length) - i - 1n)
         }
     }
     return ans
 }
 
-function fracBinStrToDec(str: string){
+function fracBinStrToDec(str: string) {
     let ans = 0
-    for(let i = 0; i < str.length; i++){
-        if(str[i] === '1'){
+    for (let i = 0; i < str.length; i++) {
+        if (str[i] === '1') {
             ans += 1 / (2 ** (i + 1))
         }
     }
@@ -81,7 +81,7 @@ async function* iterAsyncGenerator<T>(generator: AsyncGenerator<T>) {
     } while (!prev.done)
 }
 
-function clamp(low: number, n: number, high: number){
+function clamp(low: number, n: number, high: number) {
     return Math.max(Math.min(n, high), low)
 }
 
@@ -518,13 +518,22 @@ async function searchMsg(msg: Message, search?: string) {
     if (msg.reference) {
         infoMsg = await msg.fetchReference()
     } else if (search?.length) {
-        const msgs = await msg.channel.messages.fetch()
-        if (search.match(/^\d+$/)) {
-            infoMsg = msgs.filter(m => m.id === search).at(0)
+        if (search.match(/^\d+\/\d+$/) && msg.guild ){
+            const [channelId, msgId] = search.split("/")
+            const channel = await msg.guild.channels.fetch(channelId)
+            if (channel && isMsgChannel(channel)) {
+                const msgs = await (channel as TextChannel).messages.fetch()
+                infoMsg = msgs.find(v => v.id === msgId)
+            }
         } else {
-            infoMsg = msgs.filter(m => m.content === search).at(0)
-            if (!infoMsg) {
-                infoMsg = msgs.filter(m => m.content.includes(search)).at(0)
+            const msgs = await msg.channel.messages.fetch()
+            if (search.match(/^\d+$/)) {
+                infoMsg = msgs.filter(m => m.id === search).at(0)
+            } else {
+                infoMsg = msgs.filter(m => m.content === search).at(0)
+                if (!infoMsg) {
+                    infoMsg = msgs.filter(m => m.content.includes(search)).at(0)
+                }
             }
         }
     } else {

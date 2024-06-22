@@ -3984,6 +3984,25 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
+        "react", ccmdV2(async function({msg, args, opts}){
+            const search = opts.getString("search", "")
+            console.log(search)
+            const reactTo = await searchMsg(msg, search)
+            const reaction = args.join(" ")
+            let emote = reaction.split(":")[2].slice(0, -1)
+            let e
+            try {
+                e = await msg.guild?.emojis.fetch(emote)
+            }
+            catch (err) {
+                e = reaction
+            }
+            await reactTo?.react(e as any)
+            return crv("Reacted")
+        }, "Reacts to a message")
+    ]
+
+    yield [
         "message-info", ccmdV2(async function({msg, args, opts}){
 
             const infoMsg = await searchMsg(msg, args.join(" "))
@@ -4005,7 +4024,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     C: infoMsg.createdAt.toString(),
                     T: String(infoMsg.createdTimestamp),
                     r: infoMsg.reference?.messageId || "#N/A",
-                    e: String(infoMsg.mentions.everyone)
+                    e: String(infoMsg.mentions.everyone),
                 }))
             }
 
