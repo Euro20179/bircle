@@ -55,6 +55,7 @@ export default function*(): Generator<[string, CommandV2]> {
             playerLetters += choice(LETTERS)
         }
         let points = 0
+        const guessedWords: string[] = []
         gameLoop: while(true){
             const r = await promptUser(msg, `### Your letters\n${playerLetters}\n\nType a word (type DONE) to finish`, undefined, { filter: m => m.author.id ===  msg.author.id, timeout: 60000 })
             if(!r || !r.content.length){
@@ -69,7 +70,10 @@ export default function*(): Generator<[string, CommandV2]> {
                     continue gameLoop
                 }
             }
-            if(words.includes(r.content.toLowerCase())){
+            if(guessedWords.includes(r.content.toLowerCase())){
+                yield `You have already guessed: ${r.content}`
+            } else if(words.includes(r.content.toLowerCase())){
+                guessedWords.push(r.content.toLowerCase())
                 points += r.content.length
                 yield `You got ${points} points`
             } else {
