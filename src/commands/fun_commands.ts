@@ -508,7 +508,7 @@ export default function*(): Generator<[string, CommandV2]> {
         let prompt = (
             approved_models[model as keyof typeof approved_models] as string
         ).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", args.join(" "))
-        if (opts.getBool("c", false)) {
+        if (opts.getBool("c", opts.getBool("s", opts.getBool("initiate-chat-session-(始める)", false)))) {
             messages.push({
                 role: "system",
                 content: sys_msg
@@ -603,7 +603,7 @@ export default function*(): Generator<[string, CommandV2]> {
         // return { noSend: true, status: StatusCode.RETURN }
     }, "Use the openai chatbot", {
         helpOptions: {
-            c: createHelpOption("Start a chat session"),
+            c: createHelpOption("Start a chat session", ["s", "initiate-chat-session-(始める)"]),
             m: createHelpOption("Select the model to use (use -l to list the models)"),
             l: createHelpOption("List models that can be used")
         },
