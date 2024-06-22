@@ -11,7 +11,7 @@ import pets from './pets';
 
 import user_options from './user-options'
 
-const VERSION = { major: 9, minor: 7, bug: 31, part: "", beta: false, alpha: false  }
+const VERSION = { major: 9, minor: 8, bug: 0, part: "", beta: false, alpha: false  }
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
