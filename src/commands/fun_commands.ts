@@ -448,7 +448,7 @@ export default function*(): Generator<[string, CommandV2]> {
         )
     })]
 
-    yield ["chat", ccmdV2(async function({ msg, opts, args, sendCallback }) {
+    yield ["chat", ccmdV2(async function*({ msg, opts, args, sendCallback }) {
         if (!configManager.getConfigValue("general.enable-chat")) {
             return crv("This command is not enabled", { status: StatusCode.ERR })
         }
@@ -557,11 +557,11 @@ export default function*(): Generator<[string, CommandV2]> {
                     })
                 })
                 const json = await result.json()
-                await handleSending(msg, {
+                yield {
                     content: json["message"]["content"],
                     status: StatusCode.RETURN,
                     reply: true
-                }, sendCallback)
+                }
             } while (true)
             state[msg.author.id] = false
             return crv("Chat session ended")
@@ -580,32 +580,12 @@ export default function*(): Generator<[string, CommandV2]> {
             })
         })
         return { content: (await result.json())["response"], status: StatusCode.RETURN, reply: true }
-        // if (!CHAT_LL) {
-        //     return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
-        // }
-        // let messages: PromptMessage[] = []
-        //
-        // let sysMsg = opts.getString("sys-msg", null)
-        // if (sysMsg) messages.push({ role: "system", content: sysMsg })
-        //
-        // let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
-        //
-        // messages.push({ role: "user", content: content })
-        //
-        // createCompletion(CHAT_LL, messages, {
-        //     hasDefaultHeader: false,
-        // }).then(response => {
-        //     handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
-        // }).catch(error => {
-        //     handleSending(msg, crv(error.toString())).catch(console.error)
-        // })
-        //
-        // return { noSend: true, status: StatusCode.RETURN }
     }, "Use the openai chatbot", {
         helpOptions: {
             c: createHelpOption("Start a chat session", ["s", "initiate-chat-session-(始める)"]),
             m: createHelpOption("Select the model to use (use -l to list the models)"),
-            l: createHelpOption("List models that can be used")
+            l: createHelpOption("List models that can be used"),
+            sys: createHelpOption("Set the system prompt")
         },
         short_opts: "cm:l"
     })]
