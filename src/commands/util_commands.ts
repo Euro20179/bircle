@@ -167,13 +167,48 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
+        "wiktionary", ccmdV2(async function({ args, msg, opts }) {
+            const word = args.join(" ")
+            const resp = await fetch(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURI(word)}`)
+            const j = await resp.json()
+            if (opts.getBool("r", false)) {
+                return crv(JSON.stringify(j))
+            }
+            const partsOfSpeech: any[] = j["en"]
+            if (!partsOfSpeech) {
+                return crv("No definitions", { status: StatusCode.CMDSTATUS, statusNr: 101 })
+            }
+            const embeds = []
+            for (const [i, speach] of iterators.enumerate(partsOfSpeech)) {
+                const e = new EmbedBuilder()
+                e.setTitle(speach.partOfSpeech)
+                let desc = ""
+                for (const [count, def] of iterators.enumerate(partsOfSpeech[i].definitions as any[])) {
+                    desc += `${count + 1}.\n`
+                    desc += htmlRenderer.renderHTML(def.definition, 0, "https://en.wiktionary.org")
+                    desc += "\n\n"
+                }
+                e.setDescription(desc)
+                embeds.push(e)
+            }
+            let paged = new PagedEmbed(msg, embeds, "wiktionary")
+            await paged.begin()
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Lookup a word in wiktionary", {
+            helpOptions: {
+                r: createHelpOption("gets the raw json")
+            }
+        })
+    ]
+
+    yield [
         "seq", ccmdV2(async function({ args, opts }) {
             let [seqArg, max, ..._] = args
             const seq = seqArg.split(",").map(Number)
             max = Number(max)
             const sep = opts.getString("s", " ")
             const items = iterators.sequence(...seq, max)
-            if(!items){
+            if (!items) {
                 return crv("Invalid sequence", { status: StatusCode.ERR })
             }
             return crv(items.take(1000).reduce("", (res, c) => {
@@ -192,7 +227,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "f32", ccmdV2(async function({ args }){
+        "f32", ccmdV2(async function({ args }) {
             const f = args[0]
             const signS = f[0]
             const expS = f.slice(1, 9)
@@ -206,10 +241,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             decimalLocation += exp
 
             let intPart, fracPart
-            if(decimalLocation > 24){
+            if (decimalLocation > 24) {
                 intPart = mantS + "0".repeat(Number(decimalLocation) - 24)
                 fracPart = "0"
-            } else if(decimalLocation > 0){
+            } else if (decimalLocation > 0) {
                 intPart = mantS.slice(0, Number(decimalLocation))
                 fracPart = mantS.slice(Number(decimalLocation))
             } else {
@@ -1685,7 +1720,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin }) {
-        if(opts.getBool('docs', false)){
+        if (opts.getBool('docs', false)) {
             return {
                 files: [
                     crvFile("src/amount-parser-docs.md", "amount-parser.md", "amount parser docs")
@@ -2508,7 +2543,7 @@ The order these are given does not matter, excpet for field, which will be added
         const cmd = spawn("bash")
         let dataToSend = ""
         let sendingTimeout: NodeJS.Timeout | undefined = undefined;
-        function stop(){
+        function stop() {
             collector.stop()
             cmd.kill()
         }
@@ -3984,7 +4019,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "react", ccmdV2(async function({msg, args, opts}){
+        "react", ccmdV2(async function({ msg, args, opts }) {
             const search = opts.getString("search", "")
             console.log(search)
             const reactTo = await searchMsg(msg, search)
@@ -4003,16 +4038,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "message-info", ccmdV2(async function({msg, args, opts}){
+        "message-info", ccmdV2(async function({ msg, args, opts }) {
 
             const infoMsg = await searchMsg(msg, args.join(" "))
 
-            if(!infoMsg){
+            if (!infoMsg) {
                 return crv("No message found", { status: StatusCode.ERR })
             }
 
             const fmt = opts.getString("fmt", "{embed}")
-            if(fmt !== "{embed}"){
+            if (fmt !== "{embed}") {
                 return crv(format(fmt, {
                     c: infoMsg.content,
                     a: infoMsg.author.displayName,
@@ -4030,14 +4065,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             const e = new EmbedBuilder()
 
-            if(infoMsg.content){
+            if (infoMsg.content) {
                 e.setDescription(infoMsg.content)
             }
 
-            if(infoMsg.attachments.at(0)){
+            if (infoMsg.attachments.at(0)) {
                 e.setThumbnail(infoMsg.attachments.at(0)!.url)
             }
-            e.setAuthor({ iconURL: infoMsg.author.avatarURL() as string, name: infoMsg.author.displayName})
+            e.setAuthor({ iconURL: infoMsg.author.avatarURL() as string, name: infoMsg.author.displayName })
 
             e.addFields(efd(
                 ["id", infoMsg.id, true],
@@ -4051,8 +4086,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             return { embeds: [e] }
         }, "Gets info about a message", {
-                helpOptions: {
-                    fmt: createHelpOption(`The format to use<br><h4>Formats</h4>
+            helpOptions: {
+                fmt: createHelpOption(`The format to use<br><h4>Formats</h4>
 <ul>
 <li>c: message content</li>
 <li>a: author displayName</li>
@@ -4066,8 +4101,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 <li>r: message reply message id</li>
 <li>e: message mentions everyone</li>
 </ul>`)
-                }
-            })
+            }
+        })
     ]
 
     yield [
