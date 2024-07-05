@@ -801,7 +801,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "help", createCommandV2(async ({ rawOpts: opts, args, runtime_opts }) => {
+        "help", ccmdV2(async ({ rawOpts: opts, args, runtime_opts }) => {
 
             let baseCommands = { ...Object.fromEntries(getCommands().entries()) }
 
@@ -827,7 +827,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             let commands = { ...baseCommands, ...matchCmds }
 
 
-            if (!opts['txt'] && !args.length) {
+            if (!Object.keys(opts).length && !args.length) {
                 return crv("http://5.78.105.163:80/commands")
             }
             if (opts["g"]) {
@@ -907,18 +907,18 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             return crv(text, {
                 mimetype: mimetype
             })
-        }, CommandCategory.UTIL,
-            "Get help with specific commands",
-            {
+        }, "Get help with specific commands", {
+            helpArguments: {
                 commands: createHelpArgument("The commands to get help on, seperated by a space<br>If command is ?, it will do all commands", false)
             },
-            {
-                txt: createHelpOption("Do not send a link to the website"),
+            helpOptions: {
                 "g": createHelpOption("List the bot syntax"),
                 "s": createHelpOption("Only show a summary"),
-                html: createHelpOption("Show html instead of markdown format")
-            }
-        ),
+                html: createHelpOption("Show html instead of markdown format"),
+                l: createHelpOption("List commands in a category"),
+            },
+            docs: "<h3>Categories</h3><ul><li>game</li><li>fun</li><li>util</li><li>meta</li><li>images</li><li>economy</li><li>voice</li><li>admin</li><li>match</li></ul>"
+        }),
     ]
 
     yield [

@@ -9,6 +9,7 @@ import { AudioPlayerStatus, createAudioPlayer, createAudioResource, DiscordGatew
 import { Queue } from '../queue'
 
 import iterators from '../iterators'
+import { spawn } from 'child_process'
 
 let currently_playing: { link: string, filename: string } | undefined;
 
@@ -51,16 +52,10 @@ async function play_link({ link, filename }: { link: string, filename: string })
         }
     }
     if (is_valid_url) {
-        let info = await ytdl.getInfo(link)
-        if (info.videoDetails.isLiveContent || parseFloat(info.videoDetails.lengthSeconds) > 60 * 30) {
-            play_next_in_queue_or_destroy_connection(vc_queue)
-        }
-        ytdl(link, { filter: "audioonly" }).pipe(fs.createWriteStream(fn)).on("close", () => {
-            let resource = createAudioResource(fn)
-
-            player.play(resource)
-            connection?.subscribe(player)
-        })
+        const ytdlp = spawn(`yt-dlp`, ["-o", "-", link])
+        let resource = createAudioResource(ytdlp.stdout)
+        player.play(resource)
+        connection?.subscribe(player)
     }
     else {
         fetch(link).then(data => {
