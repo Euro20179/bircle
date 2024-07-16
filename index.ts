@@ -121,6 +121,7 @@ async function handlePingResponse(m: Message) {
                 { command: pingresponse, prefix: gPrefix, msg: m },
                 `${pingresponse} - ${m.author.id}`,
             )) {
+                result.allowedMentions = { parse: [] }
                 await cmds.handleSending(m, result)
             }
         }
