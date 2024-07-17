@@ -15,22 +15,38 @@ export default function*(): Generator<[string, CommandV2]> {
         "img-mod", ccmdV2(async function({ args, msg, opts, stdin }) {
             const img = await getImgFromMsgAndOptsAndReply(opts, msg, stdin, false)
 
-            if (!img) {
-                return crv("No image given", { status: StatusCode.ERR })
-            }
-
             const modifications: {[key: string]: (img: Sharp, args: string[]) => Sharp | false} = {
                 rotate: (img, args) => {
                     if (!isNumeric(args[0])) {
                         return false
                     }
                     return img.rotate(Number(args[0]))
-                }
+                },
+                tint: (img, args) => {
+                    return img.tint(args[0])
+                },
+                grey: (img, _args) => {
+                    return img.greyscale(true)
+                },
+                negate: (img, _args) => {
+                    return img.negate()
+                },
+                mktrans: (img, _args) => {
+                    return img.unflatten()
+                },
+                threshold: (img, args) => {
+                    if(!isNumeric(args[0])){
+                        return false
+                    }
+                    return img.threshold(Number(args[0]), { greyscale: false })
+                },
             }
 
-            let imgRes = await fetch(img)
+            if (!img) {
+                return crv("No image given", { status: StatusCode.ERR })
+            }
+            let imgRes = await fetch(img as string)
             let imgBuf = await imgRes.arrayBuffer()
-
             let sharpImg = sharp(imgBuf)
 
             for(let i = 0; i < args.length; i++){
@@ -39,6 +55,8 @@ export default function*(): Generator<[string, CommandV2]> {
                 for(i++; i < args.length && !(args[i] in modifications); i++){
                     modArgList.push(args[i])
                 }
+                //the for loop is going to go one too far
+                i--
                 if(!(modification in modifications)) {
                     return crv(`Invalid modification: "${modification}"`, { status: StatusCode.ERR })
                 }
@@ -68,12 +86,21 @@ export default function*(): Generator<[string, CommandV2]> {
         }, "Apply various filters and transformations to an image", {
                 docs: `<h3>Transformations</h3>
 <ul>
-<li>rotate {angle}</li>`,
+<li>rotate {angle}</li>
+</ul>
+<h3>Color transformations</h3>
+<ul>
+<li>tint {color} (supports most valid [css colors](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value))</li>
+<li>grey</li>
+<li>negate</li>
+<li>mktrans (turns white pixels into transparent pixels)</li>
+<li>threshold {threshold} (makes the following color transformations only apply to color values after the threshold)</li>
+</ul>`,
                 helpArguments: {
                     "...modifications": createHelpArgument("A list of name, arguments of modifications to an image")
                 },
                 helpOptions: {
-                    f: createHelpOption("The output file type", undefined, "png")
+                    f: createHelpOption("The output file type", undefined, "png"),
                 }
             })
     ]
