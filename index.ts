@@ -221,9 +221,14 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         return
     }
 
+    let validPingResponseChannels: any = configManager.getConfigValue("general.ping-response-channels")
+    if(!Array.isArray(validPingResponseChannels)){
+        validPingResponseChannels = []
+    }
     if (!m.author.bot
         && (m.mentions.members?.size || 0) > 0
-        && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
+        && getOpt(m.author.id, "no-pingresponse", "false") === "false"
+        && validPingResponseChannels.includes(m.channel.id)) {
         handlePingResponse(m)
     }
 
