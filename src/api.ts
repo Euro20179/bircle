@@ -118,6 +118,9 @@ export const APICmds: {
             if(!url.startsWith("http")){
                 return "NOT ALLOWED"
             }
+            if(url.match(/^https?:\/\/(127|10|192|localhost)\.?/) && !url.startsWith("http://10.0.0.2")) {
+                return "NOT ALLOWED"
+            }
             let res = await fetch(url)
             return await res.text()
         }
