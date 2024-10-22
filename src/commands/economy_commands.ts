@@ -37,7 +37,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv(`You joined the economy with ${currency_sign}100`)
             }
             return crv("Failed to join economy", { status: StatusCode.ERR })
-        }, "Joins the economy for real, lets you starrt with $100")
+        }, "Joins the economy for real, lets you starrt with $100", {
+                permCheck: (m) => m.guild?.id !== "1289757953926238228"
+            })
     ]
 
     yield ["#calcet", ccmdV2(async function() {
