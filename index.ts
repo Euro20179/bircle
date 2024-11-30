@@ -51,16 +51,16 @@ Array.prototype.shuffleArray = function() {
     return this;
 }
 
-defer(() => {
-    console.log('Started refreshing application (/) commands.');
-
-    rest.put(
-        Routes.applicationGuildCommands(configManager.CLIENT_ID, configManager.GUILD_ID),
-        { body: slashCmds },
-    ).then(
-        _res => console.log("Successfully reloaded application (/) commands.")
-    ).catch(console.error)
-})
+// defer(() => {
+//     console.log('Started refreshing application (/) commands.');
+//
+//     rest.put(
+//         Routes.applicationGuildCommands(configManager.CLIENT_ID, configManager.GUILD_ID),
+//         { body: slashCmds },
+//     ).then(
+//         _res => console.log("Successfully reloaded application (/) commands.")
+//     ).catch(console.error)
+// })
 
 common.client.on(Events.GuildMemberAdd, async (member) => {
     try {
