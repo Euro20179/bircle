@@ -36,9 +36,12 @@ import common_to_commands from './src/common_to_commands'
 
 import configManager, { GLOBAL_CURRENCY_SIGN } from './src/config-manager'
 
+const nodemailer = require("nodemailer")
+
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
-const rest = new REST({ version: "10" }).setToken(configManager.getConfigValue("secrets.token"));
+const rest = new REST({ version: "10" })
+    .setToken(configManager.getConfigValue("secrets.token"));
 
 const PROCESS_OPTS = getOptsUnix(process.argv.slice(2), "", [["headless"]])
 const HEADLESS = PROCESS_OPTS[0]['headless']
@@ -75,6 +78,23 @@ common.client.on(Events.GuildMemberAdd, async (member) => {
 
 common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
+
+    const transport = nodemailer.createTransport({
+        host: "10.0.0.2",
+        port: 25,
+        secure: false,
+        tls: {
+            rejectUnauthorized: false
+        }
+    })
+
+    await transport.sendMail({
+        from: '"bircle" <bircle@raspberrypi>',
+        to: '"Euro" <user@raspberrypi>',
+        subject: "ONLINE",
+        html: "The discord bot is online",
+    }).then(console.log).catch(console.error)
+
     if (!HEADLESS) {
         defer(() => {
 

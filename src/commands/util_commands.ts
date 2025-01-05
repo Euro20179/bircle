@@ -34,6 +34,8 @@ import cmds from '../command-parser/cmds'
 import configManager from '../config-manager'
 import stackl2 from '../stackl2'
 
+const nodemailer = require("nodemailer")
+
 const handleSending = cmds.handleSending
 
 const langs = {
@@ -147,6 +149,32 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
+
+    yield [
+        "email-euro", ccmdV2(async function({ args, opts }) {
+            const transport = nodemailer.createTransport({
+                host: "10.0.0.2",
+                port: 25,
+                secure: false,
+                tls: {
+                    rejectUnauthorized: false
+                }
+            })
+
+            const info = await transport.sendMail({
+                from: opts.getString("f", opts.getString("from", '"Discord bot" <bircle@raspberrypi>')),
+                to: '"Euro" <user@raspberrypi>',
+                subject: opts.getString('s', opts.getString('subject', "")),
+                html: args.join(" ")
+            })
+
+            if (info.accepted) {
+                return crv(`Email sent to: ${info.accepted[0]}`)
+            } else {
+                return crv("Failed to send email")
+            }
+        }, "emails euro")
+    ],
 
     yield [
         "doesnothing", ccmdV2(async function({ msg }) {
