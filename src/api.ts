@@ -8,6 +8,8 @@ import { isMsgChannel, getFonts, fetchUserFromClientOrGuild } from "./util"
 import cmds from "./command-parser/cmds"
 import { DEVBOT } from "./config-manager"
 
+import dns from "node:dns"
+
 export const APICmds: {
     [key: string]: {
         requirements: string[],
@@ -112,15 +114,31 @@ export const APICmds: {
     fetch: {
         requirements: ['url'],
         exec: async ({ url }: { url: string }) => {
-            if(DEVBOT){
+            if (DEVBOT) {
                 return "NOT ALLOWED"
             }
-            if(!url.startsWith("http")){
+            if (!url.startsWith("http")) {
                 return "NOT ALLOWED"
             }
-            if(url.match(/^https?:\/\/(127|10|192|localhost)\.?/) && !url.startsWith("http://10.0.0.2")) {
+            if (url.match(/^https?:\/\/(127|10|192|localhost)\.?/) && !url.startsWith("http://10.0.0.2")) {
                 return "NOT ALLOWED"
             }
+
+            const authorityStart = url.indexOf("//") + 2
+            let domain = url.slice(authorityStart)
+
+            let domainEnd = domain.indexOf("/")
+            if(domainEnd == -1) domainEnd = domain.length + 1
+
+            domain = domain.slice(0, domainEnd)
+
+            const addrs = await dns.promises.resolve4(domain, { ttl: true })
+            for (const addr of addrs) {
+                if (["10.0.0.2", "192.168.9.2", "127.0.0.1", "192.168.0.145"].includes(addr.address)) {
+                    return "NOT ALLOWED"
+                }
+            }
+
             let res = await fetch(url)
             return await res.text()
         }
