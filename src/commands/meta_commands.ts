@@ -171,7 +171,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
         common.saveEndPointsDB()
 
-        return crv(`You can access the page [here](http://bircle.euro20179.com:8080/custom/${name})`)
+        return crv(`You can access the page [here](http://bot.seceurity.place:8222/custom/${name})`)
     }, "Create an endpoint on the website", {
         accepts_stdin: "Can be used instead of the data argument",
         helpArguments: {
