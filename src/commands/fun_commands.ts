@@ -2264,9 +2264,7 @@ Valid formats:
             const link = `https://search.brave.com/search?q=${city}+weather&source=web`
             let res = await fetch(link)
             let text = await res.text()
-            let data = text.match(/const data = (\[.*\]);/)
-            //must use eval because it's not valid json
-            //@ts-ignore
+            let data = text.match(/data: (.*),/)
             let json = eval(data[1])
             if (!Object.keys(json).length) {
                 return crv("Could not get data", { status: StatusCode.ERR })
