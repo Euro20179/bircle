@@ -466,7 +466,7 @@ export default function*(): Generator<[string, CommandV2]> {
             "dolphin-llama3.1-kittens"
         ]
         if (opts.getBool("l", false)) {
-            return crv(Object.keys(approved_models).join("\n"))
+            return crv(approved_models.join("\n"))
         }
         if (!(approved_models.includes(model)))
             return crv(`${model} is not one of ${Object.keys(approved_models).join(", ")}`, {
