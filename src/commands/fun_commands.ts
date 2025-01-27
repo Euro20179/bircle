@@ -457,58 +457,23 @@ export default function*(): Generator<[string, CommandV2]> {
         let messages: any[] = []
         let temp = opts.getNumber("t", 0.8)
         let ctx = opts.getNumber("ctx", 2048)
-        let model = opts.getString("m", "llama3")
-        let approved_models = {
-            "udmis": `<|im_start|>system
-{{ .System }}<|im_end|>
-<|im_start|>user
-{{ .Prompt }}<|im_end|>
-<|im_start|>assistant
-
-`,
-            "dolphin-mistral": `<|im_start|>system
-{{ .System }}<|im_end|>
-<|im_start|>user
-{{ .Prompt }}<|im_end|>
-<|im_start|>assistant
-
-`,
-            "wizard-math": `{{ .System }}
-
-### Instruction:
-{{ .Prompt }}
-
-### Response:
-
-`,
-            "gemma": `<start_of_turn>user
-{{ if .System }}{{ .System }} {{ end }}{{ .Prompt }}<end_of_turn>
-<start_of_turn>model
-{{ .Response }}<end_of_turn>
-
-`,
-            "codellama7b": `{{ .Prompt }}`,
-            "starcoder": `{{ .Prompt }}`,
-            "llama3": `{{ if .System }}<|start_header_id|>system<|end_header_id|>
-
-{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
-
-{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
-
-{{ .Response }}<|eot_id|>
-`
-        }
+        let model = opts.getString("m", "deepseek-r1:8b")
+        let approved_models = [
+            "deepseek-r1:8b",
+            "llama3",
+            "llama3.2",
+            "qwen2.5-coder",
+            "dolphin-llama3.1-kittens"
+        ]
         if (opts.getBool("l", false)) {
             return crv(Object.keys(approved_models).join("\n"))
         }
-        if (!(model in approved_models))
+        if (!(approved_models.includes(model)))
             return crv(`${model} is not one of ${Object.keys(approved_models).join(", ")}`, {
                 status: StatusCode.ERR
             })
-        let prompt = (
-            approved_models[model as keyof typeof approved_models] as string
-        ).replace("{{ .System }}", sys_msg).replace("{{ .Prompt }}", args.join(" "))
-        if (opts.getBool("c", opts.getBool("s", opts.getBool("initiate-chat-session-(始める)", false)))) {
+        let prompt = args.join(" ")
+        if (opts.getBool("c", opts.getBool("s", opts.getBool("initiate-chat-session-(始める)", false)))) {// {{{
             messages.push({
                 role: "system",
                 content: sys_msg
@@ -565,21 +530,26 @@ export default function*(): Generator<[string, CommandV2]> {
             } while (true)
             state[msg.author.id] = false
             return crv("Chat session ended")
-        }
+        }// }}}
+        await msg.channel.sendTyping()
         const result = await fetch(`${baseurl}:11434/api/generate`, {
             method: "POST",
             body: JSON.stringify({
                 model,
-                prompt: prompt,
+                prompt,
+                format: opts.getString("fmt", undefined),
+                system: sys_msg,
                 stream: false,
-                raw: true,
                 options: {
                     temperature: temp,
                     num_ctx: ctx
                 }
             })
         })
-        return { content: (await result.json())["response"], status: StatusCode.RETURN, reply: true }
+        const json = await result.json()
+        return crv(json.response, {
+            reply: true
+        })
     }, "Use the openai chatbot", {
         helpOptions: {
             c: createHelpOption("Start a chat session", ["s", "initiate-chat-session-(始める)"]),
@@ -737,7 +707,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     GLOBAL_CURRENCY_SIGN
                 )
                 const amount = economy.calculateAmountFromString(msg.author.id, "10%")
-                if(Math.random() <= (1/500)){
+                if (Math.random() <= (1 / 500)) {
                     const amount = economy.calculateAmountFromString(msg.author.id, "100%")
                     economy.addMoney(msg.author.id, amount)
                     return crv(`YOU WON THE JACKPOT: ${currency_sign}${amount}`)
