@@ -457,7 +457,7 @@ export default function*(): Generator<[string, CommandV2]> {
         let messages: any[] = []
         let temp = opts.getNumber("t", 0.8)
         let ctx = opts.getNumber("ctx", 2048)
-        let model = opts.getString("m", "deepseek-r1:8b")
+        let model = opts.getString("m", "llama3")
         let approved_models = [
             "deepseek-r1:8b",
             "llama3",
