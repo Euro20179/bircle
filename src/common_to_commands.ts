@@ -248,7 +248,8 @@ export class PagedEmbed {
             else {
                 let bd = this.button_data[int.customId.split(":")[0]]
                 if (bd) {
-                    bd.cb?.bind(this)(int as ButtonInteraction, m)
+                    const res = bd.cb?.bind(this)(int as ButtonInteraction, m)
+                    if(res) await res
                 }
             }
 

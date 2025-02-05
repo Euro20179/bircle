@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed, crvFile } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec, isSafeFilePath } from '../util'
 import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -176,23 +176,23 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         }, "emails euro")
     ],
 
-    yield [
-        "doesnothing", ccmdV2(async function({ msg }) {
-            if (!msg.guild) {
-                return crv("Not in a guild", { status: StatusCode.ERR })
-            }
-            let text = ""
-            for (let user of await msg.guild?.members.fetch()) {
-                text += `${user[1].displayName}\n`
-                const rolesJson = user[1].roles.cache.toJSON()
-                for (let i = 0; i < rolesJson.length; i++) {
-                    text += `${rolesJson[i].name}\n`
+        yield [
+            "doesnothing", ccmdV2(async function({ msg }) {
+                if (!msg.guild) {
+                    return crv("Not in a guild", { status: StatusCode.ERR })
                 }
-                text += "\n\n"
-            }
-            return crv(text)
-        }, "does nothing in particular")
-    ]
+                let text = ""
+                for (let user of await msg.guild?.members.fetch()) {
+                    text += `${user[1].displayName}\n`
+                    const rolesJson = user[1].roles.cache.toJSON()
+                    for (let i = 0; i < rolesJson.length; i++) {
+                        text += `${rolesJson[i].name}\n`
+                    }
+                    text += "\n\n"
+                }
+                return crv(text)
+            }, "does nothing in particular")
+        ]
 
     yield [
         "wiktionary", ccmdV2(async function({ args, msg, opts }) {
@@ -386,6 +386,103 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             gen_opts: true
         })
     ]
+
+    yield ["imdb2", ccmdV2(async function({ msg, args, opts, stdin }) {
+        const url = configManager.BOT_CONFIG["general"]["overseerr-url"] + "/api/v1/search"
+        console.log(url)
+        const query = stdin ? getContentFromResult(stdin) : args.join(" ")
+        const finalUrl = url + `?query=${encodeURIComponent(query)}`
+        const res = await fetch(finalUrl, {
+            headers: {
+                [`X-Api-Key`]: configManager.BOT_CONFIG["secrets"]["overseerr-token"]
+            }
+        })
+        const data = await res.json()
+        const embeds: EmbedBuilder[] = []
+        const results = data.results.sort((a, b) => b.popularity - a.popularity)
+        const paged = new PagedEmbed(msg, embeds, "imdb2")
+
+        let pageNo = 0
+        for (let item of results) {
+            const e = new EmbedBuilder()
+            let title = ""
+            if (item.name) {
+                title = `${item.name}`
+                if (item.originalName) {
+                    title += ` (${item.originalName})`
+                }
+            } else {
+                title = `${item.title} (${item.originalTitle})`
+            }
+
+            e.setTitle(title)
+            e.setDescription(item.overview || "N/A")
+            if (item.posterPath) {
+                e.setImage(`https://image.tmdb.org/t/p/w300_and_h450_face${item.posterPath}`)
+            }
+            e.setFields([
+                {
+                    name: "Aired",
+                    value: item.firstAirDate || item.releaseDate || "N/A",
+                    inline: true
+                },
+                {
+                    name: "Rating",
+                    value: String(item.voteAverage),
+                    inline: true
+
+                },
+            ])
+
+            paged.addButton(`id.${item.id}`, { label: "ℹ️", style: ButtonStyle.Primary, customId: `imdb2.id.${item.id}:${msg.author.id}` }, async function(int) {
+                const id = int.customId.split(":")[0].split(".")[2]
+                let final
+                for (let item of results) {
+                    if (String(item.id) == id) {
+                        final = item
+                        break
+                    }
+                }
+                if (!final) return
+
+                const type = item.mediaType
+                const url = configManager.BOT_CONFIG["general"]["overseerr-url"] + "/api/v1/"
+                if (type == 'movie') {
+                    let finalUrl = `${url}${type}/${id}`
+                    const res = await fetch(finalUrl, {
+                        headers: {
+                            [`X-Api-Key`]: configManager.BOT_CONFIG["secrets"]["overseerr-token"]
+                        }
+                    })
+                    const data = await res.json()
+                    fs.writeFileSync("./data.json", JSON.stringify(data))
+                    console.log(data)
+                    let embed = new EmbedBuilder()
+                    this.embeds = [embed]
+                    embed.setFields([
+                        {
+                            name: "revenue",
+                            value: String(data.revenue),
+                            inline: true
+                        },
+                        {
+                            name: "release date",
+                            value: data.releaseDate,
+                            inline: true
+                        }
+                    ])
+                    embed.setURL(data.homepage)
+                    embed.setTitle(final.title)
+                    let genres = data.genres.map(i => i.name).join(", ")
+                    embed.setFooter({ text: genres })
+                }
+            }, pageNo++)
+
+            embeds.push(e)
+        }
+        await paged.begin()
+        return { noSend: true, status: StatusCode.RETURN }
+    }, "Searches for a movie/show")]
 
     yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
         const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
@@ -698,6 +795,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         else {
             let folder = opts.getBool("g", false) ? "garbage-files" : "command-results"
             for (let arg of args) {
+                if(!isSafeFilePath(arg)) continue
                 if (fs.existsSync(`./${folder}/${arg}`)) {
                     content += fs.readFileSync(`./${folder}/${arg}`, "utf-8")
                 }

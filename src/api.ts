@@ -114,9 +114,9 @@ export const APICmds: {
     fetch: {
         requirements: ['url'],
         exec: async ({ url }: { url: string }) => {
-            if (DEVBOT) {
-                return "NOT ALLOWED"
-            }
+            // if (DEVBOT) {
+            //     return "NOT ALLOWED"
+            // }
             if (!url.startsWith("http")) {
                 return "NOT ALLOWED"
             }
