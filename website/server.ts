@@ -576,6 +576,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             return _apiSubPath(req, res, subPaths, urlParams)
         }
         case "command-file": {
+            res.setHeader("Content-Type", "text/html")
             if (!subPaths.length || !subPaths[0]) {
                 fs.readdir("./command-results", (err, files) => {
                     let html = "<head><meta charset='utf-8'><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Command Files</h1><ul>"
@@ -636,6 +637,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             break;
         }
         case "custom": {
+            res.setHeader("Content-Type", "text/html")
             if (subPaths[0] && isSafeFilePath(subPaths[0]) && fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)) {
                 sendFile(res, `./data/custom-endpoints/${subPaths[0]}.html`)
             }
