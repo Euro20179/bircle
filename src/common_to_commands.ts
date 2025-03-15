@@ -537,7 +537,7 @@ export function createAliasesV2(): { [key: string]: AliasV2 } {
 export let aliasesV2 = createAliasesV2()
 
 export function isCmd(text: string, prefix: string) {
-    return !text.match(/^\[.*\]\((?:https?|discord):\/\/\S*\).?/) && text.slice(0, prefix.length) === prefix
+    return  text.slice(0, prefix.length) === prefix
 }
 
 export async function handleUserMatchCommands(msg: Message, content: string) {
