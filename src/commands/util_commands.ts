@@ -1,7 +1,7 @@
 import fs from 'fs'
 import vm from 'vm'
 import https from 'https'
-import cheerio from 'cheerio'
+import * as cheerio from "cheerio"
 
 import { Stream } from 'stream'
 

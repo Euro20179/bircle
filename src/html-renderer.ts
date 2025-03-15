@@ -1,4 +1,4 @@
-import cheerio from 'cheerio'
+import * as cheerio from "cheerio"
 
 function renderElementChildren(elem: cheerio.Element, indentation = 0, baseUrl = "") {
     let text = ""

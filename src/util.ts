@@ -1,4 +1,4 @@
-import cheerio from "cheerio"
+import * as cheerio from "cheerio"
 import { spawnSync } from "child_process"
 
 import htmlRenderer from "./html-renderer"
