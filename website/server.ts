@@ -335,7 +335,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 break;
             }
             const ip = req.headers["x-real-ip"]
-            editConfig("secrets.twin-bot-ip", ip || getConfigValue("secrets.twin-bot-ip"))
+            editConfig("secrets.twin-bot-ip", `${ip}:3000` || getConfigValue("secrets.twin-bot-ip"))
             let userId = subPaths[0]
             if (!userId) {
                 res.writeHead(400)
