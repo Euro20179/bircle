@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { AwaitMessagesOptions, ChannelType, Collection, Message, User } from 'discord.js'
+import { AwaitMessagesOptions, ChannelType, Collection, Message, MessageEditOptions, MessagePayload, OmitPartialGroupDMChannel, User } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
@@ -17,6 +17,7 @@ import { getInventory } from '../src/shop'
 import ws from 'ws'
 import cmds from '../src/command-parser/cmds'
 import globals from '../src/globals'
+import { MessageOptions } from 'child_process'
 
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
@@ -695,6 +696,13 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
 
         let oldAwaitMessage = channel.awaitMessages
 
+        let oldEdit = msg.edit
+
+        msg.edit = async function(content: MessageEditOptions | string | MessagePayload) {
+            ws.send(JSON.stringify({event: "edit-data", rv: content}))
+            return <OmitPartialGroupDMChannel<Message<boolean>>>msg
+        }
+
         //resets the input list every time we want to listen for inputs
         channel.awaitMessages = async (data: AwaitMessagesOptions | undefined) => {
             //tell the client we are ready for inputs
@@ -736,7 +744,9 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         })().then(() => {
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
+            msg.edit = oldEdit
         }).catch(() => {
+            msg.edit = oldEdit
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
             handleError("ERrr")
