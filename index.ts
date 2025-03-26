@@ -133,8 +133,10 @@ async function handlePingResponse(m: Message) {
             continue
         }
         pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-        let old_id = m.author.id
-        m.author.id = member!.user.id
+        let original_author = m.author
+        let author_copy = {...m.author}
+        author_copy.id = member!.user.id
+        m.author = author_copy
         const gPrefix = configManager.PREFIX;
         if (common_to_commands.isCmd(pingresponse, gPrefix)) {
             for await (let result of globals.PROCESS_MANAGER.spawn_cmd(
@@ -148,7 +150,7 @@ async function handlePingResponse(m: Message) {
         else {
             m.channel.send(pingresponse)
         }
-        m.author.id = old_id
+        m.author = original_author
     }
 }
 
