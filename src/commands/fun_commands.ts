@@ -473,6 +473,14 @@ export default function*(): Generator<[string, CommandV2]> {
                 status: StatusCode.ERR
             })
         let prompt = args.join(" ")
+
+        try {
+            await fetch(`${baseurl}:11434`, { signal: AbortSignal.timeout(1000) })
+        }
+        catch(err) {
+            return crv("offline")
+        }
+
         if (opts.getBool("c", opts.getBool("s", opts.getBool("initiate-chat-session-(始める)", false)))) {// {{{
             messages.push({
                 role: "system",

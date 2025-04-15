@@ -133,6 +133,7 @@ async function handlePingResponse(m: Message) {
             continue
         }
         pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
+        //this makes a copy otherwise, if the command is running while another user pings the user that pinged, the ids will get messed up
         let original_author = m.author
         let author_copy = {...m.author}
         author_copy.id = member!.user.id
