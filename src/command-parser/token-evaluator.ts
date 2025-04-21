@@ -324,7 +324,7 @@ class TokenEvaluator {
 
 const format_parsers: Record<string, (token: TT<any>, symbols: SymbolTable, seq: string, args: string[], msg: Message, runtime_opts: RuntimeOptions) => Promise<string>> = {
     ["%"]: async (_token, symbols) => {
-        return String(symbols.get("stdin:%")) ?? "{%}"
+        return String(symbols.get("stdin:content%")) ?? "{%}"
     },
     //TODO: cmd: async()
     fhex: async (_token, _, __, args) => {

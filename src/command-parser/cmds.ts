@@ -3,7 +3,7 @@ import { Message, MessageCreateOptions, MessagePayload } from 'discord.js'
 import lexer, { TT } from './lexer'
 import runner from './runner'
 import tokenEvaluator from './token-evaluator'
-import { isMsgChannel, mimeTypeToFileExtension, sleep } from '../util'
+import { getContentFromResult, isMsgChannel, mimeTypeToFileExtension, sleep } from '../util'
 import common_to_commands, { StatusCode, isCmd } from '../common_to_commands'
 
 import configManager from '../config-manager'
@@ -123,6 +123,7 @@ async function* runcmdpipe(pipes: PipeNode[],
     if (stdin) {
         symbols.set("stdin:content", stdin.content ?? "")
         symbols.set("stdin:%", stdin.content ?? "")
+        symbols.set("stdin:content%", getContentFromResult(stdin) ?? "")
         symbols.set("stdin:raw", JSON.stringify(stdin))
         if (stdin.status === StatusCode.CMDSTATUS) {
             symbols.set("stdin:status", String(stdin.statusNr || 0))
