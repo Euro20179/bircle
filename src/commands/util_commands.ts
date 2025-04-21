@@ -4647,7 +4647,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     status: StatusCode.ERR
                 }
             }
-            let data = stdin ? stdin.content : args.expectString(truthy)
+            let data = stdin ? getContentFromResult(stdin) : args.expectString(truthy)
 
             if (!data || data === BADVALUE) {
                 let attachment = msg.attachments?.at(0)
