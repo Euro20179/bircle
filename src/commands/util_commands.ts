@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed, crvFile } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec, isSafeFilePath } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec, isSafeFilePath, isBetween } from '../util'
 import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -31,7 +31,7 @@ import translate from '@iamtraction/google-translate'
 import { attach } from 'neovim'
 
 import cmds from '../command-parser/cmds'
-import configManager from '../config-manager'
+import configManager, { getConfigValue } from '../config-manager'
 import stackl2 from '../stackl2'
 
 const nodemailer = require("nodemailer")
@@ -251,6 +251,76 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 s: createHelpOption("Output seperator between numbers")
             },
             gen_opts: true
+        })
+    ]
+
+    yield [
+        "steam-search", ccmdV2(async function({ msg, args, sendCallback }) {
+            const aioServer = getConfigValue("general.AIO-server")
+            const aioAuth = getConfigValue("secrets.AIO-auth")
+            if (!aioServer) {
+                return crv("Could not get results", { status: StatusCode.ERR })
+            }
+
+            const title = encodeURIComponent(args.join(" "))
+            if (!title) {
+                return crv("No search", { status: StatusCode.ERR })
+            }
+
+            const res = await fetch(aioServer + `/api/v1/metadata/identify?title=${title}&provider=steam`, {
+                headers: {
+                    "Authorization": `Basic ${aioAuth}`
+                }
+            })
+            const text = await res.text()
+            if (res.status !== 200) {
+                return crv(text,
+                    { status: StatusCode.ERR }
+                )
+            }
+            const items = new Map<string, string>()
+            const [provider, jsonL] = text.split("\x02")
+            for (let line of jsonL.trim().split("\n")) {
+                if (!line) continue
+                const j = JSON.parse(line)
+                items.set(j.Title || j.Native_Title, j.ProviderID)
+            }
+            const values = Object.fromEntries(items.keys().map((v, i) => [i + 1, v]).toArray())
+            const choice = await promptUser(msg, `Please select one\n${Object.entries(values).map(v => `${v[0]}: ${v[1]}`).join("\n")}`, sendCallback, { timeout: 20000 })
+            if (!choice) {
+                return crv("No choice", { status: StatusCode.ERR })
+            }
+            if (isNaN(Number(choice.content)) || !isBetween(0, Number(choice.content), items.size + 1)) {
+                return crv("Invalid choice", { status: StatusCode.ERR })
+            }
+
+            const name = values[choice.content]
+
+            const id = items.get(name)?.trim()
+            if (!id) {
+                return crv("Could not find item id", { status: StatusCode.ERR })
+            }
+
+            const appRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(id)}`, {
+                headers: {
+                    "Host": "store.steampowered.com",
+                }
+            })
+            const json = await appRes.json()
+            const data = json[id.trim()]
+            const embed = new EmbedBuilder()
+                .setDescription(htmlRenderer.renderHTML(data.data.detailed_description))
+                .setTitle(`${data.data.name} - ${data.data.price_overview.final_formatted}`)
+                .setThumbnail(`http://cdn.origin.steamstatic.com/steam/apps/${id}/library_600x900_2x.jpg`)
+            return {
+                embeds: [embed],
+                status: StatusCode.RETURN
+            }
+
+        }, "Search steam", {
+            helpArguments: {
+                search: createHelpArgument("The search query")
+            }
         })
     ]
 
@@ -795,7 +865,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         else {
             let folder = opts.getBool("g", false) ? "garbage-files" : "command-results"
             for (let arg of args) {
-                if(!isSafeFilePath(arg)) continue
+                if (!isSafeFilePath(arg)) continue
                 if (fs.existsSync(`./${folder}/${arg}`)) {
                     content += fs.readFileSync(`./${folder}/${arg}`, "utf-8")
                 }
