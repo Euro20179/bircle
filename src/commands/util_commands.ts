@@ -285,7 +285,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 const j = JSON.parse(line)
                 items.set(j.Title || j.Native_Title, j.ProviderID)
             }
-            const values = Object.fromEntries(items.keys().map((v, i) => [i + 1, v]).toArray())
+            const values = Object.fromEntries(items.keys().toArray().map((v, i) => [i + 1, v]))
             const choice = await promptUser(msg, `Please select one\n${Object.entries(values).map(v => `${v[0]}: ${v[1]}`).join("\n")}`, sendCallback, { timeout: 20000 })
             if (!choice) {
                 return crv("No choice", { status: StatusCode.ERR })
