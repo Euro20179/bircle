@@ -255,19 +255,39 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "steam-search", ccmdV2(async function({ msg, args, sendCallback }) {
+        "media", ccmdV2(async function({ msg, args, sendCallback }) {
             const aioServer = getConfigValue("general.AIO-server")
             const aioAuth = getConfigValue("secrets.AIO-auth")
             if (!aioServer) {
                 return crv("Could not get results", { status: StatusCode.ERR })
             }
 
+            args.beginIter()
+            let provider = args.expectOneOf(1, ["imdb", "omdb", "movie", "show", "game", "steam", "anilist", "anime", "googlebooks", "openbooks", "book"])
+            if (provider === BADVALUE) {
+                return crv("Invalid provider")
+            }
+            const search = args.expectString(truthy)
+            if (search === BADVALUE) {
+                return crv("no search")
+            }
+
+            const translateProvider = {
+                imdb: "omdb",
+                movie: "omdb",
+                show: "omdb",
+                anime: "anilist",
+                game: "steam",
+                book: "googlebooks"
+            }
+            provider = translateProvider[provider as keyof typeof translateProvider] || provider
+
             const title = encodeURIComponent(args.join(" "))
             if (!title) {
                 return crv("No search", { status: StatusCode.ERR })
             }
 
-            const res = await fetch(aioServer + `/api/v1/metadata/identify?title=${title}&provider=steam`, {
+            const res = await fetch(aioServer + `/api/v1/metadata/identify?title=${encodeURIComponent(search)}&provider=${provider}`, {
                 headers: {
                     "Authorization": `Basic ${aioAuth}`
                 }
@@ -279,7 +299,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 )
             }
             const items = new Map<string, string>()
-            const [provider, jsonL] = text.split("\x02")
+            const [_, jsonL] = text.split("\x02")
             for (let line of jsonL.trim().split("\n")) {
                 if (!line) continue
                 const j = JSON.parse(line)
@@ -301,24 +321,51 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return crv("Could not find item id", { status: StatusCode.ERR })
             }
 
-            const appRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(id)}`, {
+            const itemRes = await fetch(aioServer + `/api/v1/metadata/finalize-identify?identified-id=${encodeURIComponent(id)}&provider=${provider}`, {
                 headers: {
-                    "Host": "store.steampowered.com",
+                    "Authorization": `Basic ${aioAuth}`
                 }
             })
-            const json = await appRes.json()
-            const data = json[id.trim()]
+
+            const data = await itemRes.json()
+
+            const ratingPercent = data.Rating / data.RatingMax
+
+            let tier = ""
+            const tiers = [
+                [.90, "S"],
+                [.80, "A"],
+                [.70, "B"],
+                [.60, "C"],
+                [.50, "D"],
+                [0, "F"]
+            ] as const
+            for(let tierRange of tiers) {
+                if(ratingPercent >= tierRange[0]) {
+                    tier = tierRange[1]
+                    break
+                }
+            }
+
+            const genres = JSON.parse(data.Genres) || []
             const embed = new EmbedBuilder()
-                .setDescription(htmlRenderer.renderHTML(data.data.detailed_description))
-                .setTitle(`${data.data.name} - ${data.data.price_overview.final_formatted}`)
-                .setThumbnail(`http://cdn.origin.steamstatic.com/steam/apps/${id}/library_600x900_2x.jpg`)
+                .setDescription(htmlRenderer.renderHTML(data.Description))
+                .setTitle(`${data.Title || data.Native_Title} - ${data.ReleaseYear || 'unknown release year'} (${data.Rating} / ${data.RatingMax} - ${tier})`)
+                .setFooter({ text: `${genres.join(", ") || "No genres"} - ID: ${data.ProviderID}` })
+
+            if (data.Thumbnail && data.Thumbnail != "N/A") {
+                embed.setThumbnail(data.Thumbnail)
+            }
+
             return {
+                content: Object.entries(JSON.parse(data.MediaDependant)).map(v => `${v[0].split("-").slice(1).join(" ")}: ${v[1]}`).join("\n"),
                 embeds: [embed],
                 status: StatusCode.RETURN
             }
 
-        }, "Search steam", {
+        }, "search media", {
             helpArguments: {
+                provider: createHelpArgument("The provider to use"),
                 search: createHelpArgument("The search query")
             }
         })

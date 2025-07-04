@@ -959,7 +959,11 @@ class ArgList extends Array {
     }
     expectOneOf(amountOfArgs: AmountOfArgs, list: string[]) {
         return this.expect(amountOfArgs, i => {
-            return list.includes(i.join(" "))
+            const idx = list.indexOf(i.join(" "))
+            if(idx === -1) {
+                return false
+            }
+            return list[idx]
         })
     }
     expectList(splitter: string, amountOfListItems: number = 1, sized = false) {
