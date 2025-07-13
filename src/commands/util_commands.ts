@@ -340,8 +340,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 [.50, "D"],
                 [0, "F"]
             ] as const
-            for(let tierRange of tiers) {
-                if(ratingPercent >= tierRange[0]) {
+            for (let tierRange of tiers) {
+                if (ratingPercent >= tierRange[0]) {
                     tier = tierRange[1]
                     break
                 }
@@ -3901,6 +3901,46 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return crv(Buffer.from(text, "base64").toString("utf8"))
         }, CommandCategory.UTIL, "Decodes base64 (use b64 -d instead)")
+    ]
+
+    yield [
+        "verify-counting", ccmdV2(async function*({ msg, args }) {
+            const channelId = configManager.BOT_CONFIG.general['counting-channel']
+            const channel = await msg.guild?.channels.fetch(channelId)
+            if (!channel || !channel.isTextBased()) {
+                return crv("Could not find the counting channel", {
+                    status: StatusCode.ERR
+                })
+            }
+            let curMsg = (await channel.messages.fetch({ limit: 1 })).at(0)?.id as string
+            let n = 0
+            while (true) {
+                let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
+                if (!messages.size)
+                    break
+                const messageList = messages.values().toArray()
+                for(let i = 0; i < messageList.length; i++) {
+                    const m = messageList[i]
+                    if(!m.content) {
+                        m.content = "This is likely correct, ignoring"
+                        yield m
+                        m.content = ""
+                        n--
+                        continue
+                    }
+                    const number = Number(m.content.replaceAll(/[^0-9]/g, ""))
+                    if(n !== 0 && number !== n - 1) {
+                        yield { status: StatusCode.INFO, content: `${m.url} should be ${n - 1}` }
+                    }
+                    n = number
+                }
+
+                await sleep(Math.random() * 3000)
+                curMsg = messageList[messageList.length - 1].id
+                console.log(n)
+            }
+            return crv("done")
+        }, "verifies all numbers in the counting channel")
     ]
 
     yield [
