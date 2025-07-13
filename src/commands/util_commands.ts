@@ -3914,21 +3914,24 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             let curMsg = (await channel.messages.fetch({ limit: 1 })).at(0)?.id as string
             let n = 0
+            let messageCount = 0
             while (true) {
                 let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
                 if (!messages.size)
                     break
                 const messageList = messages.values().toArray()
+                messageCount += messageList.length
                 for(let i = 0; i < messageList.length; i++) {
                     const m = messageList[i]
-                    if(!m.content) {
-                        m.content = "This is likely correct, ignoring"
-                        yield m
-                        m.content = ""
+                    if(!m.content && !m.embeds.length) {
+                        yield { content: `${m.url} is likely correct, ignoring`, status: StatusCode.INFO }
                         n--
                         continue
                     }
-                    const number = Number(m.content.replaceAll(/[^0-9]/g, ""))
+                    let number = parseInt(m.content.replaceAll(".", ""))
+                    if(m.embeds.length) {
+                        number = parseInt(m.embeds[0].title!.replaceAll(".", ""))
+                    }
                     if(n !== 0 && number !== n - 1) {
                         yield { status: StatusCode.INFO, content: `${m.url} should be ${n - 1}` }
                     }
@@ -3937,9 +3940,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
                 await sleep(Math.random() * 3000)
                 curMsg = messageList[messageList.length - 1].id
-                console.log(n)
+                console.log(n, messageCount)
             }
-            return crv("done")
+            return crv(`done, ${messageCount} messages total`)
         }, "verifies all numbers in the counting channel")
     ]
 
