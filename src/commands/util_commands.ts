@@ -4287,8 +4287,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let pinned
             if ("messages" in channel && (pinned = await channel.messages.fetchPinned())) {
                 let pinCount = pinned.size
-                let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
-                embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", String(daysTillFull), true]))
+                let daysTillFull = (daysSinceCreation / pinCount) * (250 - pinCount)
+                const yearsTillFull = daysTillFull / 365.2425
+                embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", `${Math.round(daysTillFull * 100) / 100} (${Math.round(yearsTillFull * 100) / 100} years)`, true]))
             }
             embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type.toString(), true]))
             if ("topic" in channel && channel.topic) {
