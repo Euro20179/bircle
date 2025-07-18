@@ -357,8 +357,10 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 embed.setThumbnail(data.Thumbnail)
             }
 
+            console.log(data.MediaDependant)
+            const medDep = data.MediaDependant ? JSON.parse(data.MediaDependant) : []
             return {
-                content: Object.entries(JSON.parse(data.MediaDependant)).map(v => `${v[0].split("-").slice(1).join(" ")}: ${v[1]}`).join("\n"),
+                content: Object.entries(medDep).map(v => `${v[0].split("-").slice(1).join(" ")}: ${v[1]}`).join("\n"),
                 embeds: [embed],
                 status: StatusCode.RETURN
             }
@@ -4258,7 +4260,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.setColor(role.color)
             embed.addFields(efd(["id", String(role.id), true]))
             embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
-            return { embeds: [embed] || "none", status: StatusCode.RETURN, allowedMentions: { parse: [] } }
+            return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
         }, "Gets information about a role", {
             argShape: async function*(args, msg) {
