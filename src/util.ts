@@ -25,6 +25,15 @@ export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
 
+export function reduce(numerator: number, denominator: number) {
+    function gcd(a: number, b: number): number {
+        return b ? gcd(b, a % b) : a;
+    }
+    let den = gcd(numerator, denominator);
+    return [numerator / den, denominator / den];
+}
+
+
 function binStrToDec(str: string) {
     let ans = 0n
     for (let i = 0n; i < str.length; i++) {
@@ -518,7 +527,7 @@ async function searchMsg(msg: Message, search?: string) {
     if (msg.reference) {
         infoMsg = await msg.fetchReference()
     } else if (search?.length) {
-        if (search.match(/^\d+\/\d+$/) && msg.guild ){
+        if (search.match(/^\d+\/\d+$/) && msg.guild) {
             const [channelId, msgId] = search.split("/")
             const channel = await msg.guild.channels.fetch(channelId)
             if (channel && isMsgChannel(channel)) {
@@ -960,7 +969,7 @@ class ArgList extends Array {
     expectOneOf(amountOfArgs: AmountOfArgs, list: string[]) {
         return this.expect(amountOfArgs, i => {
             const idx = list.indexOf(i.join(" "))
-            if(idx === -1) {
+            if (idx === -1) {
                 return false
             }
             return list[idx]

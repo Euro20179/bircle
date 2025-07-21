@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed, crvFile } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec, isSafeFilePath, isBetween } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec, isSafeFilePath, isBetween, reduce } from '../util'
 import iterators from '../iterators'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
@@ -698,8 +698,19 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         m ||= "0"
         h = h.replace("PT", "")
 
+        const ratingHalf = Number(workingJson.aggregateRating.ratingValue) / 2
+        let stars = "⭐".repeat(Math.floor(ratingHalf))
+        const fraction = Math.floor((ratingHalf - Math.floor(ratingHalf)) * 10) / 10
+        for(let i = 0; i < 10; i++) {
+            if(i / 10 === fraction) {
+                let [top, bot] = reduce(i, 10)
+                stars += `${top}⁄${bot}`
+                break
+            }
+        }
+
         let e = new EmbedBuilder()
-            .setTitle(workingJson.name)
+            .setTitle(workingJson.name + " " + stars)
             .setDescription(workingJson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
             .setURL(workingJson.url)
             .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating || "Unrated", inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
@@ -3923,18 +3934,18 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     break
                 const messageList = messages.values().toArray()
                 messageCount += messageList.length
-                for(let i = 0; i < messageList.length; i++) {
+                for (let i = 0; i < messageList.length; i++) {
                     const m = messageList[i]
-                    if(!m.content && !m.embeds.length) {
+                    if (!m.content && !m.embeds.length) {
                         yield { content: `${m.url} is likely correct, ignoring`, status: StatusCode.INFO }
                         n--
                         continue
                     }
                     let number = parseInt(m.content.replaceAll(".", ""))
-                    if(m.embeds.length) {
+                    if (m.embeds.length) {
                         number = parseInt(m.embeds[0].title!.replaceAll(".", ""))
                     }
-                    if(n !== 0 && number !== n - 1) {
+                    if (n !== 0 && number !== n - 1) {
                         yield { status: StatusCode.INFO, content: `${m.url} should be ${n - 1}` }
                     }
                     n = number
