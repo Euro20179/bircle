@@ -4003,7 +4003,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if(minutes.length === 1) minutes = `0${minutes}`
                     let seconds = date.getSeconds().toString()
                     if(seconds.length === 1) seconds = `0${seconds}`
-                    text += `${date.getMonth()}/${date.getDate()}/${date.getFullYear()} ${hours}:${minutes}:${seconds} <${message.author.username}> ${message.content}\n`
+
+                    let content = message.content
+                    if(opts.getBool('rev', false)) {
+                        content = content.split("\n").reverse().join("\n")
+                    }
+
+                    text += `${date.getMonth()}/${date.getDate()}/${date.getFullYear()} ${hours}:${minutes}:${seconds} <${message.author.username}> ${content}\n`
                 }
                 stream.write(text)
 
