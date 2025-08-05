@@ -265,7 +265,7 @@ export class Stack {
         this.shuffle()
     }
     shuffle() {
-        this.cards = this.cards.shuffleArray()
+        this.cards = this.cards.shuffle()
     }
     top() {
         return this.cards[this.cards.length - 1]

@@ -701,8 +701,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         const ratingHalf = Number(workingJson.aggregateRating.ratingValue) / 2
         let stars = "⭐".repeat(Math.floor(ratingHalf))
         const fraction = Math.floor((ratingHalf - Math.floor(ratingHalf)) * 10) / 10
-        for(let i = 0; i < 10; i++) {
-            if(i / 10 === fraction) {
+        for (let i = 0; i < 10; i++) {
+            if (i / 10 === fraction) {
                 let [top, bot] = reduce(i, 10)
                 stars += `${top}⁄${bot}`
                 break
@@ -3961,7 +3961,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         "archive-channel",
-        ccmdV2(async function*({ msg, args }) {
+        ccmdV2(async function*({ msg, args, opts }) {
             if (!msg.guild) {
                 return crv("Must be in a guild", { status: StatusCode.ERR })
             }
@@ -3976,15 +3976,34 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let fn = generateFileName("archive-channel", `${msg.author.id}-${channel.id}`, "txt")
             let stream = fs.createWriteStream(fn, "utf8")
             let mesageCount = 0
+
+            const logReactions = opts.getBool("reactions", false)
             while (true) {
                 let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
                 mesageCount += messages.size
                 if (!messages.size)
                     break
-                let text = ""
+                let text = "<*> +date (%m/%d/%Y %H:%M:%S) UTC\n"
+                if(logReactions) {
+                    //reactions are first in the log, therefore they should be first here
+                    text = `<*> +reactions\n` + text
+                }
                 let msgList = messages.toJSON()
                 for (let message of msgList) {
-                    text += `(${new Date(message.createdTimestamp)}) @${message.author.username}: ${message.content}\n`
+                    const date = new Date(message.createdTimestamp)
+                    if (logReactions) {
+                        const reactions = message.reactions.cache.toJSON()
+                        if(reactions.length) {
+                            text += `+${reactions.map(v => `${v.emoji.name} (${v.count})`).join(",")} `
+                        }
+                    }
+                    let hours = date.getHours().toString()
+                    if(hours.length === 1) hours = `0${hours}`
+                    let minutes = date.getMinutes().toString()
+                    if(minutes.length === 1) minutes = `0${minutes}`
+                    let seconds = date.getSeconds().toString()
+                    if(seconds.length === 1) seconds = `0${seconds}`
+                    text += `${date.getMonth()}/${date.getDate()}/${date.getFullYear()} ${hours}:${minutes}:${seconds} <${message.author.username}> ${message.content}\n`
                 }
                 stream.write(text)
 

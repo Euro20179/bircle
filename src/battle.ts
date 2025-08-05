@@ -937,7 +937,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             [amount, responseChoice] = pickBattleResponse(responses)
         } while (responseChoice === undefined)
 
-        let shuffledPlayers = Object.keys(players).shuffleArray()
+        let shuffledPlayers = Object.keys(players).shuffle()
 
         let responseText = replacePlaceholdersInBattleResponse(responseChoice.response, shuffledPlayers)
 

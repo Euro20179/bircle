@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, GuildMember, NonThreadGuildBasedChannel, ChannelType } from 'discord.js'
-import { StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv, promptUser } from '../common_to_commands'
+import { StatusCode, createHelpArgument, createHelpOption, ccmdV2, crv, promptUser } from '../common_to_commands'
 
 import globals from '../globals'
 import economy from '../economy'
@@ -14,7 +14,7 @@ import uno, { Hand, Stack } from '../uno'
 
 import { choice, efd, fetchUser, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from '../util'
 
-import { format, getOpts } from '../parsing'
+import { format } from '../parsing'
 
 import common from '../common'
 import vars from '../vars'
@@ -1416,7 +1416,7 @@ yield[
                         stats.locationsVisited[current_location] = {}
                     }
                     stats.adventureOrder.push([current_location, stage])
-                    let shuffledPlayers = state.HEIST_PLAYERS.shuffleArray()
+                    let shuffledPlayers = state.HEIST_PLAYERS.shuffle()
                     let amount = Math.random() * 0.5
                     let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                     let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
@@ -2514,7 +2514,7 @@ yield[
 ]
 
 yield[
-    "wordle", ccmdV2(async function({ rawOpts: opts, msg, args, sendCallback }) {
+    "wordle", ccmdV2(async function({ rawOpts: opts, msg, sendCallback }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         let min = parseInt(opts["min"] as string) || 5
         let max = parseInt(opts["max"] as string) || 5

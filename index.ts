@@ -46,24 +46,13 @@ const rest = new REST({ version: "10" })
 const PROCESS_OPTS = getOptsUnix(process.argv.slice(2), "", [["headless"]])
 const HEADLESS = PROCESS_OPTS[0]['headless']
 
-Array.prototype.shuffleArray = function() {
+Array.prototype.shuffle = function() {
     for (let i = this.length - 1; i > 0; i--) {
         let j = Math.floor(Math.random() * (i + 1));
         [this[i], this[j]] = [this[j], this[i]];
     }
     return this;
 }
-
-// defer(() => {
-//     console.log('Started refreshing application (/) commands.');
-//
-//     rest.put(
-//         Routes.applicationGuildCommands(configManager.CLIENT_ID, configManager.GUILD_ID),
-//         { body: slashCmds },
-//     ).then(
-//         _res => console.log("Successfully reloaded application (/) commands.")
-//     ).catch(console.error)
-// })
 
 common.client.on(Events.GuildMemberAdd, async (member) => {
     try {

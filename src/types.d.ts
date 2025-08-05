@@ -27,7 +27,7 @@ declare global {
     }
 
     interface Array<T> {
-        shuffleArray(): Array<T>
+        shuffle(): Array<T>
     }
 }
 
