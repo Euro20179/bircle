@@ -69,7 +69,6 @@ function isRetired(id: string) {
     const res = stmnt.get(id)
     return res["retired"]
 }
-isRetired("1190132846409564170")
 
 type BaseInterestOptions = {
     puffle_chat_count?: number,
