@@ -702,9 +702,11 @@ export default function*(): Generator<[string, CommandV2]> {
             let stockName = stock.toUpperCase()
             if (realStockInfo)
                 stockName = realStockInfo.name
+
             if (!economy.getStocks(msg.author.id)[stockName]) {
                 return { content: "You do not own this stock", status: StatusCode.ERR }
             }
+
             else {
                 let stockInfo = economy.getStocks(msg.author.id)[stockName]
                 if (!stockInfo) return crv("Could not get stock info", { status: StatusCode.ERR })

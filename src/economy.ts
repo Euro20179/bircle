@@ -506,7 +506,7 @@ function _set_active_pet(id: string, pet: string) {
     db.run(`UPDATE economy SET activePet = ? WHERE id = ?`, [pet, id])
 }
 function _get_active_pet(id: string) {
-    return playerGetInfo<string>(id, "activePet")
+    return playerGetInfo<string>(id, "activePet")["activePet"]
 }
 
 function getEconomy(): { [id: string]: Omit<EconomyData, "stocks"> } {
