@@ -210,9 +210,9 @@ class Mumbo extends Player {
         if (gameState.mumboUser) {
             economy.loseMoneyToBank(
                 gameState.mumboUser,
-                economy.getEconomy()[gameState.mumboUser]?.money * 0.005
+                economy.getMoney(gameState.mumboUser) * 0.005
             )
-            await handleSending(msg, { content: `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getEconomy()[gameState.mumboUser]?.money * 0.005} \n`, status: StatusCode.INFO })
+            await handleSending(msg, { content: `<@${gameState.mumboUser}>'s MUMBO HAS DIED and <@${gameState.mumboUser}> LOST ${economy.getMoney(gameState.mumboUser) * 0.005} \n`, status: StatusCode.INFO })
             gameState.mumboUser = null
         }
         this.dead = true
@@ -874,7 +874,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             return
         }
         if (!isMsgChannel(msg.channel) || !isMsgChannel(m.channel)) return
-        if (!economy.getEconomy()[m.author.id]) {
+        if (!economy.playerExists(m.author.id)) {
             return
         }
         let itemName = m.content.toLowerCase()
@@ -1092,7 +1092,7 @@ async function battle(msg: Message, args: ArgumentList) {
     if (!nBet || !economy.canBetAmount(msg.author.id, nBet) || nBet < 0) {
         return { content: "Not a valid bet", status: StatusCode.ERR }
     }
-    if (nBet / economy.getEconomy()[msg.author.id].money < 0.002) {
+    if (nBet / economy.getMoney(msg.author.id) < 0.002) {
         return { content: "You must bet at least 0.2%", status: StatusCode.ERR }
     }
 
@@ -1115,7 +1115,7 @@ async function battle(msg: Message, args: ArgumentList) {
             return
         }
 
-        if (nBet / economy.getEconomy()[m.author.id].money < 0.002) {
+        if (nBet / economy.getMoney(m.author.id) < 0.002) {
             if (!isMsgChannel(m.channel)) return
             await m.channel.send("You must bet at least 0.2%")
             return

@@ -7,6 +7,17 @@ import amount_parser from './amount-parser'
 import { randInt, valuesOf } from "./util"
 import { getConfigValue } from './config-manager'
 
+import { Database } from "bun:sqlite"
+
+const db = new Database("./database/economy.db")
+
+db.exec("CREATE TABLE IF NOT EXISTS economy (id TEXT, money NUMBER, loanUsed NUMBER, activePet TEXT, sandCounter INTEGER, retired BOOLEAN)")
+db.exec("CREATE TABLE IF NOT EXISTS stocks (id TEXT, ticker STRING, purchasePrice NUMBER, shares INTEGER)")
+db.exec("CREATE TABLE IF NOT EXISTS lottery (pool NUMBER, n1 INTEGER, n2 INTEGER, n3 INTEGER)")
+if (getLottery() === null) {
+    db.exec("INSERT INTO lottery (pool, n1, n2, n3) VALUES (0, 0, 0, 0)")
+    newLottery()
+}
 
 type Stock = { buyPrice: number, shares: number }
 
@@ -15,9 +26,50 @@ let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
-function isRetired(id: string) {
-    return ECONOMY[id]?.retired
+function playerCount() {
+    const results = db.query("SELECT id FROM economy").all()
+    return results.length
 }
+
+function playerExists(id: string) {
+    const stmnt = db.query(`SELECT money FROM economy WHERE id == ?`)
+    return stmnt.get(id) !== null
+}
+
+function playerGetInfo<T>(id: string, wanted: "money" | "loanUsed" | "activePet" | "sandCounter" | "retired"): T {
+    const stmnt = db.query(`SELECT ${wanted} FROM economy WHERE id == ?`)
+    return stmnt.get(id) as T
+}
+
+//@ts-ignore
+const getMoney = (id: string) => playerGetInfo<number>(id, "money")["money"]
+//@ts-ignore
+const getLoan = (id: string) => playerGetInfo<number>(id, "loanUsed")["loanUsed"]
+
+type StockInfo = { ticker: string, purchasePrice: number, shares: number, rowid: number }
+function getStocks(id: string): { [ticker: string]: { purchasePrice: number, shares: number, id: number }[] } {
+    const stmnt = db.query(`SELECT rowid, ticker, purchasePrice, shares FROM stocks WHERE id = ?`)
+    const results = stmnt.all(id) as StockInfo[]
+    const stocks: { [ticker: string]: { purchasePrice: number, shares: number, id: number }[] } = {}
+    let empty = true
+    for (let res of results) {
+        empty = false
+        const ticker = res["ticker"]
+        if (stocks[ticker]) {
+            stocks[ticker].push({ purchasePrice: res["purchasePrice"], shares: res["shares"], id: res["rowid"] })
+        } else {
+            stocks[ticker] = [{ purchasePrice: res["purchasePrice"], shares: res["shares"], id: res['rowid'] }]
+        }
+    }
+    return stocks
+}
+
+function isRetired(id: string) {
+    const stmnt = db.query(`SELECT retired FROM economy WHERE id == ?`)
+    const res = stmnt.get(id)
+    return res["retired"]
+}
+isRetired("1190132846409564170")
 
 type BaseInterestOptions = {
     puffle_chat_count?: number,
@@ -58,43 +110,37 @@ function calculateTaxPercent(id: string, { max, taxPercent, taxerIsRetired, hasT
 }
 
 function setUserStockSymbol(id: string, data: { name: string, info: Stock }) {
-    let userEconData = ECONOMY[id]
-    if (!userEconData)
-        return false
-    if (!userEconData.stocks) {
-        userEconData.stocks = {}
-    }
-    userEconData.stocks[data.name] = data.info
-    return true
+    return false
+    // let userEconData = ECONOMY[id]
+    // if (!userEconData)
+    //     return false
+    // if (!userEconData.stocks) {
+    //     userEconData.stocks = {}
+    // }
+    // userEconData.stocks[data.name] = data.info
+    // return true
 }
 
 function increaseSandCounter(id: string, amount: int_t = 1) {
-    let userEconData = ECONOMY[id]
-    if (userEconData?.sandCounter !== undefined) {
-        userEconData.sandCounter += amount
-        return true
-    }
-    else if (ECONOMY[id]) {
-        ECONOMY[id].sandCounter = amount
-    }
-    return false
+    const stmnt = db.query("UPDATE economy SET sandCounter = sandCounter + ? WHERE id = ?")
+    stmnt.run(amount, id)
+    return true
 }
 
 function getSandCounter(id: string) {
-    return ECONOMY[id]?.sandCounter
+    const stmnt = db.query("SELECT sandCounter FROM economy WHERE id = ?")
+    const res = stmnt.get(id)
+    return res["sandCounter"];
 }
 
 function userHasStockSymbol(id: string, symbol: string) {
     if (!symbol)
         return false
-    let stocks = ECONOMY[id]?.stocks
+    const stocks = getStocks(id)
     if (!stocks)
         return false
-    let matches = Object.keys(stocks).filter(v => v.toLowerCase().replace(/\(.*/, "") == symbol.toLowerCase())
-    if (matches.length > 0) {
-        return { name: matches[0], info: stocks[matches[0]] }
-    }
-    return false
+    symbol = symbol.toUpperCase()
+    return stocks[symbol] ? { name: symbol, info: stocks[symbol] } : false
 }
 
 // function tradeItems(player1: string, item1: TradeType , player2: string, item2: TradeType){
@@ -119,108 +165,107 @@ function userHasStockSymbol(id: string, symbol: string) {
 // }
 
 function loadEconomy() {
-    if (fs.existsSync("./database/economy.json")) {
-        let data = fs.readFileSync("./database/economy.json", 'utf-8')
-        ECONOMY = JSON.parse(data)
-        if (ECONOMY['bank']) {
-            delete ECONOMY['bank']
-        }
-    }
-    if (fs.existsSync("./database/lottery.json")) {
-        let data = fs.readFileSync("./database/lottery.json", 'utf-8')
-        lottery = JSON.parse(data)
-    }
+    // if (fs.existsSync("./database/economy.json")) {
+    //     let data = fs.readFileSync("./database/economy.json", 'utf-8')
+    //     ECONOMY = JSON.parse(data)
+    //     if (ECONOMY['bank']) {
+    //         delete ECONOMY['bank']
+    //     }
+    // }
+    // if (fs.existsSync("./database/lottery.json")) {
+    //     let data = fs.readFileSync("./database/lottery.json", 'utf-8')
+    //     lottery = JSON.parse(data)
+    // }
 }
-function saveEconomy() {
-    fs.writeFileSync("./database/economy.json", JSON.stringify(ECONOMY))
 
-    fs.writeFileSync("./database/lottery.json", JSON.stringify(lottery))
+function saveEconomy() {
+    // fs.writeFileSync("./database/economy.json", JSON.stringify(ECONOMY))
+    //
+    // fs.writeFileSync("./database/lottery.json", JSON.stringify(lottery))
+}
+
+function increaseLotteryPool(amount: number) {
+    db.run(`UPDATE lottery SET pool = pool + ?`, [amount])
 }
 
 function buyLotteryTicket(id: string, cost: number) {
-    const LOTTERY_DELAY = 60 * 5 //minutes
-    let userEconData = ECONOMY[id]
-    if (userEconData.lastLottery && Date.now() / 1000 - userEconData.lastLottery < LOTTERY_DELAY) {
+    if (!timer.has_x_m_passed(id, "%lastLottery", 5, true) || !playerExists(id)) {
         return false
     }
-    if (ECONOMY[id]) {
-        ECONOMY[id].money -= cost
-        ECONOMY[id].lastLottery = Date.now() / 1000
-        lottery.pool += cost
-        let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]
-        return ticket
-    }
-    return false
+    timer.createOrRestartTimer(id, "%lastLottery")
+    loseMoneyToBank(id, cost)
+    increaseLotteryPool(cost)
+
+    let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]
+    return ticket
 }
 
 function newLottery() {
-    lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
-}
-
-function playerExists(id: string){
-    return ECONOMY[id] ? true : false
+    db.run(`UPDATE lottery SET pool = 0, n1 = ?, n2 = ?, n3 = ?`, [
+        Math.floor(Math.random() * 5 + 1),
+        Math.floor(Math.random() * 5 + 1),
+        Math.floor(Math.random() * 5 + 1)
+    ])
 }
 
 function createPlayer(id: string, startingCash = 0) {
     timer.createTimer(id, "%can-earn")
-    ECONOMY[id] = { money: startingCash, stocks: {}, retired: false }
+    const stmnt = db.query(` INSERT INTO economy (id, money, loanUsed, activePet, sandCounter, retired) VALUES (?, ?, 0, '', 0, false); `)
+    stmnt.run(id, startingCash)
 }
 
 function addMoney(id: string, amount: number) {
-    if (ECONOMY[id]) {
-        ECONOMY[id].money += amount
-        return true
-    }
-    return false
+    db.run(`UPDATE economy SET money = money + ? WHERE id = ?`, [amount, id])
+    return true
 }
 
 function loseMoneyToBank(id: string, amount: number) {
-    if (ECONOMY[id]) {
-        ECONOMY[id].money -= amount
-    }
+    db.run(`UPDATE economy SET money = money - ? WHERE id = ?`, [amount, id])
 }
 
 function loseMoneyToPlayer(id: string, amount: number, otherId: string) {
-    if (ECONOMY[id]) {
-        ECONOMY[id].money -= amount
+    if (!playerExists(otherId)) {
+        createPlayer(otherId, 100)
     }
-    if (ECONOMY[otherId] === undefined) {
-        createPlayer(otherId, amount)
-    }
-    ECONOMY[otherId].money += amount
+    db.run(`UPDATE economy SET money = money - ? WHERE id = ?`, [amount, id])
+    db.run(`UPDATE economy SET money = money + ? WHERE id = ?`, [amount, otherId])
+    return true
 }
 
 function earnMoney(id: string, percent = 1.001) {
     timer.restartTimer(id, "%can-earn")
-    ECONOMY[id].money *= percent
+    db.run(`UPDATE economy SET money = money * ? WHERE id = ?`, [percent, id])
 }
 
 function useLoan(id: string, amount: number) {
-    ECONOMY[id].loanUsed = amount
+    db.run(`UPDATE economy SET loanUsed = loanUsed + ? WHERE id = ?`, [amount, id])
 }
 function payLoan(id: string, amount: number) {
-    if (!ECONOMY[id].money)
+    if (!getMoney(id)) {
         return
-    ECONOMY[id].money -= amount * 1.01
-    let userEconData = ECONOMY[id]
-    if (userEconData.loanUsed) {
-        userEconData.loanUsed -= amount
     }
-    if (userEconData.loanUsed && userEconData.loanUsed <= 0) {
-        delete ECONOMY[id].loanUsed
+    loseMoneyToBank(id, (amount * 1.01))
+    useLoan(id, -amount)
+
+    const loanUsed = getLoan(id)
+    if (loanUsed <= 0) {
+        db.run(`UPDATE economy SET loanUsed = 0 WHERE id = ?`, [id])
         return true
     }
     return false
 }
 
 function playerEconomyLooseTotal(id: string) {
-    if (ECONOMY[id] === undefined)
+    if (!playerExists(id))
         return 0
-    let money = ECONOMY[id]?.money
-    let stocks = ECONOMY[id].stocks
-    if (stocks) {
-        for (let stock in ECONOMY[id].stocks) {
-            money += stocks[stock].buyPrice * stocks[stock].shares
+
+    let money = getMoney(id)
+    const stocks = getStocks(id)
+
+    for (let stock in stocks) {
+        const lots = stocks[stock]
+        for (let lot of lots) {
+            money += lot.purchasePrice * lot.shares
         }
     }
     return money
@@ -234,12 +279,12 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
         taxerIsRetired,
         hasTiger: pet.getActivePet(id) === 'tiger'
     })
-    ECONOMY[id].money -= amountTaxed
+    loseMoneyToBank(id, amountTaxed)
     return { amount: amountTaxed, percent: taxPercent as number }
 }
 
 function canWork(id: string) {
-    if (!ECONOMY[id]) {
+    if (!playerExists(id)) {
         return false
     }
     const enoughTimeHasPassed = timer.has_x_m_passed(id, "%work", 60, true)
@@ -256,33 +301,39 @@ function canWork(id: string) {
 }
 
 function playerLooseNetWorth(id: string) {
-    if (!ECONOMY[id])
+    if (!playerExists(id))
         return 0
-    return playerEconomyLooseTotal(id) - (ECONOMY[id]?.loanUsed || 0)
+    return playerEconomyLooseTotal(id) - (getLoan(id) || 0)
 }
 
 function economyLooseGrandTotal(countNegative = true) {
     let moneyTotal = 0,
         stockTotal = 0,
         loanTotal = 0
-    for (const [player, data] of Object.entries(ECONOMY)) {
-        let nw = playerLooseNetWorth(player)
+    const econ = db.query(`SELECT * FROM economy`).iterate()
+    const stocks = db.query(`SELECT * FROM stocks`).all()
+    for (let res of econ) {
+        //@ts-ignore
+        let nw = playerLooseNetWorth(res["id"])
         if (nw < 0 && !countNegative) continue;
 
-        moneyTotal += data.money
-
-        if (data.stocks) {
-            for (const stockData of valuesOf(data.stocks))
-                stockTotal += stockData.shares * stockData.buyPrice
+        //@ts-ignore
+        moneyTotal += res["money"]
+        for (let stock of stocks) {
+            //@ts-ignore
+            if (stock["id"] !== res["id"]) continue;
+            //@ts-ignore
+            stockTotal += stock["shares"] * stock["purchasePrice"]
         }
 
-        loanTotal += data.loanUsed ?? 0
+        //@ts-ignore
+        loanTotal += res["loanUsed"] ?? 0
     }
     return { money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal }
 }
 
 function work(id: string) {
-    if (!ECONOMY[id])
+    if (!playerExists(id))
         return false
     timer.createOrRestartTimer(id, "%work")
     let economyTotal = economyLooseGrandTotal().total
@@ -294,7 +345,7 @@ function work(id: string) {
 }
 
 function canTax(id: string, bonusTime?: number) {
-    if (!ECONOMY[id])
+    if (!playerExists(id))
         return false
     if (!timer.getTimer(id, "%last-taxed")) {
         timer.createTimer(id, "%last-taxed")
@@ -311,21 +362,21 @@ function canBetAmount(id: string, amount: number) {
     if (isNaN(amount) || amount < 0) {
         return false
     }
-    if (ECONOMY[id] && amount <= ECONOMY[id].money) {
+    if (playerExists(id) && amount <= getMoney(id)) {
         return true
     }
     return false
 }
 
 function setMoney(id: string, amount: number) {
-    if (!ECONOMY[id]) {
+    if (!playerExists(id)) {
         createPlayer(id)
     }
-    ECONOMY[id].money = amount
+    db.run(`UPDATE economy SET money = ? WHERE id = ?`, [amount, id])
 }
 
 function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
-    if (ECONOMY[id] === undefined) {
+    if (!playerExists(id)) {
         return NaN
     }
 
@@ -335,28 +386,28 @@ function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key
 }
 
 function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
-    if (ECONOMY[id] === undefined) {
+    if (!playerExists(id)) {
         return NaN
     }
-    let total = ECONOMY[id].money
-    let stocks = ECONOMY[id].stocks
-    if (stocks) {
-        for (let stock in ECONOMY[id].stocks) {
-            total += stocks[stock].buyPrice * stocks[stock].shares
+    let total = getMoney(id)
+    let stocks = getStocks(id)
+    for (let stock in stocks) {
+        for (let lot of stocks[stock]) {
+            total += lot.shares * lot.purchasePrice
         }
     }
     return amount_parser.calculateAmountRelativeTo(total, amount, extras)
 }
 
 function calculateStockAmountFromString(id: string, shareCount: number, amount: string) {
-    if (ECONOMY[id] === undefined) {
+    if (!playerExists(id)) {
         return NaN
     }
     return amount_parser.calculateAmountRelativeTo(shareCount, amount)
 }
 
 function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
-    let loanDebt = ECONOMY[id]?.loanUsed
+    let loanDebt = getLoan(id)
     if (!loanDebt)
         return 0
     return amount_parser.calculateAmountRelativeTo(loanDebt, amount, extras)
@@ -364,94 +415,107 @@ function calculateLoanAmountFromString(id: string, amount: string, extras?: { [k
 
 
 function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
-    if (ECONOMY[id] === undefined) {
+    if (!playerExists(id)) {
         return NaN
     }
-    return amount_parser.calculateAmountRelativeTo(ECONOMY[id].money, amount, extras)
+    return amount_parser.calculateAmountRelativeTo(getMoney(id), amount, extras)
 }
 
 function resetEconomy() {
-    ECONOMY = {}
-    saveEconomy()
-    loadEconomy()
+    //yes this is correct
+    db.run(`DELETE FROM economy`)
+    db.run(`DELETE FROM stocks`)
 }
 
 function retirePlayer(id: string) {
-    if (!ECONOMY[id]) {
+    if (!playerExists(id)) {
         return false
     }
-    return ECONOMY[id].retired = true
+    db.run(`UPDATE economy SET retired = true`)
 }
 
 function resetPlayer(id: string) {
-    if (ECONOMY[id]) {
-        delete ECONOMY[id]
+    if (playerExists(id)) {
+        db.run(`DELETE economy WHERE id = ?`, [id])
+        db.run(`DELETE stocks WHERE id = ?`, [id])
     }
 }
 
-function sellStock(id: string, stock: string, shares: number, sellPrice: number) {
-    let playerData = ECONOMY[id]
-    if (playerData.stocks?.[stock]) {
-        playerData.money += sellPrice * shares
-        playerData.stocks[stock].shares -= shares
-        if (playerData.stocks[stock].shares <= 0) {
-            delete playerData.stocks[stock]
+function sellStock(id: string, userStock: string, shares: number, sellPrice: number) {
+    const stocks = getStocks(id)
+    let amountSold = 0
+    userStock = userStock.toUpperCase()
+    let profit = 0
+    for (let stock in stocks) {
+        if (stock !== userStock) continue
+        for (let lot of stocks[stock]) {
+            let remaining = lot.shares - shares
+
+            //we can't sell more than lot.shares
+            let sellAmount = Math.min(lot.shares - remaining, lot.shares)
+            profit += (sellPrice - lot.purchasePrice) * sellAmount
+            if (remaining <= 0) {
+                amountSold += lot.shares
+                db.run(`DELETE FROM stocks WHERE id = ? AND rowid = ?`, [id, lot.id])
+                addMoney(id, sellPrice)
+            } else {
+                //if we have shares left over, we've sold all the required shares
+                amountSold += sellAmount
+                break
+            }
         }
+        if (amountSold === shares) {
+            break;
+        }
+    }
+    return {
+        profit
     }
 }
 
 function removeStock(id: string, stock: string) {
-    let playerData = ECONOMY[id]
-    if (playerData.stocks?.[stock] !== undefined) {
-        delete playerData.stocks[stock]
-    }
+    // let playerData = ECONOMY[id]
+    // if (playerData.stocks?.[stock] !== undefined) {
+    //     delete playerData.stocks[stock]
+    // }
 }
 
 function giveStock(id: string, stock: string, buyPrice: number, shares: number) {
-    let playerData = ECONOMY[id]
-    if (playerData.stocks) {
-        playerData.stocks[stock] = { buyPrice: buyPrice, shares: shares }
-    }
-    else {
-        playerData.stocks = {}
-        playerData.stocks[stock] = { buyPrice: buyPrice, shares: shares }
-    }
+    // let playerData = ECONOMY[id]
+    // if (playerData.stocks) {
+    //     playerData.stocks[stock] = { buyPrice: buyPrice, shares: shares }
+    // }
+    // else {
+    //     playerData.stocks = {}
+    //     playerData.stocks[stock] = { buyPrice: buyPrice, shares: shares }
+    // }
 }
 
 function buyStock(id: string, stock: string, shares: number, cost: number) {
-    if (!ECONOMY[id]) {
+    if (!playerExists(id)) {
         return
     }
-    let playerData = ECONOMY[id]
-    if (!playerData.stocks) {
-        playerData.stocks = {}
-    }
-    if (!playerData.stocks[stock]) {
-        playerData.stocks[stock] = { buyPrice: cost, shares: shares }
-    }
-    else {
-        let oldShareCount = playerData.stocks[stock].shares
-        let oldBuyPriceWeight = playerData.stocks[stock].buyPrice * (oldShareCount / (oldShareCount + shares))
-        let newBuyPriceWeight = cost * (shares / (oldShareCount + shares))
-        playerData.stocks[stock].shares += shares
-        playerData.stocks[stock].buyPrice = oldBuyPriceWeight + newBuyPriceWeight
-    }
-    loseMoneyToBank(id, cost * shares)
+    db.run(`INSERT INTO stocks (id, ticker, purchasePrice, shares) VALUES (?, ?, ?, ?)`, [id, stock.toUpperCase(), cost, shares])
+    loseMoneyToBank(id, (cost * shares))
 }
 
 function _set_active_pet(id: string, pet: string) {
-    ECONOMY[id].activePet = pet
+    db.run(`UPDATE economy SET activePet = ? WHERE id = ?`, [pet, id])
 }
 function _get_active_pet(id: string) {
-    return ECONOMY[id].activePet
+    return playerGetInfo<string>(id, "activePet")
 }
 
-function getEconomy() {
-    return ECONOMY
+function getEconomy(): { [id: string]: Omit<EconomyData, "stocks"> } {
+    let economy = {}
+    for (let player of db.query("SELECT * from economy").iterate()) {
+        economy[player.id] = player
+    }
+    return economy
 }
 
-function getLottery() {
-    return lottery
+function getLottery(): typeof lottery {
+    return db.query("SELECT * FROM lottery").get()
 }
 
 
@@ -537,6 +601,10 @@ export default {
     retirePlayer,
     calculateBaseInterest,
     calculateTaxPercent,
-    playerExists
+    playerExists,
+    getMoney,
+    getLoan,
+    playerCount,
+    getStocks,
     // tradeItems
 }

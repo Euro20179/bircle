@@ -26,20 +26,20 @@ const handleSending = cmds.handleSending
 export default function*(): Generator<[string, CommandV2]> {
 
     yield [
-        "join-economy", ccmdV2(async function({ msg }){
+        "join-economy", ccmdV2(async function({ msg }) {
             const currency_sign = user_options.getOpt(
                 msg.author.id,
                 "currency-sign",
                 GLOBAL_CURRENCY_SIGN
             )
-            if(!economy.playerExists(msg.author.id) && !msg.author.bot){
+            if (!economy.playerExists(msg.author.id) && !msg.author.bot) {
                 economy.createPlayer(msg.author.id, 100)
                 return crv(`You joined the economy with ${currency_sign}100`)
             }
             return crv("Failed to join economy", { status: StatusCode.ERR })
         }, "Joins the economy for real, lets you starrt with $100", {
-                permCheck: (m) => m.guild?.id !== "1289757953926238228"
-            })
+            permCheck: (m) => m.guild?.id !== "1289757953926238228"
+        })
     ]
 
     yield ["#calcet", ccmdV2(async function() {
@@ -64,7 +64,7 @@ export default function*(): Generator<[string, CommandV2]> {
     }, "Total amount on tools bot")]
 
     yield ["retire", ccmdV2(async function({ msg }) {
-        if (Object.keys(economy.getEconomy()).length < 3) {
+        if (economy.playerCount() < 3) {
             return crv("Cannot retire if there are 2 or less people in the economy", { status: StatusCode.ERR })
         }
         let percentage = economy.playerLooseNetWorth(msg.author.id) / economy.economyLooseGrandTotal().total
@@ -253,7 +253,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     return { content: "You already have this pet", status: StatusCode.ERR }
                 }
                 case "item": {
-                    if (Object.keys(economy.getEconomy()).length < 2) {
+                    if (economy.playerCount() < 2) {
                         return crv("There are not enough people in the economy to use this", { status: StatusCode.ERR })
                     }
                     if (!amount)
@@ -325,13 +325,28 @@ export default function*(): Generator<[string, CommandV2]> {
             if (!discordUser) {
                 return { content: `${user} not found`, status: StatusCode.ERR }
             }
-            if (!economy.getEconomy()[discordUser.id] || !economy.getEconomy()[discordUser.id].stocks) {
+            if (!economy.playerExists(discordUser.id) || !Object.keys(economy.getStocks(discordUser.id)).length) {
                 return { content: "You own no stocks", status: StatusCode.ERR }
             }
-            let text = `<@${discordUser.id}>\n` +
-                Array.from(Object.entries(economy.getEconomy()[discordUser.id].stocks ?? {}), ([stock, stockInfo]) => {
-                    return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
-                }).join(`\n-------------------------\n`)
+            let text = `<@${discordUser.id}>\n`
+            const stocks = economy.getStocks(discordUser.id)
+            let i = 0
+            let total = Object.keys(stocks).length
+            for (let stock in stocks) {
+                const lots = stocks[stock]
+                text += `**${stock}**\n`
+                let totalBuyPrice = 0
+                let shareTotal = 0
+                for (let lot of lots) {
+                    totalBuyPrice += lot.purchasePrice
+                    shareTotal += lot.shares
+                }
+                let avgBuyPrice = totalBuyPrice / lots.length
+                text += `buy price: ${avgBuyPrice}\nshares: (${shareTotal})`
+                if (i !== total - 1)
+                    text += `\n-------------------------\n`
+                i++
+            }
             return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
         }, "Get the stocks of a user", {
@@ -539,9 +554,10 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "profits", ccmdV2(async function({ msg, args, rawOpts: opts }) {
-            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getStocks(msg.author.id)) {
                 return { content: "You own no stocks", status: StatusCode.ERR }
             }
+            const stocks = economy.getStocks(msg.author.id)
             let totalProfit = 0
             let totalDailiyProfit = 0
             let text = ""
@@ -549,7 +565,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let promises = []
             let fmt = args.join(" ") || "%i"
             let ffmt = opts['ffmt'] || "%i\n%f"
-            for (let stock in economy.getEconomy()[msg.author.id].stocks) {
+            for (let stock in stocks) {
                 stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 promises.push(economy.getStockInformation(stock))
             }
@@ -564,16 +580,21 @@ export default function*(): Generator<[string, CommandV2]> {
 
                     let stockName = userStockData.name
 
-                    let userStockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
+                    let userStockInfo = stocks[stockName]
                     if (!userStockInfo) continue;
 
-                    let profit = (stockInfo.price - userStockInfo.buyPrice) * userStockInfo.shares
+                    let profit = 0
+                    let totalShares = 0
+                    for(let lot of userStockInfo) {
+                        profit += (stockInfo.price - lot.purchasePrice) * lot.shares
+                        totalShares += lot.shares
+                    }
                     totalProfit += profit
 
-                    let todaysProfit = (Number(stockInfo.change) * userStockInfo.shares)
+                    let todaysProfit = (Number(stockInfo.change) * totalShares)
                     totalDailiyProfit += todaysProfit
 
-                    totalValue += stockInfo.price * userStockInfo.shares
+                    totalValue += stockInfo.price * totalShares
 
                     text += format(fmt, {
                         i: `**${stockName}**\nPrice: ${stockInfo.price}\nChange: ${stockInfo.change}\nProfit: ${profit}\nTodays profit: ${todaysProfit}\n---------------------------\n`,
@@ -581,7 +602,7 @@ export default function*(): Generator<[string, CommandV2]> {
                         c: String(stockInfo.change),
                         "+": String(profit),
                         "^": String(todaysProfit),
-                        v: String(stockInfo.price * userStockInfo.shares),
+                        v: String(stockInfo.price * totalShares),
                         n: stockInfo.name,
                         "N": stockName,
                         d: "\n---------------------------\n"
@@ -601,7 +622,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "profit", ccmdV2(async function({ msg, args }) {
-            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getStocks(msg.author.id)) {
                 return { content: "You own no stocks", status: StatusCode.ERR }
             }
             let stock = args[0]
@@ -619,8 +640,13 @@ export default function*(): Generator<[string, CommandV2]> {
                 return { content: "You do not have this stock", status: StatusCode.ERR }
             }
             let stockName = stockInfo.name
-            let profit = (data.price - stockInfo.info.buyPrice) * stockInfo.info.shares
-            let todaysProfit = (Number(data.change) * stockInfo.info.shares)
+            let profit = 0
+            let totalShares = 0
+            for(let lot of stockInfo.info) {
+                profit += (data.price - lot.purchasePrice) * lot.shares
+                totalShares += lot.shares
+            }
+            let todaysProfit = (Number(data.change) * totalShares)
             embed.setTitle(stockName)
             embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
             if (profit > 0) {
@@ -641,7 +667,7 @@ export default function*(): Generator<[string, CommandV2]> {
                         C: String(data["%change"]),
                         P: String(profit),
                         T: String(todaysProfit),
-                        v: String(data.price * stockInfo.info.shares)
+                        v: String(data.price * totalShares)
                     }),
                     status: StatusCode.RETURN
                 }
@@ -655,7 +681,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "sell", ccmdV2(async function({ msg, args }) {
-            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getStocks(msg.author.id)) {
                 return { content: "You own no stocks", status: StatusCode.ERR }
             }
             let stock = args[0]
@@ -692,28 +718,28 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             let nPrice = Number(jsonStockInfo["regularMarketPrice"])
             let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
-            let stockName = stock
+            let stockName = stock.toUpperCase()
             if (realStockInfo)
                 stockName = realStockInfo.name
-            if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
+            if (!economy.getStocks(msg.author.id)[stockName]) {
                 return { content: "You do not own this stock", status: StatusCode.ERR }
             }
             else {
-                let stockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
+                let stockInfo = economy.getStocks(msg.author.id)[stockName]
                 if (!stockInfo) return crv("Could not get stock info", { status: StatusCode.ERR })
-                let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
+                let shares = stockInfo.reduce((p, c) => p + c.shares, 0)
+                let sellAmount = economy.calculateStockAmountFromString(msg.author.id, shares, amount)
                 if (!sellAmount || sellAmount <= 0) {
                     return { content: "You must sell a number of shares of your stock", status: StatusCode.ERR }
                 }
-                if (sellAmount > stockInfo.shares) {
+                if (sellAmount > shares) {
                     return { content: "YOu do not own that many shares", status: StatusCode.ERR }
                 }
                 if (sellAmount <= 0) {
                     return { content: "Must sell more than 0", status: StatusCode.ERR }
                 }
-                let profit = (nPrice - stockInfo.buyPrice) * sellAmount
-                economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
-                economy.addMoney(msg.author.id, profit)
+                const profit = economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)["profit"]
+                economy.addMoney(msg.author.id, nPrice * sellAmount)
                 return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
             }
         }, "Sell a stock", {
@@ -753,9 +779,11 @@ export default function*(): Generator<[string, CommandV2]> {
                 user = msg.author
             let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', GLOBAL_CURRENCY_SIGN)}{amount}`)
             let text = ""
-            if (economy.getEconomy()[user.id]) {
+            if (economy.playerExists(msg.author.id)) {
+                const money = economy.getMoney(msg.author.id)
+                console.log(money)
                 if (opts['m']) {
-                    text += `${economy.getEconomy()[user.id].money}\n`
+                    text += `${money}\n`
                 }
                 if (opts['l']) {
                     text += `${timer.do_lap(msg.author.id, "%can-earn")}\n`
@@ -773,9 +801,9 @@ export default function*(): Generator<[string, CommandV2]> {
                     runtime_opts.set("disable", generateDefaultRecurseBans())
                 }
                 if (opts['no-round']) {
-                    return { content: format(money_format, { user: user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                    return { content: format(money_format, { user: user.username, amount: String(money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                 }
-                return { content: format(money_format, { user: user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                return { content: format(money_format, { user: user.username, amount: String(Math.round(money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
             return { content: "none", status: StatusCode.RETURN }
         }, CommandCategory.ECONOMY,
@@ -798,7 +826,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let canWork = economy.canWork(msg.author.id)
             let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
             const gradFile = "data/graduates.list"
-            if(!DEVBOT){
+            if (!DEVBOT) {
 
                 const graduates = fs.readFileSync(gradFile, "utf-8").split("\n")
                 if (!graduates.includes(msg.author.id)) {
@@ -820,7 +848,7 @@ export default function*(): Generator<[string, CommandV2]> {
             if (canWork === 0 || DEVBOT) {
                 const timePassed = timer.do_lap(msg.author.id, '%work', 'h') as number || 8
                 let workStreak = vars.getVar2(msg, msg.author.id, "", "!work-streak")
-                if(workStreak === Infinity || isNaN(workStreak)){
+                if (workStreak === Infinity || isNaN(workStreak)) {
                     workStreak = 0
                 }
                 if (timePassed < 8) {
@@ -936,67 +964,6 @@ export default function*(): Generator<[string, CommandV2]> {
                 "...user": createHelpArgument("The user to give the money to")
             }
         })
-    ]
-
-    yield [
-        "give-stock", createCommandV2(async ({ msg, args }) => {
-            let stock = args[0]
-            let a = args[1]
-            let sn = stock
-            let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
-            if (!userStockData) {
-                return { content: "You do not own that stock", status: StatusCode.ERR }
-            }
-            let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
-            if (amount <= 0) {
-                return { content: `Invalid share count`, status: StatusCode.ERR }
-            }
-            if (amount > userStockData.info.shares) {
-                return { content: "You dont have that many shares", status: StatusCode.ERR }
-            }
-            let player = args.slice(2).join(" ")
-
-            if (!msg.guild) return crv("Must be in a guild", { status: StatusCode.ERR })
-
-            let member = await fetchUser(msg.guild, player)
-            if (!member) {
-                return { content: `Member: ${player} not found`, status: StatusCode.ERR }
-            }
-            if (!economy.getEconomy()[member.id]) {
-                return { content: "Cannot give stocks to this player", status: StatusCode.ERR }
-            }
-            userStockData.info.shares -= amount
-            //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
-            let otherStockInfo = economy.userHasStockSymbol(member.id, sn)
-            if (!otherStockInfo) {
-                otherStockInfo = {
-                    name: sn, info: {
-                        buyPrice: userStockData.info.buyPrice,
-                        shares: amount
-                    }
-                }
-            }
-            else {
-                let oldShareCount = otherStockInfo.info.shares
-                let newShareCount = otherStockInfo.info.shares + amount
-                otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
-                otherStockInfo.info.shares += amount
-            }
-            //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-            economy.setUserStockSymbol(msg.author.id, userStockData)
-            economy.setUserStockSymbol(member.id, otherStockInfo)
-            if (userStockData.info.shares == 0) {
-                economy.removeStock(msg.author.id, sn)
-            }
-            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-        }, CommandCategory.ECONOMY,
-            "Give a stock to a user",
-            {
-                stock: createHelpArgument("The stock to give"),
-                shares: createHelpArgument("The amount of shares to give"),
-                user: createHelpArgument("The user to give the shares to"),
-            }
-        ),
     ]
 
     yield [

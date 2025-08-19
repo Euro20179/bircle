@@ -33,7 +33,7 @@ export const APICmds: {
     },
     loan: {
         requirements: ["id"],
-        exec: async ({ id }: { id: string }) => economy.getEconomy()[id]?.loanUsed || 0
+        exec: async ({ id }: { id: string }) => economy.getLoan(id) || 0
     },
     canTax: {
         requirements: ["id"],
@@ -44,7 +44,7 @@ export const APICmds: {
         requirements: ["id"],
         exec: async ({ id }: { id: string }) => {
             return economy.calculateTaxPercent(id, {
-                max: hasItem(id, "tax shield") ? economy.getEconomy()[id]?.money : Infinity,
+                max: hasItem(id, "tax shield") ? economy.getMoney(id) : Infinity,
                 taxPercent: false,
                 hasTiger: pet.getActivePet(id) === 'tiger'
             })

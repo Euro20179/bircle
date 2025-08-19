@@ -1284,7 +1284,9 @@ export default function*(): Generator<[string, CommandV2]> {
         })
     ]
 
-    yield ['lottery', ccmdV2(async () => crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`), "Gets the current lottery pool")]
+    yield ['lottery', ccmdV2(async () => {
+        return crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`)
+    }, "Gets the current lottery pool")]
 
     yield [
         "6", ccmdV2(async function({ msg, args, rawOpts: opts }) {
