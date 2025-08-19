@@ -730,7 +730,7 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
             })
             //after the specified timeout (or 30 seconds if not given) return the collection
             return new Collection(prompt_replies as [])
-        }
+        };
 
         (async function(){
             for await (let item of globals.PROCESS_MANAGER.spawn_cmd({
