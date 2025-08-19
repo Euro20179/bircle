@@ -9,7 +9,7 @@ import { getConfigValue } from './config-manager'
 
 import { Database } from "bun:sqlite"
 
-const db = new Database("./database/economy.db")
+let db = new Database("./database/economy.db")
 
 db.exec("CREATE TABLE IF NOT EXISTS economy (id TEXT, money NUMBER, loanUsed NUMBER, activePet TEXT, sandCounter INTEGER, retired BOOLEAN)")
 db.exec("CREATE TABLE IF NOT EXISTS stocks (id TEXT, ticker STRING, purchasePrice NUMBER, shares INTEGER)")
@@ -422,6 +422,9 @@ function calculateAmountFromString(id: string, amount: string, extras?: { [key: 
 }
 
 function resetEconomy() {
+    db.close()
+    fs.cpSync("./database/economy.db", "./database/economy-old.db")
+    db = new Database("./database/economy.db")
     //yes this is correct
     db.run(`DELETE FROM economy`)
     db.run(`DELETE FROM stocks`)

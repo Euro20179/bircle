@@ -182,12 +182,10 @@ export default function*(): Generator<[string, CommandV2]> {
                 useItem(msg.author.id, "reset economy")
             }
 
-            fs.cpSync("./database/economy.json", "./database/economy-old.json")
-
             economy.resetEconomy()
 
             return crv("Economy reset", {
-                files: [crvFile("./database/economy-old.json", "economy-old.json", "The old economy",)]
+                files: [crvFile("./database/economy-old.db", "economy-old.db", "The old economy",)]
             })
         }, "Resets the economy", {
             permCheck: (m) => {
