@@ -25,7 +25,7 @@ import {
     MessageContextMenuCommandInteraction,
 } from 'discord.js';
 
-import { GLOBAL_CURRENCY_SIGN } from '../config-manager';
+import { getConfigValue, GLOBAL_CURRENCY_SIGN } from '../config-manager';
 
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
@@ -477,7 +477,7 @@ export default function*(): Generator<[string, CommandV2]> {
         try {
             await fetch(`${baseurl}:11434`, { signal: AbortSignal.timeout(1000) })
         }
-        catch(err) {
+        catch (err) {
             return crv("offline")
         }
 
@@ -1212,51 +1212,35 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "stock", ccmdV2(
-            async ({ msg, sendCallback, opts, argShapeResults }) => {
-                let fmt = opts.getString('fmt', '{embed}')
-                let stock = argShapeResults['stock'] as string
-                let data = await economy.getStockInformation(stock)
-                if (!data) {
-                    return { content: "No  info found", status: StatusCode.ERR }
+            async ({ args }) => {
+                const inf = await economy.getStockInformation(args[0])
+                if (!inf) {
+                    return {
+                        content: "Failed to get stock info",
+                        status: StatusCode.ERR
+                    }
                 }
-                await handleSending(
-                    msg,
-                    { content: "Getting data", status: StatusCode.INFO },
-                    sendCallback
-                )
-                if (fmt == "{embed}") {
-                    let embed = new EmbedBuilder()
-                    let nChange = Number(data.change)
-                    let nPChange = Number(data["%change"])
-                    embed.setTitle(stock.toUpperCase().trim() || "N/A")
-                    embed.addFields(efd(
-                        ["price", String(data.price).trim() || "N/A", true],
-                        ["change", String(data.change).trim() || "N/A", true],
-                        ["%change", String(nPChange).trim() || "N/A", true],
-                        ["volume", data.volume?.trim() || "N/A"]
-                    ))
-                    if (nChange < 0) {
-                        embed.setColor("Red")
-                    }
-                    else if (nChange > 0) {
-                        embed.setColor("#00ff00")
-                    }
-                    else {
-                        embed.setColor("#ffff00")
-                    }
-                    return { embeds: [embed], status: StatusCode.RETURN }
+
+                const change = inf["change"]
+                const e = new EmbedBuilder()
+                e.setTitle(args[0])
+                e.addFields(efd(
+                    ["price", String(inf["price"]), true],
+                    ["open", String(inf["price"] - inf["change"]), true],
+                    ["change", `${inf["change"]} (${inf["%change"]}%)`, true],
+                    ['volume', String(inf["volume"]), true],
+                ))
+                if (change == 0) {
+                    e.setColor('Yellow')
+                } else if (change > 0) {
+                    e.setColor("Green")
                 }
                 else {
-                    return {
-                        content: format(fmt, {
-                            p: String(data.price).trim() || "0",
-                            n: stock.toUpperCase().trim(),
-                            c: String(data.change).trim() || "0",
-                            C: String(data["%change"]).trim() || "0",
-                            v: String(data.volume?.trim()) || "N/A"
-                        }),
-                        status: StatusCode.RETURN
-                    }
+                    e.setColor("Red")
+                }
+                return {
+                    embeds: [e],
+                    status: StatusCode.RETURN
                 }
             },
             "Get information about a stock symbol", {
@@ -1266,9 +1250,6 @@ export default function*(): Generator<[string, CommandV2]> {
             helpArguments: {
                 stock: createHelpArgument("The stock to get info on")
             },
-            argShape: async function*(args) {
-                yield [args.expectString(truthy), "stock"]
-            }
         })
     ]
 
@@ -1289,7 +1270,7 @@ export default function*(): Generator<[string, CommandV2]> {
             if (feedAmount) {
                 return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back\n${petName} now has ${p[1].health} hunger`, status: StatusCode.RETURN }
             }
-            return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
+            return { content: "The feeding was unsuccessful", status: StatusCode.ERR }
 
         }, "feed-pet", {
             argShape: async function*(args) {

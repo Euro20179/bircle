@@ -3984,7 +3984,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 if (!messages.size)
                     break
                 let text = "<*> +date (%m/%d/%Y %H:%M:%S) UTC\n"
-                if(logReactions) {
+                if (logReactions) {
                     //reactions are first in the log, therefore they should be first here
                     text = `<*> +reactions\n` + text
                 }
@@ -3993,19 +3993,19 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     const date = new Date(message.createdTimestamp)
                     if (logReactions) {
                         const reactions = message.reactions.cache.toJSON()
-                        if(reactions.length) {
+                        if (reactions.length) {
                             text += `+${reactions.map(v => `${v.emoji.name} (${v.count})`).join(",")} `
                         }
                     }
                     let hours = date.getHours().toString()
-                    if(hours.length === 1) hours = `0${hours}`
+                    if (hours.length === 1) hours = `0${hours}`
                     let minutes = date.getMinutes().toString()
-                    if(minutes.length === 1) minutes = `0${minutes}`
+                    if (minutes.length === 1) minutes = `0${minutes}`
                     let seconds = date.getSeconds().toString()
-                    if(seconds.length === 1) seconds = `0${seconds}`
+                    if (seconds.length === 1) seconds = `0${seconds}`
 
                     let content = message.content
-                    if(opts.getBool('rev', false)) {
+                    if (opts.getBool('rev', false)) {
                         content = content.split("\n").reverse().join("\n")
                     }
 
@@ -4361,6 +4361,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             return crv("Reacted")
         }, "Reacts to a message")
     ]
+
 
     yield [
         "message-info", ccmdV2(async function({ msg, args, opts }) {
