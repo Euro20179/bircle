@@ -528,8 +528,7 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     let json
     try {
         const key = getConfigValue("secrets.stockKey")
-        json = await (await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${quote}&apikey=${key}`)).json()
-        json = json["Global Quote"]
+        json = await (await fetch(`https://finnhub.io/api/v1/quote?symbol=${quote.toUpperCase()}&token=${key}`)).json()
     }
     catch (err) {
         if (fail)
@@ -537,14 +536,14 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
         return false
     }
 
-    const open = json["02. open"]
-    const nPrice = json["05. price"]
+    const open = json["o"]
+    const nPrice = json["c"]
     let nChange = Math.round((nPrice - open) * 10000) / 10000
     const pChange = Math.round((nChange / open) * 100 * 100) / 100
     data["change"] = nChange
     data["price"] = nPrice
     data["%change"] = String(pChange)
-    data["volume"] = String(json["06. volume"] as number)
+    data["volume"] = '0'
     if (cb)
         cb(data)
     return data
