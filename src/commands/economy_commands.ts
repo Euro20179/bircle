@@ -692,31 +692,12 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             stock = stock.toUpperCase()
             let amount = args[1]
-            let data
-            try {
-                data = await fetch(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
+            let data = await economy.getStockInformation(stock)
+            if(!data) {
+            return crv("This does not appear to be a stock")
             }
-            catch (err) {
-                return { content: "Could not fetch data", status: StatusCode.ERR }
-            }
-            let text = await data.text()
-            if (!text) {
-                return { content: "No data found", status: StatusCode.ERR }
-            }
-            let stockData = text.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
-            let jsonStockInfo: { [key: string]: string } = {}
-            //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-            for (let stockInfo of stockData) {
-                if (!stockInfo[1]) continue;
-                let field = stockInfo[1].match(/data-field="([^"]+)"/)
-                let value = stockInfo[1].match(/value="([^"]+)"/)
-                if (!value || !field) continue
-                jsonStockInfo[field[1]] = value[1]
-            }
-            if (Object.keys(jsonStockInfo).length < 1) {
-                return { content: "This does not appear to be a stock", status: StatusCode.ERR }
-            }
-            let nPrice = Number(jsonStockInfo["regularMarketPrice"])
+
+            let nPrice = Number(data["price"])
             let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
             let stockName = stock.toUpperCase()
             if (realStockInfo)

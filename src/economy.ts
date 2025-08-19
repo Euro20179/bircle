@@ -463,6 +463,7 @@ function sellStock(id: string, userStock: string, shares: number, sellPrice: num
             } else {
                 //if we have shares left over, we've sold all the required shares
                 amountSold += sellAmount
+                db.run(`UPDATE stocks SET shares = ? WHERE rowid = ?`, [remaining, lot.id])
                 break
             }
         }
