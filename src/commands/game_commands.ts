@@ -1137,7 +1137,7 @@ yield[
 
         let bets: { [key: string]: [number, string] } = { [msg.author.id]: [money, guess] }
 
-        await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now\nplace your bets now\ntype \`<bet> <guess>\` to join`, { status: StatusCode.PROMPT }))
+        await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now\ntype \`<bet> <guess>\` to join`, { status: StatusCode.PROMPT }))
 
         await msg.channel.awaitMessages({
             filter: m => {
@@ -1417,7 +1417,7 @@ yield[
                     }
                     stats.adventureOrder.push([current_location, stage])
                     let shuffledPlayers = state.HEIST_PLAYERS.shuffle()
-                    let amount = Math.random() * 0.5
+                    let amount = Math.random() * 10
                     let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                     let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                     //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
@@ -1496,7 +1496,7 @@ yield[
                         amount = Math.random() / 100
                     }
                     else {
-                        let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
+                        let multiplier = Number({ "none": 0, "normal": 1, "medium": 2, "large": 3 }[amountType[1]])
                         amount *= multiplier
                     }
 
@@ -1685,10 +1685,9 @@ yield[
                             if (!isNaN(data[player])) {
                                 let member = msg.guild?.members.cache.get(player)
                                 let netWorth = economy.playerLooseNetWorth(player)
-                                let gain = netWorth * (data[player] / 100)
-                                gain += data_floor[player] > 0 ? data_floor[player] : 0
+                                let gain = netWorth * ((data[player] + data_floor[player]) / 100)
                                 if (member) {
-                                    e.addFields(efd([String(member.displayName || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`]))
+                                    e.addFields(efd([String(member.displayName || member.user.username), `$${gain} (${data[player]}%)`]))
                                 }
                                 else {
                                     e.addFields(efd([String(data[player]), `<@${player}>`]))
