@@ -96,7 +96,7 @@ type CalculateTaxPercentOptions = {
 function calculateTaxPercent(id: string, { max, taxPercent, taxerIsRetired, hasTiger }: CalculateTaxPercentOptions) {
     let total = playerEconomyLooseTotal(id)
     taxerIsRetired ??= false
-    if (taxPercent ?? false === false) {
+    if ((taxPercent ?? false) === false) {
         if (taxerIsRetired) {
             taxPercent = randInt(0.01, 0.02)
         } else taxPercent = randInt(0.001, 0.008)
@@ -105,7 +105,7 @@ function calculateTaxPercent(id: string, { max, taxPercent, taxerIsRetired, hasT
         taxPercent = randInt(-0.003, 0.006)
     }
     let amountTaxed = Math.min(total * (taxPercent || 0.001), max)
-    return amountTaxed
+    return { amountTaxed, taxPercent }
 }
 
 function setUserStockSymbol(id: string, data: { name: string, info: Stock }) {
@@ -274,12 +274,12 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
     timer.restartTimer(id, "%last-taxed")
     let amountTaxed = calculateTaxPercent(id, {
         max,
-        taxPercent: taxPercent as number | false,
+        taxPercent: taxPercent as number || false,
         taxerIsRetired,
         hasTiger: pet.getActivePet(id) === 'tiger'
     })
-    loseMoneyToBank(id, amountTaxed)
-    return { amount: amountTaxed, percent: taxPercent as number }
+    loseMoneyToBank(id, amountTaxed.amountTaxed)
+    return { amount: amountTaxed.amountTaxed, percent: amountTaxed.taxPercent}
 }
 
 function canWork(id: string) {
