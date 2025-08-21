@@ -1314,383 +1314,422 @@ until you put a 0 in the box`)
             }
             state.HEIST_PLAYERS.push(msg.author.id)
             let timeRemaining = 30000
-            if (state.HEIST_TIMEOUT === null) {
-                let int = setInterval(async () => {
-                    timeRemaining -= 1000
-                    if (timeRemaining % 8000 == 0)
-                        await handleSending(msg, { content: `${timeRemaining / 1000} seconds until the heist commences!`, status: StatusCode.INFO }, sendCallback)
-                }, 1000)
-                let data: { [key: string]: number } = {} //player_id: amount won
-                state.HEIST_TIMEOUT = setTimeout(async () => {
-                    state.HEIST_STARTED = true
-                    clearInterval(int)
-                    await handleSending(msg, { content: `Commencing heist with ${state.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
-                    for (let player of state.HEIST_PLAYERS) {
-                        data[player] = 0
-                        vars.setVar("__heist", "0", player)
+
+            if (state.HEIST_TIMEOUT !== null) {
+                let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
+                return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO, do_change_cmd_user_expansion: false }
+            }
+
+            let int = setInterval(async () => {
+                timeRemaining -= 1000
+                if (timeRemaining % 8000 == 0)
+                    await handleSending(msg, { content: `${timeRemaining / 1000} seconds until the heist commences!`, status: StatusCode.INFO }, sendCallback)
+            }, 1000)
+
+            let data: { [key: string]: number } = {} //player_id: amount won
+            state.HEIST_TIMEOUT = setTimeout(async () => {
+                state.HEIST_STARTED = true
+                clearInterval(int)
+
+                await handleSending(msg, { content: `Commencing heist with ${state.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
+
+                for (let player of state.HEIST_PLAYERS) {
+                    data[player] = 0
+                    vars.setVar("__heist", "0", player)
+                }
+
+                let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+
+                //let fileResponses: string[] = []
+                let legacyNextStages = { "getting_in": "robbing", "robbing": "escape", "escape": "end" }
+
+                let lastLegacyStage = "getting_in"
+                let responses: { [key: string]: string[] } = {
+                    getting_in_positive: [
+                        "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal IF=>10"
+                    ],
+                    getting_in_negative: [
+                        "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal IF=>10"
+                    ],
+                    getting_in_neutral: [
+                        "{userall} is going in"
+                    ],
+                    robbing_positive: [
+                        "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
+                    ],
+                    robbing_negative: [
+                        "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal  LOCATION=bank"
+                    ],
+                    robbing_neutral: [
+                        "{user1} found nothing"
+                    ],
+                    escape_positive: [
+                        "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
+                    ],
+                    escape_negative: [
+                        "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
+                    ],
+                    escape_neutral: [
+                        "{userall} finished the game"
+                    ]
+                }
+
+                let LOCATIONS = ["__generic__"]
+
+                for (let resp of fileResponses) {
+                    let stage = resp.match(/STAGE=([^ ]+)/)
+                    if (!stage?.[1]) {
+                        continue
                     }
-                    let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
-                    //let fileResponses: string[] = []
-                    let legacyNextStages = { "getting_in": "robbing", "robbing": "escape", "escape": "end" }
-                    let lastLegacyStage = "getting_in"
-                    let responses: { [key: string]: string[] } = {
-                        getting_in_positive: [
-                            "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal IF=>10"
-                        ],
-                        getting_in_negative: [
-                            "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal IF=>10"
-                        ],
-                        getting_in_neutral: [
-                            "{userall} is going in"
-                        ],
-                        robbing_positive: [
-                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
-                        ],
-                        robbing_negative: [
-                            "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal  LOCATION=bank"
-                        ],
-                        robbing_neutral: [
-                            "{user1} found nothing"
-                        ],
-                        escape_positive: [
-                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
-                        ],
-                        escape_negative: [
-                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
-                        ],
-                        escape_neutral: [
-                            "{userall} finished the game"
-                        ]
-                    }
-                    let LOCATIONS = ["__generic__"]
-                    for (let resp of fileResponses) {
-                        let stage = resp.match(/STAGE=([^ ]+)/)
-                        if (!stage?.[1]) {
-                            continue
-                        }
-                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                        if (location?.[1]) {
-                            if (!LOCATIONS.includes(location[1])) {
-                                LOCATIONS.push(location[1])
-                            }
-                        }
-                        resp = resp.replace(/STAGE=[^ ]+/, "")
-                        let type = ""
-                        let gain = resp.match(/GAIN=([^ ]+)/)
-                        if (gain?.[1])
-                            type = "positive"
-                        let lose = resp.match(/LOSE=([^ ]+)/)
-                        if (lose?.[1]) {
-                            type = "negative"
-                        }
-                        let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
-                        if (neutral) {
-                            type = "neutral"
-                        }
-                        let t = `${stage[1]}_${type}`
-                        if (responses[t]) {
-                            responses[t].push(resp)
-                        }
-                        else {
-                            responses[t] = [resp]
+
+                    let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                    if (location?.[1]) {
+                        if (!LOCATIONS.includes(location[1])) {
+                            LOCATIONS.push(location[1])
                         }
                     }
 
-                    let current_location = "__generic__"
+                    let type = ""
 
-                    let stats: { locationsVisited: { [key: string]: { [key: string]: number } }, adventureOrder: [string, string][] } = { locationsVisited: {}, adventureOrder: [] }
+                    let gain = resp.match(/GAIN=([^ ]+)/)
+                    if (gain?.[1])
+                        type = "positive"
 
-                    function addToLocationStat(location: string, user: string, amount: number) {
-                        if (!stats.locationsVisited[location][user]) {
-                            stats.locationsVisited[location][user] = amount
-                        }
-                        else {
-                            stats.locationsVisited[location][user] += amount
-                        }
+                    let lose = resp.match(/LOSE=([^ ]+)/)
+                    if (lose?.[1]) {
+                        type = "negative"
                     }
 
-                    async function handleStage(stage: string): Promise<boolean> {//{{{
-                        if (!stats.locationsVisited[current_location]) {
-                            stats.locationsVisited[current_location] = {}
-                        }
-                        stats.adventureOrder.push([current_location, stage])
-                        let shuffledPlayers = state.HEIST_PLAYERS.shuffle()
-                        let amount = Math.random() * 10
-                        let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
-                        let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
-                        //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
-                        if (!responseList?.length && negpos === 'neutral') {
-                            let negpos = ["positive", "negative"][Math.floor(Math.random() * 2)]
-                            responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
-                        }
-                        if (!responseList) {
-                            return false
-                        }
-                        responseList = responseList.filter(v => {
-                            let enough_players = true
-                            let u = v.matchAll(/\{user(\d+|all)\}/g)
-                            if (!u)
-                                return true
-                            for (let match of u) {
-                                if (match?.[1]) {
-                                    if (match[1] === 'all') {
-                                        enough_players = true
-                                        continue
-                                    }
-                                    let number = Number(match[1])
-                                    if (number > state.HEIST_PLAYERS.length)
-                                        return false
-                                    enough_players = true
-                                }
-                            }
-                            return enough_players
-                        })
-                        responseList = responseList.filter(v => {
-                            let location = v.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                            if (!location?.[1] && current_location == "__generic__") {
-                                return true
-                            }
-                            if (location?.[1].toLowerCase() == current_location.toLowerCase()) {
-                                return true
-                            }
-                            if (location?.[1].toLowerCase() === '__all__') {
-                                return true
-                            }
-                            return false
-                        })
-                        let sum = Object.values(data).reduce((a, b) => a + b, 0)
-                        responseList = responseList.filter(v => {
-                            let condition = v.match(/IF=(<|>|=)(\d+)/)
-                            if (!condition?.[1])
-                                return true;
-                            let conditional = condition[1]
-                            let conditionType = conditional[0]
-                            let number = Number(conditional.slice(1))
-                            if (isNaN(number))
-                                return true;
-                            switch (conditionType) {
-                                case "=": {
-                                    return sum == number
-                                }
-                                case ">": {
-                                    return sum > number
-                                }
-                                case "<": {
-                                    return sum < number
-                                }
-                            }
+                    let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
+                    if (neutral) {
+                        type = "neutral"
+                    }
+
+                    let t = `${stage[1]}_${type}`
+                    if (responses[t]) {
+                        responses[t].push(resp)
+                    }
+                    else {
+                        responses[t] = [resp]
+                    }
+                }
+
+                let current_location = "__generic__"
+
+                let stats: { locationsVisited: { [key: string]: { [key: string]: number } }, adventureOrder: [string, string][] } = { locationsVisited: {}, adventureOrder: [] }
+
+                function addToLocationStat(location: string, user: string, amount: number) {
+                    if (!stats.locationsVisited[location][user]) {
+                        stats.locationsVisited[location][user] = amount
+                    }
+                    else {
+                        stats.locationsVisited[location][user] += amount
+                    }
+                }
+
+                async function handleStage(stage: string): Promise<true | [false, "positive" | "negative" | "neutral"]> {//{{{
+                    if (!stats.locationsVisited[current_location]) {
+                        stats.locationsVisited[current_location] = {}
+                    }
+
+                    stats.adventureOrder.push([current_location, stage])
+
+                    let shuffledPlayers = state.HEIST_PLAYERS.shuffle()
+
+                    let amount = Math.random() * 10
+
+                    let negpos: "negative" | "positive" | "neutral" = (["negative", "positive", "neutral"] as const)[Math.floor(Math.random() * 3)]
+
+                    let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+
+                    //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
+                    if (!responseList?.length && negpos === 'neutral') {
+                        let negpos = ["positive", "negative"][Math.floor(Math.random() * 2)]
+                        responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+                    }
+
+                    if (!responseList) {
+                        return [false, negpos]
+                    }
+
+                    responseList = responseList.filter(v => {
+                        let enough_players = true
+                        let u = v.matchAll(/\{user(\d+|all)\}/g)
+                        if (!u)
                             return true
-                        })
-                        if (responseList.length < 1) {
-                            return false
+                        for (let match of u) {
+                            if (match?.[1]) {
+                                if (match[1] === 'all') {
+                                    enough_players = true
+                                    continue
+                                }
+                                let number = Number(match[1])
+                                if (number > state.HEIST_PLAYERS.length)
+                                    return false
+                                enough_players = true
+                            }
                         }
-                        let response = choice(responseList)
-                        let amountType = response.match(/AMOUNT=([^ ]+)/)
-                        while (!amountType?.[1]) {
-                            response = choice(responseList)
-                            amountType = response.match(/AMOUNT=([^ ]+)/)
+                        return enough_players
+                    })
+                    responseList = responseList.filter(v => {
+                        let location = v.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        if (!location?.[1] && current_location == "__generic__") {
+                            return true
                         }
-                        if (amountType[1] === 'cents') {
-                            amount = Math.random() / 100
+                        if (location?.[1].toLowerCase() == current_location.toLowerCase()) {
+                            return true
                         }
-                        else {
-                            let multiplier = Number({ "none": 0, "normal": 1, "medium": 2, "large": 3 }[amountType[1]])
-                            amount *= multiplier
+                        if (location?.[1].toLowerCase() === '__all__') {
+                            return true
                         }
+                        return false
+                    })
 
-                        response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
-                            if (capture === "all") {
-                                let text = []
-                                for (let player of shuffledPlayers) {
-                                    text.push(`<@${player}>`)
-                                }
-                                return text.join(', ')
+                    let sum = Object.values(data).reduce((a, b) => a + b, 0)
+                    responseList = responseList.filter(v => {
+                        let condition = v.match(/IF=(<|>|=)(\d+)/)
+                        if (!condition?.[1])
+                            return true;
+                        let conditional = condition[1]
+                        let conditionType = conditional[0]
+                        let number = Number(conditional.slice(1))
+                        if (isNaN(number))
+                            return true;
+                        switch (conditionType) {
+                            case "=": {
+                                return sum == number
                             }
-                            let nUser = Number(capture) - 1
-                            return `<@${shuffledPlayers[nUser]}>`
-                        })
-                        let gainUsers = response.match(/GAIN=([^ ]+)/)
-                        if (gainUsers?.[1]) {
-                            for (let user of gainUsers[1].split(",")) {
-                                if (user == 'all') {
-                                    for (let player in data) {
-                                        addToLocationStat(current_location, player, amount)
-                                        data[player] += amount
-                                        let oldValue = Number(vars.getVar(msg, `__heist`, player))
-                                        vars.setVar("__heist", String(oldValue + amount), player)
-                                    }
-                                }
-                                else {
-                                    addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
-                                    data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                    vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
-                                }
+                            case ">": {
+                                return sum > number
                             }
-                        }
-                        let loseUsers = response.match(/LOSE=([^ ]+)/)
-                        if (loseUsers?.[1]) {
-                            amount *= -1
-                            for (let user of loseUsers[1].split(",")) {
-                                if (user == 'all') {
-                                    for (let player in data) {
-                                        addToLocationStat(current_location, player, amount)
-                                        data[player] += amount
-                                        let oldValue = Number(vars.getVar(msg, `__heist`, player))
-                                        vars.setVar("__heist", String(oldValue + amount), player)
-                                    }
-                                }
-                                else {
-                                    addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
-                                    data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                    vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
-                                }
+                            case "<": {
+                                return sum < number
                             }
-                        }
-                        let subStage = response.match(/SUBSTAGE=([^ ]+)/)
-                        if (subStage?.[1]) {
-                            response = response.replace(/SUBSTAGE=[^ ]+/, "")
-                        }
-                        let setLocation = response.match(/SET_LOCATION=([^ ]+)/)
-                        if (setLocation?.[1]) {
-                            response = response.replace(/SET_LOCATION=[^ ]+/, "")
-                            current_location = setLocation[1].toLowerCase()
-                        }
-                        response = response.replace(/LOCATION=[^ ]+/, "")
-                        response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (_match: any, pm: any) => {
-                            if (pm && pm == "+") {
-                                return `+${Math.abs(amount)}%`
-                            }
-                            else if (pm && pm == "-") {
-                                return `-${Math.abs(amount)}%`
-                            }
-                            else if (pm && (pm == "=" || pm == "!" || pm == "?")) {
-                                return `${Math.abs(amount)}%`
-                            }
-                            return amount >= 0 ? `+${amount}%` : `${amount}%`
-                        })
-                        response = response.replace(/GAIN=[^ ]+/, "")
-                        response = response.replace(/LOSE=[^ ]+/, "")
-                        response = response.replace(/AMOUNT=[^ ]+/, "")
-                        response = response.replace(/IF=(<|>|=)\d+/, "")
-                        let locationOptions = current_location.split("|").map(v => v.trim())
-                        if (locationOptions.length > 1) {
-                            let clickResponse = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
-                            let buttonResponse = ""
-                            if (clickResponse?.[1]) {
-                                buttonResponse = clickResponse[1]
-                                response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
-                            }
-                            let askText = ""
-                            let validLocations = []
-                            for (let op of locationOptions) {
-                                if (!op) continue;
-                                if (op == "__random__") {
-                                    op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
-                                }
-                                validLocations.push(op)
-                                askText += `**${op}**\n`
-                            }
-                            let m = await promptUser(msg, `${response}\n${askText}`, sendCallback, {
-                                filter: m => {
-                                    return validLocations.includes(m.content)
-                                }
-                            })
-                            let resp = validLocations[0]
-                            if (m) {
-                                resp = m.content
-                            }
-                            await handleSending(msg, { content: `Advancing to: ${resp}`, status: StatusCode.INFO})
-                            current_location = resp
-                        }
-                        else {
-                            await handleSending(msg, { content: response, status: StatusCode.INFO })
-                        }
-
-                        if (current_location == "__random__") {
-                            current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
-                        }
-
-                        await new Promise(res => setTimeout(res, 4000))
-                        if (subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]) {
-                            if (Object.keys(legacyNextStages).includes(subStage[1])) {
-                                lastLegacyStage = subStage[1]
-                            }
-                            stage = subStage[1]
-                            return await handleStage(subStage[1])
-                        }
-                        if (subStage?.[1] == 'end') {
-                            lastLegacyStage = 'end'
-                            stage = 'end'
                         }
                         return true
-                    }//}}}
-                    let stage: string = lastLegacyStage
-                    while (stage != 'end') {
-                        if (!await handleStage(stage)) {
-                            stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
-                            let oldStage = stage
-                            await handleSending(msg, { content: `FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`, status: StatusCode.ERR }, sendCallback)
-                            current_location = '__generic__'
+                    })
+
+                    if (responseList.length < 1) {
+                        return [false, negpos]
+                    }
+
+                    let response = choice(responseList)
+                    let amountType = response.match(/AMOUNT=([^ ]+)/)
+                    while (!amountType?.[1]) {
+                        response = choice(responseList)
+                        amountType = response.match(/AMOUNT=([^ ]+)/)
+                    }
+                    if (amountType[1] === 'cents') {
+                        amount = Math.random() / 100
+                    }
+                    else {
+                        let multiplier = Number({ "none": 0, "normal": 1, "medium": 2, "large": 3 }[amountType[1]])
+                        amount *= multiplier
+                    }
+
+                    response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
+                        if (capture === "all") {
+                            let text = []
+                            for (let player of shuffledPlayers) {
+                                text.push(`<@${player}>`)
+                            }
+                            return text.join(', ')
                         }
-                        else {
-                            if (legacyNextStages[lastLegacyStage as keyof typeof legacyNextStages]) {
-                                stage = legacyNextStages[lastLegacyStage as keyof typeof legacyNextStages]
-                                lastLegacyStage = stage
+                        let nUser = Number(capture) - 1
+                        return `<@${shuffledPlayers[nUser]}>`
+                    })
+
+                    let gainUsers = response.match(/GAIN=([^ ]+)/)
+                    if (gainUsers?.[1]) {
+                        for (let user of gainUsers[1].split(",")) {
+                            if (user == 'all') {
+                                for (let player in data) {
+                                    addToLocationStat(current_location, player, amount)
+                                    data[player] += amount
+                                    let oldValue = Number(vars.getVar(msg, `__heist`, player))
+                                    vars.setVar("__heist", String(oldValue + amount), player)
+                                }
                             }
                             else {
-                                stage = 'end'
+                                addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
+                                data[shuffledPlayers[Number(user) - 1]] += amount
+                                let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                             }
                         }
                     }
-                    state.HEIST_PLAYERS = []
-                    state.HEIST_TIMEOUT = null
-                    state.HEIST_STARTED = false
-                    if (Object.hasEnumerableKeys(data)) {
-                        let useEmbed = false
-                        let e = new EmbedBuilder()
-                        let text = ''
-                        if (!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']) {
-                            text += 'STATS:\n---------------------\n'
-                            for (let location in stats.locationsVisited) {
-                                text += `${location}:\n`
-                                for (let player in stats.locationsVisited[location]) {
-                                    text += `<@${player}>: ${stats.locationsVisited[location][player]},  `
-                                }
-                                text += '\n'
-                            }
-                        }
-                        if (!opts['no-total'] && !opts['nt']) {
-                            e.setTitle("TOTALS")
-                            useEmbed = true
-                            for (let player in data) {
-                                if (!isNaN(data[player])) {
-                                    let member = msg.guild?.members.cache.get(player)
-                                    let netWorth = economy.playerLooseNetWorth(player)
-                                    let gain = netWorth * (data[player] / 100)
-                                    if (member) {
-                                        e.addFields(efd([String(member.displayName || member.user.username), `$${gain} (${data[player]}%)`]))
-                                    }
-                                    else {
-                                        e.addFields(efd([String(data[player]), `<@${player}>`]))
-                                    }
-                                    economy.addMoney(player, gain)
+
+                    let loseUsers = response.match(/LOSE=([^ ]+)/)
+                    if (loseUsers?.[1]) {
+                        amount *= -1
+                        for (let user of loseUsers[1].split(",")) {
+                            if (user == 'all') {
+                                for (let player in data) {
+                                    addToLocationStat(current_location, player, amount)
+                                    data[player] += amount
+                                    let oldValue = Number(vars.getVar(msg, `__heist`, player))
+                                    vars.setVar("__heist", String(oldValue + amount), player)
                                 }
                             }
-                        }
-                        if (!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']) {
-                            text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
-                            for (let place of stats.adventureOrder) {
-                                text += `${place[0]} (${place[1]})\n`
+                            else {
+                                addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
+                                data[shuffledPlayers[Number(user) - 1]] += amount
+                                let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                             }
                         }
-                        await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined, status: StatusCode.RETURN })
                     }
-                }, timeRemaining) as NodeJS.Timeout
-            }
-            let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-            return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO, do_change_cmd_user_expansion: false }
+
+                    let subStage = response.match(/SUBSTAGE=([^ ]+)/)
+                    if (subStage?.[1]) {
+                        response = response.replace(/SUBSTAGE=[^ ]+/, "")
+                    }
+
+                    let setLocation = response.match(/SET_LOCATION=([^ ]+)/)
+                    if (setLocation?.[1]) {
+                        response = response.replace(/SET_LOCATION=[^ ]+/, "")
+                        current_location = setLocation[1].toLowerCase()
+                    }
+
+                    response = response.replace(/LOCATION=[^ ]+/, "")
+
+                    response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (_match: any, pm: any) => {
+                        if (pm && pm == "+") {
+                            return `+${Math.abs(amount)}%`
+                        }
+                        else if (pm && pm == "-") {
+                            return `-${Math.abs(amount)}%`
+                        }
+                        else if (pm && (pm == "=" || pm == "!" || pm == "?")) {
+                            return `${Math.abs(amount)}%`
+                        }
+                        return amount >= 0 ? `+${amount}%` : `${amount}%`
+                    })
+
+                    response = response.replace(/GAIN=[^ ]+/, "")
+                    response = response.replace(/LOSE=[^ ]+/, "")
+                    response = response.replace(/AMOUNT=[^ ]+/, "")
+                    response = response.replace(/IF=(<|>|=)\d+/, "")
+
+                    let locationOptions = current_location.split("|").map(v => v.trim())
+                    if (locationOptions.length > 1) {
+                        let clickResponse = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
+                        let buttonResponse = ""
+                        if (clickResponse?.[1]) {
+                            buttonResponse = clickResponse[1]
+                            response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
+                        }
+                        let askText = ""
+                        let validLocations = []
+                        for (let op of locationOptions) {
+                            if (!op) continue;
+                            if (op == "__random__") {
+                                op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                            }
+                            validLocations.push(op)
+                            askText += `**${op}**\n`
+                        }
+                        let m = await promptUser(msg, `${response}\n${askText}`, sendCallback, {
+                            filter: m => {
+                                return validLocations.includes(m.content)
+                            }
+                        })
+                        let resp = validLocations[0]
+                        if (m) {
+                            resp = m.content
+                        }
+                        await handleSending(msg, { content: `Advancing to: ${resp}`, status: StatusCode.INFO })
+                        current_location = resp
+                    }
+                    else {
+                        await handleSending(msg, { content: response, status: StatusCode.INFO })
+                    }
+
+                    if (current_location == "__random__") {
+                        current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                    }
+
+                    await new Promise(res => setTimeout(res, 4000))
+                    if (subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]) {
+                        if (Object.keys(legacyNextStages).includes(subStage[1])) {
+                            lastLegacyStage = subStage[1]
+                        }
+                        stage = subStage[1]
+                        return await handleStage(subStage[1])
+                    }
+
+                    if (subStage?.[1] == 'end') {
+                        lastLegacyStage = 'end'
+                        stage = 'end'
+                    }
+
+                    return true
+                }//}}}
+                let stage: string = lastLegacyStage
+                while (stage != 'end') {
+                    let res = await handleStage(stage)
+                    //it returned [false, "positive" | "neutral" | "negative"] meaning there was no response for the {stage}_{ty}
+                    if (typeof res === 'object') {
+                        let ty = res[1]
+                        stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
+                        let oldStage = stage
+                        await handleSending(msg, { content: `FAILURE on stage: ${oldStage} (${ty}) ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`, status: StatusCode.ERR }, sendCallback)
+                        current_location = '__generic__'
+                    }
+                    else {
+                        if (legacyNextStages[lastLegacyStage as keyof typeof legacyNextStages]) {
+                            stage = legacyNextStages[lastLegacyStage as keyof typeof legacyNextStages]
+                            lastLegacyStage = stage
+                        }
+                        else {
+                            stage = 'end'
+                        }
+                    }
+                }
+                state.HEIST_PLAYERS = []
+                state.HEIST_TIMEOUT = null
+                state.HEIST_STARTED = false
+                if (Object.hasEnumerableKeys(data)) {
+                    let useEmbed = false
+                    let e = new EmbedBuilder()
+                    let text = ''
+                    if (!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']) {
+                        text += 'STATS:\n---------------------\n'
+                        for (let location in stats.locationsVisited) {
+                            text += `${location}:\n`
+                            for (let player in stats.locationsVisited[location]) {
+                                text += `<@${player}>: ${stats.locationsVisited[location][player]},  `
+                            }
+                            text += '\n'
+                        }
+                    }
+                    if (!opts['no-total'] && !opts['nt']) {
+                        e.setTitle("TOTALS")
+                        useEmbed = true
+                        for (let player in data) {
+                            if (!isNaN(data[player])) {
+                                let member = msg.guild?.members.cache.get(player)
+                                let netWorth = economy.playerLooseNetWorth(player)
+                                let gain = netWorth * (data[player] / 100)
+                                if (member) {
+                                    e.addFields(efd([String(member.displayName || member.user.username), `$${gain} (${data[player]}%)`]))
+                                }
+                                else {
+                                    e.addFields(efd([String(data[player]), `<@${player}>`]))
+                                }
+                                economy.addMoney(player, gain)
+                            }
+                        }
+                    }
+                    if (!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']) {
+                        text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
+                        for (let place of stats.adventureOrder) {
+                            text += `${place[0]} (${place[1]})\n`
+                        }
+                    }
+                    await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined, status: StatusCode.RETURN })
+                }
+            }, timeRemaining) as NodeJS.Timeout
 
         },
             "Go on a \"heist\"", {
