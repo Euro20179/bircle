@@ -1599,12 +1599,15 @@ until you put a 0 in the box`)
                                 askText += `**${op}**\n`
                             }
                             let m = await promptUser(msg, `${response}\n${askText}`, sendCallback, {
-                                filter: m => validLocations.includes(m.content)
+                                filter: m => {
+                                    return validLocations.includes(m.content)
+                                }
                             })
                             let resp = validLocations[0]
                             if (m) {
                                 resp = m.content
                             }
+                            await handleSending(msg, { content: `Advancing to: ${resp}`, status: StatusCode.INFO})
                             current_location = resp
                         }
                         else {
