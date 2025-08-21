@@ -1376,6 +1376,8 @@ until you put a 0 in the box`)
 
                 let LOCATIONS = ["__generic__"]
 
+                let edge = 0
+
                 for (let resp of fileResponses) {
                     let stage = resp.match(/STAGE=([^ ]+)/)
                     if (!stage?.[1]) {
@@ -1393,13 +1395,18 @@ until you put a 0 in the box`)
 
                     let type = ""
 
+                    let size = resp.match(/AMOUNT=([^ ]+)/)
+
                     let gain = resp.match(/GAIN=([^ ]+)/)
-                    if (gain?.[1])
+                    if (gain?.[1]) {
                         type = "positive"
+                        edge += {none: 0, cents: 1, normal: 2, medium: 3, large: 4}[size[1]]
+                    }
 
                     let lose = resp.match(/LOSE=([^ ]+)/)
                     if (lose?.[1]) {
                         type = "negative"
+                        edge -= {none: 0, cents: 1, normal: 2, medium: 3, large: 4}[size[1]]
                     }
 
                     let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
@@ -1415,6 +1422,12 @@ until you put a 0 in the box`)
                         responses[t] = [resp]
                     }
                 }
+
+                //if there's way more positives than negatives, then edge will be closer to 10
+                //later on it will subtract edge from `amount` to reduce, well, the edge towards positivity lol
+                edge = edge / fileResponses.length * 10
+
+                await handleSending(msg, {content: `Starting heist with an edge of ${edge}`, status: StatusCode.INFO}, sendCallback)
 
                 let current_location = "__generic__"
 
@@ -1438,7 +1451,7 @@ until you put a 0 in the box`)
 
                     let shuffledPlayers = state.HEIST_PLAYERS.shuffle()
 
-                    let amount = Math.random() * 10
+                    let amount = (Math.random() * 10) - edge
 
                     let negpos: "negative" | "positive" | "neutral" = (["negative", "positive", "neutral"] as const)[Math.floor(Math.random() * 3)]
 
