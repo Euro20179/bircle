@@ -53,7 +53,8 @@ import {
     getImgFromMsgAndOptsAndReply,
     titleStr,
     countOf,
-    Enum
+    Enum,
+    randInt
 } from '../util'
 
 // import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
@@ -686,6 +687,46 @@ export default function*(): Generator<[string, CommandV2]> {
                             attachment: `./assets/${item}.png`,
                         }
                     ]
+                }
+            },
+            "the basement": async () => {
+                const m = await promptUser(msg, "You find a spooky basement in the retirement home, what would you like to do\nrun\ndie\nfight the ghost", sendCallback)
+                if (!m) {
+                    economy.loseMoneyToBank(msg.author.id, 5)
+                    return crv(`You did nothing -${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}5`)
+                }
+                switch (m.content) {
+                    case "run": {
+                        const choice = randInt(1, 3)
+                        if (choice == 1) {
+                            let lose = economy.calculateAmountFromNetWorth(msg.author.id, `${Math.random() * 3}%`)
+                            return crv(`You died, and lost ${lose} because you had to pay the death tax`)
+                        } else if (choice == 2) {
+                            giveItem(msg.author.id, "ghost tolerance", 1)
+                            return crv(`You successfuly outran the ghost!!! you get 1 ghost tolerance item!`)
+                        } else if (choice == 3) {
+                            return crv("You, as an old woman, successfully ran to the staircase but did not escape the basement, luckily someone drags you up the stairs")
+                        }
+                    }
+                    case "die": {
+                        if (Math.random() < 0.01) {
+                            let lose = economy.calculateAmountFromNetWorth(msg.author.id, `30%`)
+                            return crv(`You died and lost a lot ${lose} money`)
+                        }
+                        return crv(`You die`)
+                    }
+                    case "fight the ghost": {
+                        if (hasItem(msg.author.id, "ghost tolerance")) {
+                            useItem(msg.author.id, "ghost tolerance")
+                            let gain = economy.calculateAmountFromNetWorth(msg.author.id, `${Math.random() * 3}%`)
+                            return crv(`You had a ghost tolerance!!! gain ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${gain} from what the ghost loot`)
+                        } else {
+                            giveItem(msg.author.id, "true loves kiss", 1)
+                            return crv("You did not have a ghost tolerance, the ghost invades your body and makes you feel extremely ill, you have to go to the hospital\nThe nurses are in shock, they dont know what to do with your possessed body. Luckily your husband comes to the hospital and gives you a true loves kiss to release the ghost from your body")
+                        }
+                    }
+                    default:
+                        return crv("You failed to do one of the provided choices. You're such a free thinker")
                 }
             },
             "spanking": async () => {
