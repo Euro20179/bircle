@@ -1451,7 +1451,7 @@ until you put a 0 in the box`)
 
                     let shuffledPlayers = state.HEIST_PLAYERS.shuffle()
 
-                    let amount = (Math.random() * 10) - edge
+                    let amount = (Math.random() * 10)
 
                     let negpos: "negative" | "positive" | "neutral" = (["negative", "positive", "neutral"] as const)[Math.floor(Math.random() * 3)]
 
@@ -1541,6 +1541,8 @@ until you put a 0 in the box`)
                         let multiplier = Number({ "none": 0, "normal": 1, "medium": 2, "large": 3 }[amountType[1]])
                         amount *= multiplier
                     }
+
+                    amount -= edge
 
                     response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
                         if (capture === "all") {
