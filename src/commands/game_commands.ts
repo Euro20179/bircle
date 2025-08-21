@@ -1321,14 +1321,12 @@ until you put a 0 in the box`)
                         await handleSending(msg, { content: `${timeRemaining / 1000} seconds until the heist commences!`, status: StatusCode.INFO }, sendCallback)
                 }, 1000)
                 let data: { [key: string]: number } = {} //player_id: amount won
-                let data_floor: { [key: string]: number } = {} // player_id: amount won (non-percentage based)
                 state.HEIST_TIMEOUT = setTimeout(async () => {
                     state.HEIST_STARTED = true
                     clearInterval(int)
                     await handleSending(msg, { content: `Commencing heist with ${state.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
                     for (let player of state.HEIST_PLAYERS) {
                         data[player] = 0
-                        data_floor[player] = 0
                         vars.setVar("__heist", "0", player)
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
@@ -1518,7 +1516,6 @@ until you put a 0 in the box`)
                                     for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
-                                        data_floor[player] += 1
                                         let oldValue = Number(vars.getVar(msg, `__heist`, player))
                                         vars.setVar("__heist", String(oldValue + amount), player)
                                     }
@@ -1526,7 +1523,6 @@ until you put a 0 in the box`)
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    data_floor[shuffledPlayers[Number(user) - 1]] += 1
                                     let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
                                     vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                                 }
@@ -1540,7 +1536,6 @@ until you put a 0 in the box`)
                                     for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
-                                        data_floor[player] -= 1
                                         let oldValue = Number(vars.getVar(msg, `__heist`, player))
                                         vars.setVar("__heist", String(oldValue + amount), player)
                                     }
@@ -1548,7 +1543,6 @@ until you put a 0 in the box`)
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    data_floor[shuffledPlayers[Number(user) - 1]] -= 1
                                     let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
                                     vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                                 }
@@ -1674,7 +1668,7 @@ until you put a 0 in the box`)
                                 if (!isNaN(data[player])) {
                                     let member = msg.guild?.members.cache.get(player)
                                     let netWorth = economy.playerLooseNetWorth(player)
-                                    let gain = netWorth * ((data[player] + data_floor[player]) / 100)
+                                    let gain = netWorth * (data[player] / 100)
                                     if (member) {
                                         e.addFields(efd([String(member.displayName || member.user.username), `$${gain} (${data[player]}%)`]))
                                     }
