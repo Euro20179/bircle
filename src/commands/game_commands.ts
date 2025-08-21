@@ -1382,6 +1382,8 @@ until you put a 0 in the box`)
                         continue
                     }
 
+                    resp = resp.replace(/STAGE=[^ ]+/, "")
+
                     let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
                     if (location?.[1]) {
                         if (!LOCATIONS.includes(location[1])) {
@@ -1730,6 +1732,7 @@ until you put a 0 in the box`)
                     await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined, status: StatusCode.RETURN })
                 }
             }, timeRemaining) as NodeJS.Timeout
+            return { content: "You started a heist", status: StatusCode.ERR }
 
         },
             "Go on a \"heist\"", {
