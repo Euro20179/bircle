@@ -28,7 +28,7 @@ function boardIsFull(board: Board){
 
 function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') {
     let text = "```\n"
-    text += Array.from({ length: 7 }, (_, n) => `|${n}\u{fe0f}\u{20e3}`).join("")
+    text += Array.from({ length: 7 }, (_, n) => `|${n + 1}\u{fe0f}\u{20e3}`).join("")
     //for (let [idx, _] of iterators.enumerate(board[0])) {
     //    console.log(idx)
     //    text += `|${strNumberToEmoji(String(idx + 1))}`
