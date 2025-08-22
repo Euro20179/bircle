@@ -1054,6 +1054,13 @@ until you put a 0 in the box`)
                 <li>
                     <b>yoink</b>: steal mumbo (can only be used once)
                 </li>
+                <li>
+                    <b>brew</b>: brews one of the following potions
+                    <ul>
+                        <li><b>general poision</b>: takes 2 seconds to brew, deals 30 damage to ALL players
+                        <li><b>deadly poison</b>: takes 10 seconds to brew, deals 30 damage to all players except the brewer
+                    </ul>
+                </li>
             </ul>
             <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
             `,

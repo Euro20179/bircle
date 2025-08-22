@@ -77,15 +77,15 @@ class Player {
         this.dead = false
     }
 
-    use100Hp(){
+    use100Hp() {
         this.#hp100Requirement -= 15
     }
 
-    startSacrifice(){
+    startSacrifice() {
         this.sacrificing = setInterval(() => this.hp -= 1, 1000)
     }
 
-    shouldEndSacrifice(){
+    shouldEndSacrifice() {
         return this.hp > 50
     }
 
@@ -94,7 +94,7 @@ class Player {
         this.sacrificing = false
     }
 
-    get hp100Requirement () {
+    get hp100Requirement() {
         return this.#hp100Requirement
     }
 
@@ -330,7 +330,7 @@ class Item {
         this.#allowedAfter = options.allowedAfter ?? 8000
     }
 
-    get useCount(){
+    get useCount() {
         return this.#useCount
     }
 
@@ -423,18 +423,18 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             numberCost: 10,
             percentCost: 0.008,
             async onUse(m, embed) {
-                if(allPlayers[m.author.id].sacrificing){
+                if (allPlayers[m.author.id].sacrificing) {
                     await m.channel.send("You are already sacrificing")
                     return false
                 }
-                if(allPlayers[m.author.id].hp > 50){
+                if (allPlayers[m.author.id].hp > 50) {
                     await m.channel.send("You must have < 50 hp to use sacrifice")
                     return false
                 }
 
-                for(let player in allPlayers){
-                    if(player === m.author.id) continue
-                    if(allPlayers[player].hp < 100){
+                for (let player in allPlayers) {
+                    if (player === m.author.id) continue
+                    if (allPlayers[player].hp < 100) {
                         await m.channel.send("All other players must be > 100 to use sacrifice")
                         return false
                     }
@@ -442,8 +442,8 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
                 allPlayers[m.author.id].startSacrifice()
 
-                for(let player in allPlayers){
-                    if(player === m.author.id) continue
+                for (let player in allPlayers) {
+                    if (player === m.author.id) continue
                     allPlayers[player].damageMultiplier += 1.5
                 }
 
@@ -458,11 +458,11 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             numberCost: 10,
             percentCost: 0.008,
             allowedAfter: 4000,
-            async onUse(m, embed){
+            async onUse(m, embed) {
                 embed.setTitle(`${m.author} made some nice whole numbers`)
                 allPlayers[m.author.id].hp = Math.ceil(allPlayers[m.author.id].hp / 10) * 10
-                for(let player in allPlayers){
-                    if(allPlayers[player].alive){
+                for (let player in allPlayers) {
+                    if (allPlayers[player].alive) {
                         allPlayers[player].hp = Math.floor(allPlayers[player].hp / 10) * 10
                     }
                 }
@@ -473,13 +473,13 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             numberCost: 5,
             async onUse(m, embed) {
                 let alive = gameState.alivePlayers()
-                for(let p in alive){
-                    if(alive[p].hp < 200){
+                for (let p in alive) {
+                    if (alive[p].hp < 200) {
                         await m.channel.send("Everyone must be above 200")
                         return false;
                     }
                 }
-                for(let p in alive){
+                for (let p in alive) {
                     alive[p].damageThroughShield(alive[p].hp / 2)
                 }
                 embed.setTitle("Split")
@@ -529,7 +529,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             percentCost: 0.005,
             numberCost: 0.1,
             async onUse(m, e) {
-                if(allPlayers[m.author.id].hp > 150){
+                if (allPlayers[m.author.id].hp > 150) {
                     await m.channel.send("You must be < 150 hp to use chance")
                     return false
                 }
@@ -559,7 +559,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             percentCost: 0.002,
             allowedAfter: 4000,
             async onUse(m, embed) {
-                if(allPlayers[m.author.id].hp > allPlayers[m.author.id].hp100Requirement){
+                if (allPlayers[m.author.id].hp > allPlayers[m.author.id].hp100Requirement) {
                     await m.channel.send(`You must be below ${allPlayers[m.author.id].hp100Requirement} to use this`)
                     return false
                 }
@@ -581,17 +581,17 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
                 const restrictText = `You got the ${restrict} restriction\n`
 
-                const challenges: {[key: string]: () => Promise<[Message | false, string]>}= {
-                    "math-add": async() => {
+                const challenges: { [key: string]: () => Promise<[Message | false, string]> } = {
+                    "math-add": async () => {
                         const n1 = Math.floor(randInt(1, 100))
 
                         const n2 = Math.floor(randInt(1, 100))
-                        return [await promptUser(m,  `${restrictText}${m.author} what is "${n1} + ${n2}", you have 4 seconds`, undefined, {
+                        return [await promptUser(m, `${restrictText}${m.author} what is "${n1} + ${n2}", you have 4 seconds`, undefined, {
                             filter: u => u.author.id === m.author.id,
                             timeout: 4000
                         }), String(n1 + n2)]
                     },
-                    "math-sub": async() => {
+                    "math-sub": async () => {
                         const n1 = Math.floor(randInt(1, 100))
                         const n2 = Math.floor(randInt(1, 100))
 
@@ -610,22 +610,22 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
                 const [ans, correct] = await challenges[challenge as keyof typeof challenges]()
 
-                if(!ans){
-                    if(restrict === "losehp"){
+                if (!ans) {
+                    if (restrict === "losehp") {
                         embed.setDescription(`# ${m.author} lost 50 hp`)
                         allPlayers[m.author.id].damageThroughShield(50)
                     }
                     return true
                 }
 
-                if(ans.content === correct) {
-                    if(restrict === "alive" && !allPlayers[m.author.id].alive){
+                if (ans.content === correct) {
+                    if (restrict === "alive" && !allPlayers[m.author.id].alive) {
                         embed.setDescription(`# ${m.author} did not get 50 hp because they died`)
                     }
-                    else{
+                    else {
                         embed.setTitle("50 HP")
                         embed.setColor("Green")
-                        if(restrict !== "overtime"){
+                        if (restrict !== "overtime") {
                             embed.setDescription(`# ${m.author} GOT 50 HP`)
                             allPlayers[m.author.id].heal(50)
                         } else {
@@ -636,7 +636,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                             let int = setInterval(() => {
                                 allPlayers[m.author.id].heal(step)
                                 totalEarned += step
-                                if(!BATTLEGAME || totalEarned >= 50){
+                                if (!BATTLEGAME || totalEarned >= 50) {
                                     clearInterval(int)
                                 }
                             }, time)
@@ -645,7 +645,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                     return true
                 }
 
-                if(restrict === "losehp"){
+                if (restrict === "losehp") {
                     embed.setDescription(`# ${m.author} lost 50 hp`)
                     allPlayers[m.author.id].damageThroughShield(50)
                 }
@@ -708,8 +708,8 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         half: new Item({
             percentCost: 0.01,
             allowedUses: 1,
-            async onUse(m, e){
-                if(allPlayers[m.author.id].shielded){
+            async onUse(m, e) {
+                if (allPlayers[m.author.id].shielded) {
                     await m.channel.send(`Half cannot be used with an active shield`)
                     return false
                 }
@@ -813,6 +813,60 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                 return true
             }
         }),
+        brew: new Item({
+            numberCost: 10,
+            percentCost: 0.03,
+            async onUse(m, e) {
+                const potions = [
+                    "general poison",
+                    "deadly poison",
+                    "bomb rain"
+                ]
+                const resp = await promptUser(m, `Which potion would you like to brew\n1: general poison (2s)\n2: deadly poison (10s)\n3: bomb rain (immediate)`, undefined, {
+                    filter: k => Number(k.content) <= potions.length && Number(k.content) > 0 && k.author.id === m.author.id
+                })
+                if (!resp) {
+                    return false
+                }
+                switch (resp.content) {
+                    case "1":
+                        setTimeout(async () => {
+                            await handleSending(msg, crv("The poison has finished brewing, ALL players take 30 damage"))
+                            const alive =  gameState.alivePlayers()
+                            for(let player in alive) {
+                                alive[player].damageThroughShield(30)
+                            }
+                        }, 2000)
+                        break
+                    case "2":
+                        setTimeout(async () => {
+                            await handleSending(msg, crv("The deadly poison has finished, all players (except the brewer) take 50 damage"))
+                            const alive =  gameState.alivePlayers()
+                            for(let player in alive) {
+                                if(alive[player].id === m.author.id) continue
+                                alive[player].damageThroughShield(50)
+                            }
+                        }, 10000)
+                        break
+                    case "3": {
+                        let times = 3
+                        const int = setInterval(async() => {
+                            const players = Object.keys(gameState.alivePlayers())
+                            const person = players[Math.floor(Math.random() * players.length)]
+                            gameState.alivePlayers()[person].damageThroughShield(5 * players.length)
+                            await handleSending(msg, crv(`<@${person}> was hit by a bomb: -${5 * players.length}`))
+                            times--
+                            if(times === 0) {
+                                clearInterval(int)
+                            }
+                        }, 3000)
+                    }
+                }
+                e.setTitle(`${potions[Number(resp.content) - 1]} is being brewed`)
+                e.setColor("Gold")
+                return true
+            }
+        }),
         "axe": new Item({
             numberCost: 1,
             percentCost: 0.001,
@@ -826,7 +880,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                     damage *= 2
                 }
                 allPlayers[player].damageThroughShield(damage)
-                if(!allPlayers[player].shielded){
+                if (!allPlayers[player].shielded) {
                     allPlayers[player].kill(m, gameState)
                 }
                 return true
@@ -839,7 +893,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             allowedAfter: 0,
             async onUse(m, e) {
                 let players = gameState.alivePlayers()
-                if(Object.keys(players).length < 3){
+                if (Object.keys(players).length < 3) {
                     await m.channel.send("There must be 3 or more players alive to use this")
                     return false
                 }
@@ -891,6 +945,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
             return
         }
         let cost = item.calculateFullCost(m.author.economyData.money)
+        console.log(cost)
         if (m.author.economyData.money - allPlayers[m.author.id].total_spent < cost) {
             await m.channel.send("You cannot afford this")
             return
@@ -988,11 +1043,11 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         }
 
         for (let player in players) {
-            if(players[player].sacrificing && players[player].shouldEndSacrifice()){
+            if (players[player].sacrificing && players[player].shouldEndSacrifice()) {
                 await msg.channel.send(`${players[player].id} has reached 50 hp, ending sacrificing`)
                 players[player].endSacrifice()
-                for(let playerId in players){
-                    if(playerId === players[player].id) continue
+                for (let playerId in players) {
+                    if (playerId === players[player].id) continue
                     players[playerId].damageMultiplier -= 1.5
                 }
             }
@@ -1060,10 +1115,10 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
 
 function mostUsedBonus(players: { [key: string]: Player }) {
     let mostUsed = Object.values(players).sort((a, b) => b.itemUses - a.itemUses)
-    const itemUseGap = mostUsed[0].itemUses - (mostUsed[1] || { itemUses: 0 }).itemUses 
+    const itemUseGap = mostUsed[0].itemUses - (mostUsed[1] || { itemUses: 0 }).itemUses
     let bonusAmount = itemUseGap
     if (bonusAmount && economy.playerExists(mostUsed[0].id)) {
-        const fullAmount = economy.calculateAmountFromNetWorth(mostUsed[0].id, `${bonusAmount}+${bonusAmount/10}%`)
+        const fullAmount = economy.calculateAmountFromNetWorth(mostUsed[0].id, `${bonusAmount}+${bonusAmount / 10}%`)
         economy.addMoney(mostUsed[0].id, fullAmount)
         return `<@${mostUsed[0].id}> GOT THE ITEM BONUS BY USING ${mostUsed[0].itemUses} (${itemUseGap} more items) ITEMS AND WON $${fullAmount}\n`
     }
