@@ -1048,6 +1048,12 @@ until you put a 0 in the box`)
                 <li>
                     <b>round</b>: round yourself up to the nearest 10 hp, round all other users down to the nearest 10 hp (cost: 10 + 0.8%)
                 </li>
+                <li>
+                    <b>sacrifice</b>: every second you lose 1hp, but everyone else has an increased damage multiplier of 1.5 (can only be used once)
+                </li>
+                <li>
+                    <b>yoink</b>: steal mumbo (can only be used once)
+                </li>
             </ul>
             <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
             `,
