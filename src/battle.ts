@@ -816,6 +816,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         brew: new Item({
             numberCost: 10,
             percentCost: 0.03,
+            allowedAfter: 13000,
             async onUse(m, e) {
                 const potions = [
                     "general poison",
