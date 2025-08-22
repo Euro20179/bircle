@@ -833,31 +833,37 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                     case "1":
                         setTimeout(async () => {
                             await handleSending(msg, crv("The poison has finished brewing, ALL players take 30 damage"))
-                            const alive =  gameState.alivePlayers()
-                            for(let player in alive) {
+                            const alive = gameState.alivePlayers()
+                            for (let player in alive) {
                                 alive[player].damageThroughShield(30)
                             }
                         }, 2000)
                         break
                     case "2":
                         setTimeout(async () => {
-                            await handleSending(msg, crv("The deadly poison has finished, all players (except the brewer) take 50 damage"))
-                            const alive =  gameState.alivePlayers()
-                            for(let player in alive) {
-                                if(alive[player].id === m.author.id) continue
+                            let ALL = false
+                            if (Math.random() > .5) {
+                                ALL = true
+                                await handleSending(msg, crv("The deadly poison has finished, ALL players take 50 damage"))
+                            } else {
+                                await handleSending(msg, crv("The deadly poison has finished, all players (except the brewer) take 50 damage"))
+                            }
+                            const alive = gameState.alivePlayers()
+                            for (let player in alive) {
+                                if (alive[player].id === m.author.id && !ALL) continue
                                 alive[player].damageThroughShield(50)
                             }
                         }, 10000)
                         break
                     case "3": {
                         let times = 3
-                        const int = setInterval(async() => {
+                        const int = setInterval(async () => {
                             const players = Object.keys(gameState.alivePlayers())
                             const person = players[Math.floor(Math.random() * players.length)]
                             gameState.alivePlayers()[person].damageThroughShield(5 * players.length)
                             await handleSending(msg, crv(`<@${person}> was hit by a bomb: -${5 * players.length}`))
                             times--
-                            if(times === 0) {
+                            if (times === 0) {
                                 clearInterval(int)
                             }
                         }, 3000)

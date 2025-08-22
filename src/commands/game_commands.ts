@@ -1057,8 +1057,9 @@ until you put a 0 in the box`)
                 <li>
                     <b>brew</b>: brews one of the following potions
                     <ul>
-                        <li><b>general poision</b>: takes 2 seconds to brew, deals 30 damage to ALL players
-                        <li><b>deadly poison</b>: takes 10 seconds to brew, deals 30 damage to all players except the brewer
+                        <li><b>general poision</b>: takes 2 seconds to brew, deals 30 damage to ALL players</li>
+                        <li><b>deadly poison</b>: takes 10 seconds to brew, deals 50 damage to all players 50% chance to hit the brewer</li>
+                        <li><b>bomb rain</b>: deal 5 * playercount damage 3 times (happens immediately)</li>
                     </ul>
                 </li>
             </ul>
