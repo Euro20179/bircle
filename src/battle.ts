@@ -77,6 +77,10 @@ class Player {
         this.dead = false
     }
 
+    resetCooldown() {
+        this.#lastItemUsage = null
+    }
+
     use100Hp() {
         this.#hp100Requirement -= 15
     }
@@ -823,7 +827,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                     "deadly poison",
                     "bomb rain"
                 ]
-                const resp = await promptUser(m, `Which potion would you like to brew\n1: general poison (2s)\n2: deadly poison (10s)\n3: bomb rain (immediate)`, undefined, {
+                const resp = await promptUser(m, `Which potion would you like to brew\n1: general poison (2s)\n2: deadly poison (7s)\n3: bomb rain (immediate)`, undefined, {
                     filter: k => Number(k.content) <= potions.length && Number(k.content) > 0 && k.author.id === m.author.id
                 })
                 if (!resp) {
@@ -842,18 +846,18 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                     case "2":
                         setTimeout(async () => {
                             let ALL = false
-                            if (Math.random() > .5) {
+                            const alive = gameState.alivePlayers()
+                            if (Math.random() < (alive[m.author.id].hp / 100)) {
                                 ALL = true
                                 await handleSending(msg, crv("The deadly poison has finished, ALL players take 50 damage"))
                             } else {
                                 await handleSending(msg, crv("The deadly poison has finished, all players (except the brewer) take 50 damage"))
                             }
-                            const alive = gameState.alivePlayers()
                             for (let player in alive) {
                                 if (alive[player].id === m.author.id && !ALL) continue
                                 alive[player].damageThroughShield(50)
                             }
-                        }, 10000)
+                        }, 7000)
                         break
                     case "3": {
                         let times = 3
