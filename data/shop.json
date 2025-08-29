@@ -1,9 +1,4 @@
 {
-    "tax evasion": {
-        "description": "Increase the time before you can be taxed again by 1 minute (used immediately on purchase)",
-        "uses": 1,
-        "cost": ["3.5%", "22"]
-    },
     "reset": {
         "description": "Adds a reset option in black jack (can only be  used once per game)",
         "uses": 1,
@@ -13,6 +8,12 @@
         "description": "Gives you enough money to get to $1, with a maximum of however much money first place has",
         "uses": 1,
         "cost": ["infinity"],
+        "max": 1
+    },
+    "tax shield": {
+        "description": "Prevents getting taxed into the negatives",
+        "uses": 4,
+        "cost": ["1.8%"],
         "max": 1
     },
     "bone": {
