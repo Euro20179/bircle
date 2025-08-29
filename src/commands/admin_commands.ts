@@ -183,15 +183,19 @@ export default function*(): Generator<[string, CommandV2]> {
             }
 
             economy.resetEconomy()
+            economy.givePoint(msg.author.id)
 
             return crv("Economy reset", {
                 files: [crvFile("./database/economy-old.db", "economy-old.db", "The old economy",)]
             })
         }, "Resets the economy", {
             permCheck: (m) => {
+                if(ADMINS.includes(m.author.id)) {
+                        return true
+                    }
                 let { total } = economy.economyLooseGrandTotal(false)
                 let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
-                return ADMINS.includes(m.author.id) || economy.playerLooseNetWorth(m.author.id) >= necessary || Number(hasItem(m.author.id, "reset economy")) > 0
+                return economy.playerLooseNetWorth(m.author.id) >= necessary || Number(hasItem(m.author.id, "reset economy")) > 0
             },
         })
     ]

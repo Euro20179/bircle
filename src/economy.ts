@@ -11,6 +11,7 @@ import { Database } from "bun:sqlite"
 
 let db = new Database("./database/economy.db")
 
+db.exec("CREATE TABLE IF NOT EXISTS points (id TEXT, count NUMBER)")
 db.exec("CREATE TABLE IF NOT EXISTS economy (id TEXT, money NUMBER, loanUsed NUMBER, activePet TEXT, sandCounter INTEGER, retired BOOLEAN)")
 db.exec("CREATE TABLE IF NOT EXISTS stocks (id TEXT, ticker STRING, purchasePrice NUMBER, shares INTEGER)")
 db.exec("CREATE TABLE IF NOT EXISTS lottery (pool NUMBER, n1 INTEGER, n2 INTEGER, n3 INTEGER)")
@@ -25,6 +26,18 @@ export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: s
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
+
+function givePoint(id: string) {
+    const stmnt = db.query("UPDATE points SET count = count + 1 WHERE id = ?")
+    stmnt.run(id)
+}
+
+function getPoints(id: string) {
+    const stmnt = db.prepare("SELECT count FROM points WHERE id == ?")
+    const res = stmnt.get(id)
+    console.log(res)
+    return res["count"]
+}
 
 function playerCount() {
     const results = db.query("SELECT id FROM economy").all()
@@ -209,7 +222,12 @@ function newLottery() {
 
 function createPlayer(id: string, startingCash = 0) {
     timer.createTimer(id, "%can-earn")
-    const stmnt = db.query(` INSERT INTO economy (id, money, loanUsed, activePet, sandCounter, retired) VALUES (?, ?, 0, '', 0, false); `)
+    const stmnt = db.query(` INSERT INTO economy (id, money, loanUsed, activePet, sandCounter, retired, points) VALUES (?, ?, 0, '', 0, false, 0); `)
+    const player = db.query(`SELECT count FROM points WHERE id = ?`)
+    const res = player.get(id)
+    if(res === null) {
+        db.run("INSERT INTO points (id, count) VALUES (?, 0)", [id])
+    }
     stmnt.run(id, startingCash)
 }
 
@@ -609,5 +627,7 @@ export default {
     getLoan,
     playerCount,
     getStocks,
+    givePoint,
+    getPoints
     // tradeItems
 }

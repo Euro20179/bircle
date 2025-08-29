@@ -25,6 +25,22 @@ const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
+    // yield [
+    //     "set-tax-rate", ccmdv2(async function({msg, args}) {
+    //     }, "Sets the tax rate\nusers totaling 30% must agree (tax rate cannot be set below 0.1%)\ncan only be used once per hour")
+    // ]
+    //
+    yield [
+        "points", ccmdV2(async function({ msg, args }) {
+            const user = args.length ? await fetchUserFromClientOrGuild(args[0], msg.guild) : msg.author
+            if (user)
+                return crv(`${economy.getPoints(user.id)}`)
+            else {
+                return crv("Could not find user")
+            }
+        }, "gets the points of a user")
+    ]
+
     yield [
         "join-economy", ccmdV2(async function({ msg }) {
             const currency_sign = user_options.getOpt(
@@ -585,7 +601,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
                     let profit = 0
                     let totalShares = 0
-                    for(let lot of userStockInfo) {
+                    for (let lot of userStockInfo) {
                         profit += (stockInfo.price - lot.purchasePrice) * lot.shares
                         totalShares += lot.shares
                     }
@@ -642,7 +658,7 @@ export default function*(): Generator<[string, CommandV2]> {
             let stockName = stockInfo.name
             let profit = 0
             let totalShares = 0
-            for(let lot of stockInfo.info) {
+            for (let lot of stockInfo.info) {
                 profit += (data.price - lot.purchasePrice) * lot.shares
                 totalShares += lot.shares
             }
@@ -693,8 +709,8 @@ export default function*(): Generator<[string, CommandV2]> {
             stock = stock.toUpperCase()
             let amount = args[1]
             let data = await economy.getStockInformation(stock)
-            if(!data) {
-            return crv("This does not appear to be a stock")
+            if (!data) {
+                return crv("This does not appear to be a stock")
             }
 
             let nPrice = Number(data["price"])
