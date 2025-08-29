@@ -222,7 +222,7 @@ function newLottery() {
 
 function createPlayer(id: string, startingCash = 0) {
     timer.createTimer(id, "%can-earn")
-    const stmnt = db.query(` INSERT INTO economy (id, money, loanUsed, activePet, sandCounter, retired, points) VALUES (?, ?, 0, '', 0, false, 0); `)
+    const stmnt = db.query(` INSERT INTO economy (id, money, loanUsed, activePet, sandCounter, retired) VALUES (?, ?, 0, '', 0, false); `)
     const player = db.query(`SELECT count FROM points WHERE id = ?`)
     const res = player.get(id)
     if(res === null) {
