@@ -1063,9 +1063,9 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv("This person is not currently in the economy", { status: StatusCode.ERR })
             }
             let ct = economy.canTax(user.id)
-            if (hasItem(user.id, "tax evasion")) {
-                ct = economy.canTax(user.id, getInventory()[user.id]['tax evasion'] * 60)
-            }
+            // if (hasItem(user.id, "tax evasion")) {
+            //     ct = economy.canTax(user.id, getInventory()[user.id]['tax evasion'] * 60)
+            // }
             let embed = new EmbedBuilder()
             if (ct) {
                 embed.setTitle("Taxation Time")

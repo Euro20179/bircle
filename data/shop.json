@@ -15,12 +15,6 @@
         "cost": ["infinity"],
         "max": 1
     },
-    "tax shield": {
-        "description": "Prevents getting taxed into the negatives",
-        "uses": 4,
-        "cost": ["1.8%"],
-        "max": 1
-    },
     "bone": {
         "description": "Restore randomly 3-7 hunger to a pet of your  choice",
         "uses": 1,
