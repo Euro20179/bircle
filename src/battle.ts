@@ -56,6 +56,7 @@ class Player {
     bet: number
     money_spent: number
     hp: number
+    startingHP: number
     shielded: boolean
     id: string
     itemUses: number
@@ -73,6 +74,7 @@ class Player {
         this.shielded = false
         this.itemUses = 0
         this.id = id
+        this.startingHP = hp
         this.#itemUsageTable = {}
         this.dead = false
     }
@@ -1105,10 +1107,11 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
         else {
             e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1].hp} HEALTH REMAINING\nAND WON THE REMAINING: $${betTotal * BATTLE_GAME_BONUS}`)
         }
-        if (winner[1].hp >= 100) {
+        if (winner[1].hp >= winner[1].startingHP) {
             if (economy.playerExists(winner[0])) {
-                economy.addMoney(winner[0], winner[1].hp)
-                bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
+                const bonus = economy.calculateAmountFromString(winner[0], `max(${winner[1].hp}, ${winner[1].hp - winner[1].startingHP * 1.5}%)`)
+                economy.addMoney(winner[0], bonus)
+                bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS (+${bonus})\n`
             }
         }
     }
