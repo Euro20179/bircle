@@ -458,13 +458,17 @@ export default function*(): Generator<[string, CommandV2]> {
         let messages: any[] = []
         let temp = opts.getNumber("t", 0.8)
         let ctx = opts.getNumber("ctx", 2048)
-        let model = opts.getString("m", "llama3")
+        let model = opts.getString("m", "qwen3:0.6b")
         let approved_models = [
             "deepseek-r1:8b",
             "llama3",
-            "llama3.2",
+            "llama3.1",
             "qwen2.5-coder",
-            "dolphin-llama3.1-kittens"
+            "dolphin-llama3.1-kittens",
+            "geema3:4b",
+            "qwen3:4b",
+            "qwen3:1.7b",
+            "qwen3:0.6b",
         ]
         if (opts.getBool("l", false)) {
             return crv(approved_models.join("\n"))
@@ -541,22 +545,45 @@ export default function*(): Generator<[string, CommandV2]> {
             return crv("Chat session ended")
         }// }}}
         await msg.channel.sendTyping()
-        const result = await fetch(`${baseurl}:11434/api/generate`, {
-            method: "POST",
-            body: JSON.stringify({
-                model,
-                prompt,
-                format: opts.getString("fmt", undefined),
-                system: sys_msg,
-                stream: false,
-                options: {
-                    temperature: temp,
-                    num_ctx: ctx
-                }
+        let message
+        let responses = [{ role: "user", content: prompt }]
+        let json
+        do {
+            const result = await fetch(`${baseurl}:11434/api/chat`, {
+                method: "POST",
+                body: JSON.stringify({
+                    model,
+                    messages: responses,
+                    tools: [
+                        {
+                            type: "function",
+                            "function": {
+                                name: "get_money",
+                                description: "gets the user's balance",
+                            }
+                        },
+                    ],
+                    format: opts.getString("fmt", undefined),
+                    system: sys_msg,
+                    stream: false,
+                    options: {
+                        temperature: temp,
+                        num_ctx: ctx
+                    }
+                })
             })
-        })
-        const json = await result.json()
-        return crv(json.response, {
+            json = await result.json()
+            message = json.message
+            if (message.tool_calls) {
+                for (let { function: func } of message.tool_calls) {
+                    if (!func) continue
+                    if (func.name === "get_money") {
+                        responses.push({ role: "tool", content: String(economy.calculateAmountFromNetWorth(msg.author.id, "100%")), tool_name: func.name })
+                    }
+                }
+            }
+        } while ("tool_calls" in message)
+        return crv(json.message.content, {
             reply: true
         })
     }, "Use the openai chatbot", {

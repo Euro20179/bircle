@@ -26,10 +26,10 @@ const handleSending = cmds.handleSending
 export default function*(): Generator<[string, CommandV2]> {
 
     // yield [
-    //     "set-tax-rate", ccmdv2(async function({msg, args}) {
-    //     }, "Sets the tax rate\nusers totaling 30% must agree (tax rate cannot be set below 0.1%)\ncan only be used once per hour")
+    //     "unretire", ccmdv2(async function({msg, args}) {
+    //     }, "Makes a user unretire, must get 50% approval")
     // ]
-    //
+
     yield [
         "points", ccmdV2(async function({ msg, args }) {
             const user = args.length ? await fetchUserFromClientOrGuild(args[0], msg.guild) : msg.author
