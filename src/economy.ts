@@ -232,6 +232,10 @@ function createPlayer(id: string, startingCash = 0) {
 }
 
 function addMoney(id: string, amount: number) {
+    const points = getPoints(id)
+    if(points) {
+        amount *= (1 + (.01 * points))
+    }
     db.run(`UPDATE economy SET money = money + ? WHERE id = ?`, [amount, id])
     return true
 }
