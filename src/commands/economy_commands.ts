@@ -778,17 +778,16 @@ export default function*(): Generator<[string, CommandV2]> {
                 user = msg.author
             let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', GLOBAL_CURRENCY_SIGN)}{amount}`)
             let text = ""
-            if (economy.playerExists(msg.author.id)) {
-                const money = economy.getMoney(msg.author.id)
-                console.log(money)
+            if (economy.playerExists(user.id)) {
+                const money = economy.getMoney(user.id)
                 if (opts['m']) {
                     text += `${money}\n`
                 }
                 if (opts['l']) {
-                    text += `${timer.do_lap(msg.author.id, "%can-earn")}\n`
+                    text += `${timer.do_lap(user.id, "%can-earn")}\n`
                 }
                 if (opts['t']) {
-                    text += `${timer.do_lap(msg.author.id, "%last-taxed")}\n`
+                    text += `${timer.do_lap(user.id, "%last-taxed")}\n`
                 }
                 if (opts['nw']) {
                     text += `${economy.playerLooseNetWorth(user.id)}\n`
