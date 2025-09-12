@@ -541,7 +541,11 @@ function getEconomy(): { [id: string]: Omit<EconomyData, "stocks"> } {
 }
 
 function getLottery(): typeof lottery {
-    return db.query("SELECT * FROM lottery").get()
+    const numbers =  db.query("SELECT pool, n1, n2, n3 FROM lottery").get()
+    return {
+        pool: Number(numbers["pool"]),
+        numbers: [Number(numbers["n1"]), Number(numbers["n2"]), Number(numbers["n3"])]
+    }
 }
 
 
