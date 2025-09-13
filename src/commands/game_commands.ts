@@ -2204,7 +2204,7 @@ until you put a 0 in the box`)
                 return crv("Guess must be `heads` or `tails`")
             }
             let other = guess === "heads" ? "tails" : "heads"
-            let side = Math.random() > .52 ? guess : other
+            let side = Math.random() > .51 ? guess : other
             if (Math.random() < 0.01) {
                 side = "side"
             }
