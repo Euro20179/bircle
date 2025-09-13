@@ -382,7 +382,8 @@ function mimeTypeToFileExtension(mime: MimeType) {
         "javascript": "js",
         "text": "txt",
         "markdown": "md",
-        "html": "html"
+        "html": "html",
+        "json": "json",
     }[specific] ?? "dat"
 }
 

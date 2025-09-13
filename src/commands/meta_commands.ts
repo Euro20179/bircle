@@ -24,6 +24,7 @@ import cmds from '../command-parser/cmds'
 import lexer from '../command-parser/lexer'
 import timer from '../timer'
 import configManager from '../config-manager'
+import economy from '../economy'
 
 const handleSending = cmds.handleSending
 
@@ -731,12 +732,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "economy", ccmdV2(async function() {
-            return {
-                files: [
-                    crvFile("database/economy.json", "economy.json", "The economy")
-                ],
-                status: StatusCode.RETURN
-            }
+            return crv(JSON.stringify(economy.getEconomy()), {
+                mimetype: "application/json"
+            })
 
         }, "Get the database economy.json file")
     ]
