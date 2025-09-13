@@ -1414,13 +1414,13 @@ until you put a 0 in the box`)
                     let gain = resp.match(/GAIN=([^ ]+)/)
                     if (gain?.[1]) {
                         type = "positive"
-                        edge += {none: 0, cents: 1, normal: 2, medium: 3, large: 4}[size[1]]
+                        edge += { none: 0, cents: 1, normal: 2, medium: 3, large: 4 }[size[1]]
                     }
 
                     let lose = resp.match(/LOSE=([^ ]+)/)
                     if (lose?.[1]) {
                         type = "negative"
-                        edge -= {none: 0, cents: 1, normal: 2, medium: 3, large: 4}[size[1]]
+                        edge -= { none: 0, cents: 1, normal: 2, medium: 3, large: 4 }[size[1]]
                     }
 
                     let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
@@ -1441,7 +1441,7 @@ until you put a 0 in the box`)
                 //later on it will subtract edge from `amount` to reduce, well, the edge towards positivity lol
                 edge = edge / fileResponses.length * 10
 
-                await handleSending(msg, {content: `Starting heist with an edge of ${edge}`, status: StatusCode.INFO}, sendCallback)
+                await handleSending(msg, { content: `Starting heist with an edge of ${edge}`, status: StatusCode.INFO }, sendCallback)
 
                 let current_location = "__generic__"
 
@@ -2203,8 +2203,9 @@ until you put a 0 in the box`)
             if (!["heads", "tails"].includes(guess)) {
                 return crv("Guess must be `heads` or `tails`")
             }
-            let side = Math.random() > .5 ? "heads" : "tails"
-            if(Math.random() < 0.001) {
+            let other = guess === "heads" ? "tails" : "heads"
+            let side = Math.random() > .55 ? guess : other
+            if (Math.random() < 0.01) {
                 side = "side"
             }
             if (!bet || bet < 0) {
@@ -2216,9 +2217,10 @@ until you put a 0 in the box`)
             if (side == guess) {
                 economy.addMoney(msg.author.id, bet)
                 return { content: `The side was: ${side}\nYou won: ${bet}`, status: StatusCode.RETURN }
-            } else if(side === "side") {
+            } else if (side === "side") {
                 let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
-                economy.addMoney(msg.author.id, bet * 3)
+                economy.addMoney(msg.author.id, bet * 5)
+                return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
             else {
                 economy.loseMoneyToBank(msg.author.id, bet)
