@@ -457,7 +457,7 @@ function retirePlayer(id: string) {
     if (!playerExists(id)) {
         return false
     }
-    db.run(`UPDATE economy SET retired = true`)
+    db.run(`UPDATE economy SET retired = true WHERE id = ?`, [id])
 }
 
 function resetPlayer(id: string) {
