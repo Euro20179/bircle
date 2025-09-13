@@ -11,7 +11,7 @@ import achievements from '../achievements'
 import { server } from '../../website/server'
 import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
 import amountParser from '../amount-parser'
-import { saveConfig, ADMINS, editConfig } from '../config-manager'
+import { saveConfig, ADMINS, editConfig, DEVBOT } from '../config-manager'
 import runner from '../command-parser/runner'
 
 import cmds from '../command-parser/cmds'
@@ -190,6 +190,7 @@ export default function*(): Generator<[string, CommandV2]> {
             })
         }, "Resets the economy", {
             permCheck: (m) => {
+                if(DEVBOT) return true
                 let { total } = economy.economyLooseGrandTotal(false)
                 let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
                 return economy.playerLooseNetWorth(m.author.id) >= necessary || Number(hasItem(m.author.id, "reset economy")) > 0

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Message, MessageCreateOptions, MessagePayload } from "discord.js";
-import { AliasV2, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
+import { AliasV2, CommandCategory, StatusCode, commands, crv, getAliasesV2, promptUser } from "../common_to_commands";
 import { getOpts, getOptsUnix, getOptsWithNegate } from "../parsing";
 import lexer, { TT } from './lexer'
 import { ArgList, BADVALUE, Options, cmdCatToStr, generateCommandSummary, iterAsyncGenerator } from "../util";
@@ -123,6 +123,10 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     if (cmdObject && "permCheck" in cmdObject && cmdObject.permCheck !== undefined && !cmdObject.permCheck(msg)) {
         yield { content: "You failed the permissions check for this command", status: StatusCode.ERR }
         return
+    }
+
+    if(!msg.author.bot && !economy.playerExists(msg.author.id) && [CommandCategory.GAME, CommandCategory.ECONOMY].includes(cmdObject?.category)) {
+        economy.createPlayer(msg.author.id, 100)
     }
 
     let disabled = runtime_options.get("disable", false)
