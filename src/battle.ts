@@ -1174,11 +1174,13 @@ async function battle(msg: Message, args: ArgumentList) {
 
     BATTLEGAME = true
 
+    let highestBet = nBet
+
     collector.on("collect", async (m) => {
         if (!isMsgChannel(msg.channel)) return
         if (players[m.author.id]) return
         let bet = m.content.trim().split(" ")[1] || "min"
-        let nBet = economy.calculateAmountFromString(m.author.id, bet, { min: (t, _a) => t * 0.002 })
+        let nBet = economy.calculateAmountFromString(m.author.id, bet, { min: (t, _a) => t * 0.002, match: () => highestBet })
         if (!nBet || !economy.canBetAmount(m.author.id, nBet) || nBet < 0) {
             await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
             return
@@ -1188,6 +1190,10 @@ async function battle(msg: Message, args: ArgumentList) {
             if (!isMsgChannel(m.channel)) return
             await m.channel.send("You must bet at least 0.2%")
             return
+        }
+
+        if(nBet > highestBet) {
+            highestBet = nBet
         }
 
         if (!Object.keys(players).includes(m.author.id)) {
