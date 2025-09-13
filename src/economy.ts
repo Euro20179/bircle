@@ -241,7 +241,7 @@ function addMoney(id: string, amount: number) {
 }
 
 function loseMoneyToBank(id: string, amount: number) {
-    increaseLotteryPool(amount)
+    increaseLotteryPool(amount / 2) //we divide by 2, because the pool gets doubled on win
     db.run(`UPDATE economy SET money = money - ? WHERE id = ?`, [amount, id])
 }
 
