@@ -2204,6 +2204,9 @@ until you put a 0 in the box`)
                 return crv("Guess must be `heads` or `tails`")
             }
             let side = Math.random() > .5 ? "heads" : "tails"
+            if(Math.random() < 0.001) {
+                side = "side"
+            }
             if (!bet || bet < 0) {
                 return { content: side, status: StatusCode.RETURN }
             }
@@ -2213,6 +2216,9 @@ until you put a 0 in the box`)
             if (side == guess) {
                 economy.addMoney(msg.author.id, bet)
                 return { content: `The side was: ${side}\nYou won: ${bet}`, status: StatusCode.RETURN }
+            } else if(side === "side") {
+                let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
+                economy.addMoney(msg.author.id, bet * 3)
             }
             else {
                 economy.loseMoneyToBank(msg.author.id, bet)
