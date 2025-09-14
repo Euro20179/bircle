@@ -857,7 +857,7 @@ async function game(msg: Message, gameState: GameState, useItems: boolean, winni
                             }
                             for (let player in alive) {
                                 if (alive[player].id === m.author.id && !ALL) continue
-                                alive[player].damageThroughShield(50)
+                                alive[player].damageThroughShield(Math.min(alive[player].hp, 50))
                             }
                         }, 7000)
                         break
