@@ -241,7 +241,7 @@ function addMoney(id: string, amount: number) {
 }
 
 function loseMoneyToBank(id: string, amount: number) {
-    const percentageToGiveToLottery = 1/4
+    const percentageToGiveToLottery = 1/3
     increaseLotteryPool(amount / (2 / percentageToGiveToLottery)) //we divide by 2, because the pool gets doubled on win
     db.run(`UPDATE economy SET money = money - ? WHERE id = ?`, [amount, id])
 }
