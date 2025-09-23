@@ -462,8 +462,8 @@ function retirePlayer(id: string) {
 
 function resetPlayer(id: string) {
     if (playerExists(id)) {
-        db.run(`DELETE economy WHERE id = ?`, [id])
-        db.run(`DELETE stocks WHERE id = ?`, [id])
+        db.run(`DELETE FROM economy WHERE id = ?`, [id])
+        db.run(`DELETE FROM stocks WHERE id = ?`, [id])
     }
 }
 

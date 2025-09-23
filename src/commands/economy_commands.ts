@@ -11,7 +11,7 @@ import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, PagedEmbed, StatusCode } from '../common_to_commands'
 import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, fetchUserFromClientOrGuild, entriesOf, ArgList, clamp } from '../util'
 import { format } from '../parsing'
-import { EmbedBuilder, Guild, User } from 'discord.js'
+import { EmbedBuilder, Guild, ReactionCollector, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { DEVBOT, PREFIX } from '../config-manager'
 import achievements from '../achievements'
@@ -39,6 +39,61 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv("Could not find user")
             }
         }, "gets the points of a user")
+    ]
+
+    yield [
+        "reset-player", ccmdV2(async function({ msg, args, sendCallback }) {
+            if (!args[0]) {
+                return crv("No user given", { status: StatusCode.ERR })
+            }
+            // if(!timer.has_x_m_passed("GLOBAL", "%reset-player", 60, true)) {
+            //     return crv("Not enough time has passed", { status: StatusCode.ERR })
+            // }
+            timer.createOrRestartTimer("GLOBAL", "%reset-player")
+            const userToReset = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
+            if (!userToReset) {
+                return crv(`User not found ${args.join(" ")}`, { status: StatusCode.ERR })
+            }
+
+            const m = await handleSending(msg, { content: `<@${msg.author.id}> has proposed to set <@${userToReset.id}>'s money to 0\n95% of the economy must vote yes for it to pass\n3% of the economy is enough to veto`, status: StatusCode.INFO }, sendCallback)
+            await m.react("✅")
+            await m.react("❌")
+            await m.awaitReactions({ time: 1000 * 60 * 10 })
+            const reactions = m.reactions
+            const checks = reactions.resolve("✅")
+            const x = reactions.resolve("❌")
+            const checkUsers = await checks?.users.fetch()
+            const xUsers = await x?.users.fetch()
+
+            if ((checkUsers?.toJSON()?.length || 1) - 1 < 2) {
+                return crv("need 2 votes to reset")
+            }
+
+            const econ = economy.economyLooseGrandTotal().moneyAndStocks
+
+            let yesPercent = 0
+            let vetoPercent = 0
+
+            for (let user of checkUsers?.toJSON() || []) {
+                if(!economy.playerExists(user.id)) continue
+                const amount = economy.playerEconomyLooseTotal(user.id)
+                yesPercent += amount / econ
+            }
+            for (let user of xUsers?.toJSON() || []) {
+                if(!economy.playerExists(user.id)) continue
+                const amount = economy.playerEconomyLooseTotal(user.id)
+                vetoPercent += amount / econ
+            }
+
+            if (vetoPercent >= 0.03) {
+                return crv(`The vote was vetoed with ${vetoPercent * 100}% of the economy`)
+            } else if (yesPercent < 0.95) {
+                return crv(`Only ${yesPercent * 100}% of the economy voted to reset player`)
+            } else {
+                economy.resetPlayer(userToReset.id)
+                return crv(`${yesPercent * 100}% of the economy voted to reset <@${userToReset.id}>`)
+            }
+        }, "propose a player to set to 0 dollars, 95% of the economy must agree, if 3% of the economy vetos, it will fail")
     ]
 
     yield [
