@@ -58,7 +58,7 @@ export default function*(): Generator<[string, CommandV2]> {
             const m = await handleSending(msg, { content: `<@${msg.author.id}> has proposed to set <@${userToReset.id}>'s money to 0\n95% of the economy must vote yes for it to pass\n3% of the economy is enough to veto`, status: StatusCode.INFO }, sendCallback)
             await m.react("✅")
             await m.react("❌")
-            await m.awaitReactions({ time: 1000 * 60 * 10 })
+            await m.awaitReactions({ time: 5000 * 60 * 10 })
             const reactions = m.reactions
             const checks = reactions.resolve("✅")
             const x = reactions.resolve("❌")
@@ -91,6 +91,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv(`Only ${yesPercent * 100}% of the economy voted to reset player`)
             } else {
                 economy.resetPlayer(userToReset.id)
+                economy.createPlayer(userToReset.id, 0)
                 return crv(`${yesPercent * 100}% of the economy voted to reset <@${userToReset.id}>`)
             }
         }, "propose a player to set to 0 dollars, 95% of the economy must agree, if 3% of the economy vetos, it will fail")

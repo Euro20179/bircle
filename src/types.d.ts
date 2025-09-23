@@ -153,6 +153,7 @@ declare global {
         short_opts?: string,
         long_opts?: [string, ":"?][],
         state?: any
+        joins_economy: boolean
     }
 
     interface SlashCommand {
