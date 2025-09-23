@@ -46,9 +46,9 @@ export default function*(): Generator<[string, CommandV2]> {
             if (!args[0]) {
                 return crv("No user given", { status: StatusCode.ERR })
             }
-            // if(!timer.has_x_m_passed("GLOBAL", "%reset-player", 60, true)) {
-            //     return crv("Not enough time has passed", { status: StatusCode.ERR })
-            // }
+            if(!timer.has_x_m_passed("GLOBAL", "%reset-player", 60, true)) {
+                return crv("Not enough time has passed", { status: StatusCode.ERR })
+            }
             timer.createOrRestartTimer("GLOBAL", "%reset-player")
             const userToReset = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
             if (!userToReset) {
