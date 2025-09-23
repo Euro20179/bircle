@@ -453,7 +453,7 @@ class UnitedStates extends Country {
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
         if (hasItem(msg.author.id, "hammer and sickle")) {
             useItem(msg.author.id, "hammer and sickle")
-            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "5%")
+            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "15%")
             economy.addMoney(msg.author.id, amount)
             return crv(`With your hammer ans sickle you lead a communist revolution in the united states overthrowing the government and becoming the new dictator\nWith this vast power you earn ${amount}`)
         }
