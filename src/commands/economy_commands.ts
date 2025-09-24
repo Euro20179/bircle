@@ -55,7 +55,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 return crv(`User not found ${args.join(" ")}`, { status: StatusCode.ERR })
             }
 
-            const m = await handleSending(msg, { content: `<@${msg.author.id}> has proposed to set <@${userToReset.id}>'s money to 0\n95% of the economy must vote yes for it to pass\n3% of the economy is enough to veto`, status: StatusCode.INFO }, sendCallback)
+            const m = await handleSending(msg, { content: `<@${msg.author.id}> has proposed to set <@${userToReset.id}>'s money to 0\n95% of the economy must vote yes for it to pass\n3% of the economy is enough to veto`, status: StatusCode.INFO, allowedMentions: { parse: ["users"] } }, sendCallback)
             await m.react("✅")
             await m.react("❌")
             await m.awaitReactions({ time: 1000 * 60 * 10 })
