@@ -240,9 +240,10 @@ function addMoney(id: string, amount: number) {
     return true
 }
 
-function loseMoneyToBank(id: string, amount: number) {
+function loseMoneyToBank(id: string, amount: number, increaseLottery /*certain things like buying stocks should not increase the lottery, because the player doesn't lose money*/ = true) {
     const percentageToGiveToLottery = 1/3
-    increaseLotteryPool(amount / (2 / percentageToGiveToLottery)) //we divide by 2, because the pool gets doubled on win
+    if(increaseLottery)
+        increaseLotteryPool(amount / (2 / percentageToGiveToLottery)) //we divide by 2, because the pool gets doubled on win
     db.run(`UPDATE economy SET money = money - ? WHERE id = ?`, [amount, id])
 }
 
@@ -523,7 +524,7 @@ function buyStock(id: string, stock: string, shares: number, cost: number) {
         return
     }
     db.run(`INSERT INTO stocks (id, ticker, purchasePrice, shares) VALUES (?, ?, ?, ?)`, [id, stock.toUpperCase(), cost, shares])
-    loseMoneyToBank(id, (cost * shares))
+    loseMoneyToBank(id, (cost * shares), false)
 }
 
 function _set_active_pet(id: string, pet: string) {
