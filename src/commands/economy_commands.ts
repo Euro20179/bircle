@@ -248,7 +248,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
             timer.createOrRestartTimer(msg.author.id, "%exchange")
 
-            economy.loseMoneyToBank(msg.author.id, nAmount)
+            economy.loseMoneyToBank(msg.author.id, nAmount, false)
 
             let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
 
