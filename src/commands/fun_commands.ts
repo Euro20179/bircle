@@ -554,15 +554,6 @@ export default function*(): Generator<[string, CommandV2]> {
                 body: JSON.stringify({
                     model,
                     messages: responses,
-                    tools: [
-                        {
-                            type: "function",
-                            "function": {
-                                name: "get_money",
-                                description: "gets the user's balance",
-                            }
-                        },
-                    ],
                     format: opts.getString("fmt", undefined),
                     system: sys_msg,
                     stream: false,
