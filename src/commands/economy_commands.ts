@@ -383,7 +383,8 @@ current veto: ${vetoPercent * 100}%`,
                         return { content: `${item} does not exist`, status: StatusCode.ERR }
                     }
                     let totalSpent = 0
-                    for (let i = 0; i < amount; i++) {
+                    //FIXME: doing this loop a ton of times causes lots of disk reading cause sqlite
+                    for (let i = 0; i < 1; i++) {
                         let totalCost = 0
                         let { total } = economy.economyLooseGrandTotal(false)
                         for (let cost of getItems()[item].cost) {
