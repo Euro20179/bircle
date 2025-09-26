@@ -121,7 +121,7 @@ current veto: ${vetoPercent * 100}%`,
 
             const i = setInterval(async() => {
                 await editMessageApproval()
-            }, 1000)
+            }, 10000)
 
             ///just here to wait 10 minutes
             await sleep(duration)
