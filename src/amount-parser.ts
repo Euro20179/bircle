@@ -1723,6 +1723,7 @@ function calculateAmountRelativeToInternals(
     let env = extras instanceof SymbolTable ? extras : {
         'all': (total: number) => total * .99,
         'all!': (total: number) => total,
+        "half": (total: number) => total / 2,
         'rel!': new NumberType(money),
         'max!': new NumberType(Number.MAX_SAFE_INTEGER),
         'min!': new NumberType(Number.MIN_SAFE_INTEGER),
