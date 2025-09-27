@@ -1248,6 +1248,8 @@ current veto: ${vetoPercent * 100}%`,
             }
             else if (opts['loan']) {
                 sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => (b[1].loanUsed || 0) - (a[1].loanUsed || 0))
+            } else if(opts['points']) {
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => ((economy.getPoints(b[0]) || 0) - ((economy.getPoints(a[0]) || 0))))
             }
             else {
                 sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()
@@ -1263,6 +1265,11 @@ current veto: ${vetoPercent * 100}%`,
                 for (let id in econ) {
                     let value = econ[id]
                     totalEconomy += value.loanUsed || 0
+                }
+            } else if(opts['points']) {
+                for(let id in econ) {
+                    let value = economy.getPoints(id) || 0
+                    totalEconomy += value
                 }
             }
             else {
@@ -1281,6 +1288,8 @@ current veto: ${vetoPercent * 100}%`,
                 }
                 else if (opts['loan']) {
                     money = econ[id].loanUsed || 0
+                } else if(opts['points']) {
+                    money = economy.getPoints(user[0]) || 0
                 }
                 if (money < 0 && excludeNeg) continue;
                 let percent = money / totalEconomy * 100
