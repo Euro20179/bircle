@@ -207,12 +207,12 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     //you get reset if you have less than -99% of the economy
-    if (
-        (economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.99
-    ) {
-        economy.createPlayer(m.author.id)
-        economy.setMoney(m.author.id, 0)
-    }
+    // if (
+    //     (economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.99
+    // ) {
+    //     economy.createPlayer(m.author.id)
+    //     economy.setMoney(m.author.id, 0)
+    // }
 
     let local_prefix = m.author.getBOpt("prefix", configManager.PREFIX)
 
