@@ -29,6 +29,12 @@ export default function*(): Generator<[string, CommandV2]> {
     //     "unretire", ccmdv2(async function({msg, args}) {
     //     }, "Makes a user unretire, must get 50% approval")
     // ]
+    //
+    yield ["reset-economy-amount", ccmdV2(async function({msg, args}) {
+        let { total } = economy.economyLooseGrandTotal(true)
+        let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
+        return crv(String(necessary))
+    }, "calculates the amount needed to reset")]
 
     yield [
         "points", ccmdV2(async function({ msg, args }) {
