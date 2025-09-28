@@ -86,7 +86,7 @@ async function* run_file(msg: Message, name: string, args: string[]): AsyncGener
 }
 
 //TODO: aliases
-async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string) {
+async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolTable, runtime_options: RuntimeOptions, stdin?: CommandReturn, sendCallback?: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>), pid_label?: string): AsyncGenerator<CommandReturn> {
     if (runtime_options.get("typing", false)) {
         await msg.channel.sendTyping()
     }
@@ -100,7 +100,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     tokens = tokens.slice(cmdIdx)
 
     if (common.BLACKLIST[msg.author.id]?.includes(cmd)) {
-        yield { content: "You are blacklisted from this command", status: StatusCode.ERR }
+        yield { content: "You are blacklisted from this command", status: StatusCode.ERR, responseTo: cmd }
         return
     }
 
@@ -121,7 +121,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     }
 
     if (cmdObject && "permCheck" in cmdObject && cmdObject.permCheck !== undefined && !cmdObject.permCheck(msg)) {
-        yield { content: "You failed the permissions check for this command", status: StatusCode.ERR }
+        yield { content: "You failed the permissions check for this command", status: StatusCode.ERR, responseTo: cmd }
         return
     }
 
@@ -131,7 +131,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
 
     let disabled = runtime_options.get("disable", false)
     if (disabled && (disabled.commands?.includes(cmd) || disabled.categories?.includes(cmdObject?.category))) {
-        yield { content: "This command has been banned in this context", status: StatusCode.ERR }
+        yield { content: "This command has been banned in this context", status: StatusCode.ERR, responseTo: cmd }
         return
     }
 
@@ -146,7 +146,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         let m = await promptUser(msg, `You are about to run the \`${cmd}\` command with args \`${raw_args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
 
         if (!m || m.content.toLowerCase() !== 'y') {
-            yield { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
+            yield { content: `Declined to run ${cmd}`, status: StatusCode.RETURN, responseTo: cmd }
             return
         }
     }
@@ -154,14 +154,14 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
     if (!cmdObject) {
         if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
             for await (let result of run_file(msg, cmd, raw_args)) {
-                yield result
+                yield {...result, responseTo: cmd}
             }
             return
         }
         if(cmd.startsWith(PREFIX)){
             cmd = `\\${cmd}`
         }
-        yield { content: `${cmd} is not a valid command`, status: StatusCode.ERR }
+        yield { content: `${cmd} is not a valid command`, status: StatusCode.ERR, responseTo: cmd }
 
         return
     }
@@ -205,7 +205,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
             })) {
             rv = result
             events.commandEventListener.emit(events.cmdResult, { rv: result, msg })
-            yield result
+            yield {...result, responseTo: cmd}
         }
         events.commandEventListener.emit(events.cmdOver, {
             msg,
@@ -221,7 +221,7 @@ async function* command_runner(tokens: TT<any>[], msg: Message, symbols: SymbolT
         for await (let item of run_command_v2(msg, cmd, cmdObject, args, raw_args, opts, runtime_options, symbols, stdin, sendCallback, pid_label)) {
             events.commandEventListener.emit(events.cmdResult, { rv: item, msg })
             rv = item
-            yield item
+            yield {...item, responseTo: cmd}
         }
         events.commandEventListener.emit(events.cmdOver, {
             msg,

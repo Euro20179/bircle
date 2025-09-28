@@ -70,6 +70,8 @@ declare global {
     type Opts = { [k: string]: string | boolean }
 
     interface CommandReturn extends MessageCreateOptions {
+        ///a command that this response is in response to
+        responseTo?: string,
         status: StatusCode
         statusNr?: number,
         silent?: boolean,

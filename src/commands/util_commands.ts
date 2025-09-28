@@ -4653,7 +4653,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (args[1]) {
                         const fmt = args.slice(1).join(" ")
                         return {
-                            content: formatMember(member, fmt)
+                            content: formatMember(member, fmt),
                         }
                     }
                     let embed = new EmbedBuilder()
