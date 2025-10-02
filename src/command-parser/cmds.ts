@@ -155,6 +155,12 @@ async function* runcmdpipe(pipes: PipeNode[],
     for (let mod of modifier_dat[1]) {
         mod.set_runtime_opt(runtime_opts)
     }
+
+    //if we are silent, sendCallback should be silent
+    if(runtime_opts.get("silent", false)) {
+        sendCallback = async(options) => msg
+    }
+
     //modifiers might have removed stdin
     stdin = runtime_opts.get("stdin", null)
 
