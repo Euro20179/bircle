@@ -1136,7 +1136,7 @@ current veto: ${vetoPercent * 100}%`,
     ]
 
     yield [
-        "tax", createCommandV2(async ({ msg, rawOpts: opts, args, sendCallback }) => {
+        "tax", createCommandV2(async function* ({ msg, rawOpts: opts, args, sendCallback }){
             if (msg.author.bot) {
                 return { content: "Bots cannot steal", status: StatusCode.ERR }
             }
@@ -1197,7 +1197,7 @@ current veto: ${vetoPercent * 100}%`,
                         economy.loseMoneyToPlayer(player[0], amount, userBeingTaxed)
                         text += `<@${player[0]}> has  been frogged for ${amount}\n`
                     }
-                    await handleSending(msg, { content: text, allowedMentions: { parse: [] }, status: StatusCode.INFO }, sendCallback)
+                    yield { content: text, status: StatusCode.INFO }
                 }
                 economy.addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
