@@ -192,7 +192,7 @@ export default function*(): Generator<[string, CommandV2]> {
             permCheck: (m) => {
                 if(DEVBOT) return true
                 let { total } = economy.economyLooseGrandTotal(true)
-                let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
+                let necessary = amountParser.calculateAmountRelativeTo(total, `99%+50`)
                 return economy.playerLooseNetWorth(m.author.id) >= necessary || Number(hasItem(m.author.id, "reset economy")) > 0
             },
         })

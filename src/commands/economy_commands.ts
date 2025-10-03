@@ -32,7 +32,7 @@ export default function*(): Generator<[string, CommandV2]> {
     //
     yield ["reset-economy-amount", ccmdV2(async function({msg, args}) {
         let { total } = economy.economyLooseGrandTotal(true)
-        let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
+        let necessary = amountParser.calculateAmountRelativeTo(total, `99%+50`)
         return crv(String(necessary))
     }, "calculates the amount needed to reset")]
 
