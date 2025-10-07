@@ -1024,6 +1024,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }],
             [["ship wreck"], async () => {
                 let amount = Math.random() * economy.playerLooseNetWorth(msg.author.id) * 0.05
+                economy.addMoney(msg.author.id, amount)
                 return { content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
             [["item yoinker"], async () => {
