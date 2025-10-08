@@ -2051,58 +2051,90 @@ export default function*(): Generator<[string, CommandV2]> {
     yield [
         "sport",
         ccmdV2(async function({ args, runtime_opts }) {
-
-            let remote = runtime_opts.get("remote", false)
-
-            let resp = await fetch(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
-            let html = await resp.text()
-            let embed = new EmbedBuilder()
-            //winner should be in *****
-            let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g) ?? []
-            if (!inning) {
-                return crv("Could not determine inning", { status: StatusCode.ERR })
+            const team = args.join(" ")
+            if (!team) {
+                return { content: "No team provided", status: StatusCode.ERR }
             }
+
+            const res = await fetch(`https://site.web.api.espn.com/apis/search/v2?region=us&lang=en&section=nba&limit=10&page=1&query=${encodeURIComponent(team)}&dtciVideoSearch=false&type=team`)
             try {
-                inning = inning.match(/span class=".*?">(.*?)<\//)![1]
-                    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
-                        var num = parseInt(numStr, 10);
-                        return String.fromCharCode(num);
-                    });
-            }
-            catch (err) {
-                return crv("No results", { status: StatusCode.ERR })
-            }
-            homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)![1].replace(/<(?:span|div) class=".*?">/, "")
-            awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)![1].replace(/<(?:span|div) class=".*?">/, "")
-            let homeScore, awayScore
-            try {
-                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g) ?? []
-            }
-            catch (err) {
-                return crv("Failed to get data", { status: StatusCode.ERR })
-            }
-            if (!homeScore || !awayScore) {
-                return crv("Invalid data", { status: StatusCode.ERR })
-            }
-            homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)?.[1] || "0")
-            awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)?.[1] || "0")
-            embed.setTitle(`${args.join(" ")}`)
-            if (awayScore >= homeScore) {
-                awayTeam = `***${awayTeam}***`
-                awayScore = `***${awayScore}***`
-                embed.setColor("#ff0000")
-            }
-            else {
-                homeTeam = `***${homeTeam}***`
-                homeScore = `***${homeScore}***`
-                embed.setColor("#00ff00")
-            }
-            embed.addFields(efd(["Time", inning, remote], [`${homeTeam}`, String(homeScore), remote], [`${awayTeam}`, String(awayScore), remote]))
-            return {
-                embeds: [embed],
-                status: StatusCode.RETURN
+                var searchResults = await res.json()
+            } catch (err) {
+                return { content: "Could not get search results", status: StatusCode.ERR }
             }
 
+            const results = searchResults["results"]
+            if (results.length === 0) {
+                return { content: "No results", status: StatusCode.ERR }
+            }
+
+            const firstResult = results.filter((v: any) => v.type === "team")[0]
+            if (!firstResult) {
+                return { content: "No team results", status: StatusCode.ERR }
+            }
+
+            const firstResultData = firstResult.contents[0]
+            const sport = firstResultData.sport // eg: football
+            const leagueShorthand = firstResultData.defaultLeagueSlug // eg: nfl
+
+            const dataUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${leagueShorthand}/scoreboard`
+            const scoreRes = await fetch(dataUrl)
+            if (scoreRes.status !== 200) {
+                return { content: `Could not fetch scores for ${sport} for team: ${firstResultData.displayName}`, status: StatusCode.ERR }
+            }
+
+            const indicators = {
+                "mlb": "⚾"
+            }
+
+            const scores = await scoreRes.json()
+            for (let event of scores.events) {
+                if (event.name.includes(firstResultData.displayName)) {
+                    //just in case there's more than 1
+                    const competition = event.competitions[event.competitions.length - 1]
+                    let [team1, team2] = competition.competitors
+                    const e = new EmbedBuilder()
+
+                    if (team1.homeAway === "home") {
+                        let temp = team1
+                        team1 = team2
+                        team2 = temp
+                    }
+
+                    const lastPlayTeam = competition.situation?.lastPlay?.team?.id
+
+                    const winning = Number(team1.score) > Number(team2.score) ? team1 : team2
+
+                    if (winning.homeAway === "home") {
+                        e.setColor(winning.team.color)
+                    } else {
+                        e.setColor(winning.team.alternateColor)
+                    }
+
+                    //@ts-ignore
+                    const goingIndicator = " " + (indicators[leagueShorthand] || "🟢")
+                    e.setTitle(`${team1.team.abbreviation}${lastPlayTeam === team1.id ? goingIndicator : " "}(${team1.records[0].summary}) @${lastPlayTeam === team2.id ? goingIndicator : " "}${team2.team.abbreviation} (${team2.records[0].summary}) (${leagueShorthand})`)
+
+                    e.addFields(
+                        {
+                            name: "Time",
+                            value: competition.status.type.detail
+                        },
+                        {
+                            name: String(team1.team.abbreviation),
+                            value: String(team1.score),
+                            inline: true
+                        },
+                        {
+                            name: team2.team.abbreviation,
+                            value: String(team2.score),
+                            inline: true,
+                        }
+                    )
+                    return crv("", { embeds: [e] })
+                }
+            }
+            return { content: "Could not find relevant game", status: StatusCode.ERR }
         }, "Print information about a sport game", {
             helpArguments: {
                 team: createHelpArgument("The team to get info on")
