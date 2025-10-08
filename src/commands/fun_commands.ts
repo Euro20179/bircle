@@ -2057,7 +2057,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 return { content: "No team provided", status: StatusCode.ERR }
             }
 
-            const res = await fetch(`https://site.web.api.espn.com/apis/search/v2?region=us&lang=en&section=nba&limit=10&page=1&query=${encodeURIComponent(team)}&dtciVideoSearch=false&type=team`)
+            const res = await fetch(`https://site.web.api.espn.com/apis/search/v2?region=us&lang=en&section=nba&limit=10&page=1&query=${encodeURIComponent(team)}&dtciVideoSearch=false&type=team,league`)
             try {
                 var searchResults = await res.json()
             } catch (err) {
@@ -2069,7 +2069,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 return { content: "No results", status: StatusCode.ERR }
             }
 
-            const firstResult = results.filter((v: any) => v.type === "team")[0]
+            const firstResult = results[0]
             if (!firstResult) {
                 return { content: "No team results", status: StatusCode.ERR }
             }
@@ -2145,7 +2145,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }
 
             for (let event of scores.events) {
-                if (event.name.includes(firstResultData.displayName)) {
+                if (firstResult.type === 'league' || event.name.includes(firstResultData.displayName)) {
                     //just in case there's more than 1
                     const competition = event.competitions[event.competitions.length - 1]
                     let [team1, team2] = competition.competitors
