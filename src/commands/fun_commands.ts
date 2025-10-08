@@ -95,6 +95,7 @@ import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
 import cmds from '../command-parser/cmds';
 import configManager from '../config-manager';
+import { data } from 'cheerio/dist/commonjs/api/attributes';
 
 const handleSending = cmds.handleSending
 
@@ -2050,7 +2051,7 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         "sport",
-        ccmdV2(async function({ args, runtime_opts }) {
+        ccmdV2(async function({ args, runtime_opts, opts }) {
             const team = args.join(" ")
             if (!team) {
                 return { content: "No team provided", status: StatusCode.ERR }
@@ -2077,17 +2078,72 @@ export default function*(): Generator<[string, CommandV2]> {
             const sport = firstResultData.sport // eg: football
             const leagueShorthand = firstResultData.defaultLeagueSlug // eg: nfl
 
+            const teamId = firstResultData.uid.split(":")[3]
+
+            const sendRaw = opts.getBool("raw", false)
+
+            if (opts.getBool("team-stats", opts.getBool("ts", false))) {
+                const dataUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${leagueShorthand}/teams/${teamId}`
+                const teamDataRes = await fetch(dataUrl)
+                if (teamDataRes.status !== 200) {
+                    return { content: `Could not fetch team data: ${teamDataRes.statusText}`, status: StatusCode.ERR }
+                }
+
+                const teamData = await teamDataRes.json()
+                if (sendRaw) {
+                    return crv(JSON.stringify(teamData))
+                }
+
+                const team = teamData.team
+
+                let e = new EmbedBuilder()
+
+                const embeds = [e]
+
+                e.setTitle(`${team.displayName} (${team.abbreviation})`)
+                e.setColor(`#${team.color}`)
+
+                const logo = team.logos[0]
+                if (logo) {
+                    e.setThumbnail(logo.href)
+                }
+
+                const stats = team.record.items[0].stats
+                if (stats && Array.isArray(stats)) {
+                    for (let i = 0; i < stats.length; i++) {
+                        if (i != 0 && i % 25 == 0) {
+                            e = new EmbedBuilder()
+                            e.setTitle(`${team.displayName} (${team.abbreviation})`)
+                            e.setColor(`#${team.color}`)
+                            if (logo)
+                                e.setThumbnail(logo.href)
+                            embeds.push(e)
+                        }
+
+                        const stat = stats[i]
+                        e.addFields({ name: stat.name, value: String(stat.value), inline: true })
+                    }
+                }
+                return { embeds, content: "", status: StatusCode.RETURN }
+            }
+
             const dataUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${leagueShorthand}/scoreboard`
+
             const scoreRes = await fetch(dataUrl)
             if (scoreRes.status !== 200) {
                 return { content: `Could not fetch scores for ${sport} for team: ${firstResultData.displayName}`, status: StatusCode.ERR }
             }
 
             const indicators = {
-                "mlb": "⚾"
+                "mlb": "⚾",
+                "nfl": "🏈"
             }
 
             const scores = await scoreRes.json()
+            if (sendRaw) {
+                return crv(JSON.stringify(scores))
+            }
+
             for (let event of scores.events) {
                 if (event.name.includes(firstResultData.displayName)) {
                     //just in case there's more than 1
@@ -2131,14 +2187,34 @@ export default function*(): Generator<[string, CommandV2]> {
                             inline: true,
                         }
                     )
-                    return crv("", { embeds: [e] })
+
+                    const embeds = [e]
+
+                    if (opts.getBool("stats", opts.getBool("s", false))) {
+                        for (let team of [team1, team2]) {
+                            const e = new EmbedBuilder()
+                            e.setTitle(`${team.team.abbreviation} stats`)
+                            e.setColor(team.homeAway === "home" ? team.team.color : team.team.alternateColor)
+                            for (let stat of team.statistics) {
+                                e.addFields({ name: stat.name, value: stat.displayValue, inline: true })
+                            }
+                            embeds.push(e)
+                        }
+                    }
+                    return crv("", { embeds })
                 }
             }
             return { content: "Could not find relevant game", status: StatusCode.ERR }
         }, "Print information about a sport game", {
             helpArguments: {
                 team: createHelpArgument("The team to get info on")
-            }
+            },
+            options: {
+                "raw": createHelpOption("send the raw scoreboard json"),
+                "stats": createHelpOption("get statistics for each team in the game", ["s"]),
+                "team-stats": createHelpOption("get statistics for a team", ["ts"])
+            },
+            gen_opts: true
         })
         ,
     ]
