@@ -2157,7 +2157,7 @@ export default function*(): Generator<[string, CommandV2]> {
                         team2 = temp
                     }
 
-                    const lastPlayTeam = competition.situation?.lastPlay?.team?.id
+                    let lastPlayTeam = competition.situation?.lastPlay?.team?.id
 
                     const winning = Number(team1.score) > Number(team2.score) ? team1 : team2
 
@@ -2168,7 +2168,12 @@ export default function*(): Generator<[string, CommandV2]> {
                     }
 
                     //@ts-ignore
-                    const goingIndicator = " " + (indicators[leagueShorthand] || "🟢")
+                    const goingIndicator = " " + (indicators[leagueShorthand] || "🟢") + " "
+
+                    if(leagueShorthand == 'mlb') {
+                        lastPlayTeam = lastPlayTeam === team1.id ? team2.id : team1.id
+                    }
+
                     e.setTitle(`${team1.team.abbreviation}${lastPlayTeam === team1.id ? goingIndicator : " "}(${team1.records[0].summary}) @${lastPlayTeam === team2.id ? goingIndicator : " "}${team2.team.abbreviation} (${team2.records[0].summary}) (${leagueShorthand})`)
 
                     e.addFields(
