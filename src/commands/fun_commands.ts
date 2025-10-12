@@ -1714,40 +1714,6 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "say", ccmdV2(async function*({ msg, runtime_opts, symbols }) {
-            const prefix = user_options.getOpt(msg.author.id, "prefix", configManager.PREFIX)
-
-            let lex = new lexer.Lexer(msg.content, {
-                prefix,
-                skip_parsing: runtime_opts.get("skip", false),
-                pipe_sign: user_options.getOpt(msg.author.id, "pipe-symbol", ">pipe>"),
-                and_sign:  user_options.getOpt(msg.author.id, "and-symbol", ">and>"),
-                or_sign: user_options.getOpt(msg.author.id, "or-symbol", ">or>"),
-                enable_1_arg_string: userOptions.getOpt(msg.author.id, "1-arg-string", false) === 'true' ? true : false
-            })
-            let tokens = [...lex.gen_tokens()]
-            let evaulator = new tokenEvaluator.TokenEvaluator(tokens, symbols, msg, runtime_opts)
-
-            let new_tokens = await evaulator.evaluate()
-
-            let modifier_dat = lexer.getModifiers(new_tokens[0].data.trim())
-
-            const cmdTok = new_tokens[0]
-
-            for (let modifier of modifier_dat[1]) {
-                cmdTok.data = cmdTok.data.replace(modifier.repr + ":")
-            }
-
-            cmdTok.data = cmdTok.data.replace("say", "echo -D")
-            msg.content = `${prefix}${cmdTok.data} ${new_tokens.slice(1).map(v => v.data).join(" ")}`
-
-            yield* PROCESS_MANAGER.spawn_cmd({
-                command: msg.content, prefix , msg
-            })
-        }, "Acts exactly as if say was an alias for echo -D")
-    ]
-
-    yield [
         "echo", ccmdV2(async function({ msg, rawOpts: opts, args }) {
             let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)

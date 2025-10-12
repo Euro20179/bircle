@@ -524,14 +524,15 @@ export let purgeSnipe: (Message | PartialMessage)[] = [];
 export const illegalLastCmds = ["!!", "spam"]
 
 export function createAliasesV2(): { [key: string]: AliasV2 } {
+    let j: { [key: string]: AliasV2 } = {}
     if (fs.existsSync("./command-results/aliasV2")) {
-        let j: { [key: string]: AliasV2 } = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
+        j = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
         for (let aName in j) {
             j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs, j[aName].appendOpts, j[aName].standardizeOpts)
         }
-        return j
     }
-    return {}
+    j["say"] = new AliasV2("say", "echo -D", "__INTERNAL__", {info: "same as echo -D"}, true, true, true)
+    return j
 }
 
 export let aliasesV2 = createAliasesV2()
