@@ -62,7 +62,7 @@ import {
 import { format, getOpts, parseRangeString } from '../parsing'
 import user_options from '../user-options'
 import pet from '../pets'
-import globals from '../globals'
+import globals, { PROCESS_MANAGER } from '../globals'
 import timer from '../timer'
 import common_to_commands, {
     ccmdV2,
@@ -1711,6 +1711,17 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
+        "say", ccmdV2(async function*({ msg }) {
+            const prefix = user_options.getOpt(msg.author.id, "prefix", configManager.PREFIX)
+            msg.content = msg.content.replace(`${prefix}say`, `${prefix}echo -D`)
+            msg.content = (await cmds.expandSyntax(msg.content, msg)).join(" ")
+            yield* PROCESS_MANAGER.spawn_cmd({
+                command: msg.content, prefix , msg
+            })
+        }, "Acts exactly as if say was an alias for echo -D")
+    ]
+
+    yield [
         "echo", ccmdV2(async function({ msg, rawOpts: opts, args }) {
             let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)
@@ -2170,7 +2181,7 @@ export default function*(): Generator<[string, CommandV2]> {
                     //@ts-ignore
                     const goingIndicator = " " + (indicators[leagueShorthand] || "🟢") + " "
 
-                    if(leagueShorthand == 'mlb') {
+                    if (leagueShorthand == 'mlb') {
                         lastPlayTeam = lastPlayTeam === team1.id ? team2.id : team1.id
                     }
 
