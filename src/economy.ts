@@ -201,7 +201,7 @@ function increaseLotteryPool(amount: number) {
 }
 
 function buyLotteryTicket(id: string, cost: number) {
-    if (!timer.has_x_m_passed(id, "%lastLottery", 5, true) || !playerExists(id)) {
+    if ((!timer.has_x_m_passed(id, "%lastLottery", 5, true) || !playerExists(id))) {
         return false
     }
     timer.createOrRestartTimer(id, "%lastLottery")

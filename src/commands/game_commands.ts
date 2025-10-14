@@ -1270,6 +1270,11 @@ until you put a 0 in the box`)
             else if (numbers && numbers.length == 3) {
                 ticket = numbers.map(v => Number(v))
             }
+            for(let number of numbers) {
+                if(number < 1 || number > 5) {
+                    return crv(`Only numbers 1-5 can be used`, { status: StatusCode.ERR })
+                }
+            }
             let answer = economy.getLottery()
             let e = new EmbedBuilder()
             if (round) {
