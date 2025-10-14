@@ -1268,9 +1268,9 @@ until you put a 0 in the box`)
                 ticket = numbers[0].split("").map(v => Number(v))
             }
             else if (numbers && numbers.length == 3) {
-                ticket = numbers.map(v => Number(v))
+                ticket = numbers.map(v => Number(v)) as [number, number, number]
             }
-            for(let number of numbers) {
+            for(let number of ticket) {
                 if(number < 1 || number > 5) {
                     return crv(`Only numbers 1-5 can be used`, { status: StatusCode.ERR })
                 }

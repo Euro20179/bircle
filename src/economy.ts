@@ -5,7 +5,7 @@ import timer from "./timer"
 
 import amount_parser from './amount-parser'
 import { randInt, valuesOf } from "./util"
-import { getConfigValue } from './config-manager'
+import { DEVBOT, getConfigValue } from './config-manager'
 
 import { Database } from "bun:sqlite"
 
@@ -200,16 +200,16 @@ function increaseLotteryPool(amount: number) {
     db.run(`UPDATE lottery SET pool = pool + ?`, [amount])
 }
 
-function buyLotteryTicket(id: string, cost: number) {
-    if ((!timer.has_x_m_passed(id, "%lastLottery", 5, true) || !playerExists(id))) {
+function buyLotteryTicket(id: string, cost: number): [number, number, number] | false {
+    if (!DEVBOT && (!timer.has_x_m_passed(id, "%lastLottery", 5, true) || !playerExists(id))) {
         return false
     }
     timer.createOrRestartTimer(id, "%lastLottery")
     loseMoneyToBank(id, cost)
     increaseLotteryPool(cost)
 
-    let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]
-    return ticket
+    const ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]
+    return ticket as [number, number, number]
 }
 
 function newLottery() {
