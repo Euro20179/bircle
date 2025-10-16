@@ -1270,8 +1270,8 @@ until you put a 0 in the box`)
             else if (numbers && numbers.length == 3) {
                 ticket = numbers.map(v => Number(v)) as [number, number, number]
             }
-            for(let number of ticket) {
-                if(number < 1 || number > 5) {
+            for (let number of ticket) {
+                if (number < 1 || number > 5) {
                     return crv(`Only numbers 1-5 can be used`, { status: StatusCode.ERR })
                 }
             }
@@ -1856,6 +1856,76 @@ until you put a 0 in the box`)
             },
         })
     ]
+
+    yield ["slots", ccmdV2(async ({ msg }) => {
+        const emotes = ["⚫", "🔴", "😀", "☹️", "🔢", "🇱", "😜", "<:seven:627342162647842826>", "<:troy:590386275748544523>"]
+
+        const emoteValue = {
+            ["<:seven:627342162647842826>"]: 4,
+            ["<:troy:590386275748544523>"]: 2
+        }
+
+        const colCount = 3, rowCount = 3
+
+        const cost = economy.calculateAmountFromNetWorth(msg.author.id, '0.25%')
+        economy.loseMoneyToBank(msg.author.id, cost)
+        const rows = []
+        for (let i = 0; i < rowCount; i++) {
+            const row = Array.from({ length: colCount }, () => emotes[Math.floor(Math.random() * emotes.length)])
+            rows.push(row)
+        }
+
+        let multiplier = 0
+
+        function multMultiplier(emote: string, base: number) {
+            if (multiplier === 0) multiplier = 1
+
+            multiplier *= (emoteValue[emote as keyof typeof emoteValue] + base) || base
+        }
+
+        for (let row of rows) {
+            if (new Set(row).size === 1) {
+                multMultiplier(row[0], rowCount)
+            }
+        }
+
+        for (let i = 0; i < 3; i++) {
+            const col = rows.map(v => v[i])
+            if (new Set(col).size === 1) {
+                multMultiplier(col[0], colCount)
+            }
+        }
+
+        //if the user can chose each seperatly, these might not be the same
+        if (rowCount === colCount) {
+            let diag = []
+            for (let i = 0; i < colCount; i++) {
+                diag.push(rows[i][i])
+            }
+            if (new Set(diag).size === 1) {
+                multMultiplier(diag[0], rowCount * colCount)
+            }
+            diag = []
+            for (let i = colCount - 1; i >= 0; i--) {
+                diag.push(rows[colCount - i - 1][i])
+            }
+            if (new Set(diag).size === 1) {
+                multMultiplier(diag[0], rowCount * colCount)
+            }
+        }
+
+        const winnings = cost * multiplier
+
+        const out = (winnings
+            ? `<@${msg.author.id}> won: ${winnings} (${cost} x ${multiplier})\n`
+            : `BUST\n`)
+            + rows.map(v => v.join(" ")).join("\n")
+
+        if (winnings)
+            economy.addMoney(msg.author.id, winnings)
+
+        return crv(out, { allowedMentions: { parse: ["users"] } })
+    }, "S LO T MACHINE")]
 
     yield [
         "blackjack", ccmdV2(async ({ msg, args, rawOpts: opts, sendCallback }) => {
