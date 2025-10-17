@@ -1875,6 +1875,10 @@ until you put a 0 in the box`)
             return { content: "There must be at least 3 rows and columns", status: StatusCode.ERR }
         }
 
+        if(colCount * rowCount > 10000) {
+            return { content: "Too many spaces", status: StatusCode.ERR }
+        }
+
         const cost = economy.calculateAmountFromNetWorth(msg.author.id, '0.25%')
         economy.loseMoneyToBank(msg.author.id, cost)
 
