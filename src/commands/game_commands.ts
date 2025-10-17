@@ -1857,7 +1857,7 @@ until you put a 0 in the box`)
         })
     ]
 
-    yield ["slots", ccmdV2(async ({ msg }) => {
+    yield ["slots", ccmdV2(async ({ msg, opts }) => {
         const emotes = ["⚫", "🔴", "😀", "☹️", "🔢", "🇱", "😜", "<:seven:627342162647842826>", "<:troy:590386275748544523>"]
 
         const emoteValue = {
@@ -1865,11 +1865,21 @@ until you put a 0 in the box`)
             ["<:troy:590386275748544523>"]: 2
         }
 
-        const colCount = 3, rowCount = 3
+        const size = opts.getNumber("size", opts.getNumber("s", 3))
+
+        const
+            colCount = opts.getNumber("cols", opts.getNumber("c", size)),
+            rowCount = opts.getNumber("rows", opts.getNumber("r", size))
+
+        if(colCount < 3 || rowCount < 3) {
+            return { content: "There must be at least 3 rows and columns", status: StatusCode.ERR }
+        }
 
         const cost = economy.calculateAmountFromNetWorth(msg.author.id, '0.25%')
         economy.loseMoneyToBank(msg.author.id, cost)
+
         const rows = []
+
         for (let i = 0; i < rowCount; i++) {
             const row = Array.from({ length: colCount }, () => emotes[Math.floor(Math.random() * emotes.length)])
             rows.push(row)
@@ -1889,7 +1899,7 @@ until you put a 0 in the box`)
             }
         }
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < colCount; i++) {
             const col = rows.map(v => v[i])
             if (new Set(col).size === 1) {
                 multMultiplier(col[0], colCount)
@@ -1925,7 +1935,13 @@ until you put a 0 in the box`)
             economy.addMoney(msg.author.id, winnings)
 
         return crv(out, { allowedMentions: { parse: ["users"] } })
-    }, "S LO T MACHINE")]
+    }, "S LO T MACHINE, bets 0.25% of your money", {
+        options: {
+            size: createHelpOption("The size of the board", ["s"], "3", true),
+            rows: createHelpOption("The amount of rows", ["r"], "3", true),
+            cols: createHelpOption("The amount of columns", ["c"], "3", true),
+        }
+    })]
 
     yield [
         "blackjack", ccmdV2(async ({ msg, args, rawOpts: opts, sendCallback }) => {
