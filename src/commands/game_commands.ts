@@ -1868,8 +1868,8 @@ until you put a 0 in the box`)
         const size = opts.getNumber("size", opts.getNumber("s", 3))
 
         const
-            colCount = opts.getNumber("cols", opts.getNumber("c", size)),
-            rowCount = opts.getNumber("rows", opts.getNumber("r", size))
+            colCount =  size,
+            rowCount =  size
 
         if(colCount < 3 || rowCount < 3) {
             return { content: "There must be at least 3 rows and columns", status: StatusCode.ERR }
@@ -1942,8 +1942,6 @@ until you put a 0 in the box`)
     }, "S LO T MACHINE, bets 0.25% of your money", {
         options: {
             size: createHelpOption("The size of the board", ["s"], "3", true),
-            rows: createHelpOption("The amount of rows", ["r"], "3", true),
-            cols: createHelpOption("The amount of columns", ["c"], "3", true),
         }
     })]
 
