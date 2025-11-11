@@ -5,11 +5,12 @@ import * as cheerio from "cheerio"
 
 import { Stream } from 'stream'
 
-import globals from '../globals'
+import globals, { PROCESS_MANAGER } from '../globals'
 import useTracker from '../use-tracker'
 import economy from '../economy'
 import pet from '../pets'
 import timer from '../timer'
+import leaderboards from '../leaderboards'
 
 import htmlRenderer from '../html-renderer'
 
@@ -4089,6 +4090,117 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     }, {
         d: cho("The chars to delete", true)
     })]
+
+    yield [
+        "lboard", ccmdV2(async ({ msg, args, opts, sendCallback }) => {
+            let cmd = args[0] || 'list'
+
+            switch (cmd) {
+                case "create": {
+                    let name = args[1]
+                    let id = leaderboards.create(name)
+                    return crv(`Created leaderboard ${name}@${id}`)
+                }
+
+                case "list": {
+                    const names = leaderboards.list()
+                    if (names.length === 0) {
+                        return crv("No leaderboards", { status: StatusCode.CMDSTATUS, statusNr: 100 })
+                    }
+                    return crv(names.join("\n"))
+                }
+
+                case "-":
+                case "+": {
+                    const player = args[1]
+                    const leaderboard = args[2]
+
+                    if (!player) {
+                        return crv("No player provided", { status: StatusCode.ERR })
+                    }
+
+                    const discordPlayer = await fetchUserFromClientOrGuild(player, msg.guild)
+
+                    if (!discordPlayer) {
+                        return crv("No discord user found", { status: StatusCode.ERR })
+                    }
+
+                    if (!leaderboard) {
+                        return crv("No leaderboard provided", { status: StatusCode.ERR })
+                    }
+
+                    const leaderboardId = leaderboards.lbname2id(leaderboard)
+
+                    let amount = Number(args[3]) || 1
+
+
+                    if (args[0] === "-")
+                        amount *= -1
+
+                    leaderboards.score_change(discordPlayer.id, leaderboardId, amount)
+
+                    return crv(`Updated score for ${player} on ${leaderboard} by ${amount}`)
+                }
+
+                case "padd": {
+                    const player = args[1]
+                    const leaderboard = args[2]
+
+                    if (!player) {
+                        return crv("No player provided", { status: StatusCode.ERR })
+                    }
+
+                    const discordPlayer = await fetchUserFromClientOrGuild(player, msg.guild)
+
+                    if (!discordPlayer) {
+                        return crv("No discord user found", { status: StatusCode.ERR })
+                    }
+
+                    if (!leaderboard) {
+                        return crv("No leaderboard provided", { status: StatusCode.ERR })
+                    }
+
+
+                    const leaderboardId = leaderboards.lbname2id(leaderboard)
+
+                    leaderboards.add_player_to_leaderboard(discordPlayer.id, leaderboardId)
+
+                    return crv(`Added: ${player} to ${leaderboard}`)
+                }
+
+                case "get": {
+                    const leaderboard = args[1]
+
+                    if(!leaderboard) {
+                        return crv("No leaderboard provided", { status: StatusCode.ERR })
+                    }
+
+                    let lbid = leaderboards.lbname2id(leaderboard)
+
+                    let scores = leaderboards.list_scores(lbid)
+
+                    let cmd = `align-table\nUSER|SCORE\n------|-----\n`
+
+                    for (let player of scores) {
+                        let discord = await fetchUserFromClientOrGuild(player["discordId"], msg.guild)
+                        cmd += `${discord?.displayName}|${player["points"]}\n`
+                    }
+
+                    //remove the trailing \n
+                    cmd = cmd.trimEnd()
+
+                    return await PROCESS_MANAGER.spawn_cmd_then_die(
+                        {
+                            command: cmd,
+                            prefix: "",
+                            msg: msg,
+                            sendCallback
+                        }
+                    )
+                }
+            }
+        }, "Manages custom leaderboards")
+    ]
 
     yield [
         "timer", createCommandV2(async ({ msg, args, opts }) => {
