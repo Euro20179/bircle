@@ -4150,7 +4150,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         return crv("No player provided", { status: StatusCode.ERR })
                     }
 
-                    const discordPlayer = await fetchUserFromClientOrGuild(player, msg.guild)
+                    const discordPlayer = await fetchUserFromClient(common.client, player)
 
                     if (!discordPlayer) {
                         return crv("No discord user found", { status: StatusCode.ERR })
@@ -4182,12 +4182,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let cmd = `align-table\nUSER|SCORE\n------|-----\n`
 
                     for (let player of scores) {
-                        let discord = await fetchUserFromClientOrGuild(player["discordId"], msg.guild)
+                        let discord = await fetchUserFromClient(common.client, player["discordId"])
                         cmd += `${discord?.displayName}|${player["points"]}\n`
                     }
 
                     //remove the trailing \n
-                    cmd = cmd.trimEnd()
+                    // cmd = cmd.trimEnd()
 
                     return await PROCESS_MANAGER.spawn_cmd_then_die(
                         {
