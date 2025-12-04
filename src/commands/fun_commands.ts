@@ -104,6 +104,13 @@ const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
+    yield ["coding", ccmdV2(async function({ args }) {
+        const wakapi = getConfigValue("general.wakapi")
+        const res = await fetch(`${wakapi}/api/compat/shields/v1/${args[0]}/today/`)
+        const data = await res.json()
+        return crv(`${args[0]} has spent ${data.message} coding today`)
+    }, "Euro info")]
+
     yield ["cpj-search", ccmdV2(async function({ msg, args, opts }) {
         const resultsPerPage = opts.getNumber("items", 5)
         const search = args.join(" ")
