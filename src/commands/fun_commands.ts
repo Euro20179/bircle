@@ -104,12 +104,29 @@ const handleSending = cmds.handleSending
 
 export default function*(): Generator<[string, CommandV2]> {
 
-    yield ["coding", ccmdV2(async function({ args }) {
+    yield ["coding", ccmdV2(async function({ args, opts }) {
         const wakapi = getConfigValue("general.wakapi")
+        if (opts.getBool("langs", false)) {
+            const res = await fetch(`${wakapi}/api/compat/wakatime/v1/users/${args[0]}/stats/`)
+            const stats = await res.json()
+            const totalhours = stats.data.total_seconds / 60 / 60
+            function formatN(number: number) {
+                if(number < 10) {
+                return `0${number}`
+                }
+                return String(number)
+            }
+            const langs = stats.data.languages.map(v => `* ${v.name} - ${formatN(v.hours)}:${formatN(v.minutes)}:${formatN(v.seconds)} (${v.percent}%)`).join("\n")
+            return crv(`Total hours: ${totalhours}\n${langs}`)
+        }
         const res = await fetch(`${wakapi}/api/compat/shields/v1/${args[0]}/today/`)
         const data = await res.json()
         return crv(`${args[0]} has spent ${data.message} coding today`)
-    }, "Euro info")]
+    }, "Euro info", {
+        helpOptions: {
+            langs: createHelpOption("list language usage")
+        }
+    })]
 
     yield ["cpj-search", ccmdV2(async function({ msg, args, opts }) {
         const resultsPerPage = opts.getNumber("items", 5)
