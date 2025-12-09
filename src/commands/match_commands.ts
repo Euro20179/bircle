@@ -39,6 +39,12 @@ export default function*() {
         info: "In case of a bad prefix, unsets it"
     })]
 
+    yield [createMatchCommand(async function({ msg, match }) {
+        return crv("EURO was here")
+    }, /^#ping$/, "global ping", {
+            info: "ping"
+    })]
+
     yield [createMatchCommand(async ({ msg, match }) => {
 
         if (msg.guild) {
