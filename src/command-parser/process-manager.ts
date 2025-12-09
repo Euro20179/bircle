@@ -70,6 +70,7 @@ export class ProcessManager {
             if(result.status === StatusCode.CHECKIN) {
                 //microsleep here to prevent an infinite loop with something like
                 //do 100000 for i..Infinity {!!}
+                //microsleep lets another process (or even node) do something
                 await sleep(0)
                 continue
             }

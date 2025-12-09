@@ -4,7 +4,7 @@ import pet from "./pets"
 import timer from "./timer"
 
 import amount_parser from './amount-parser'
-import { randInt, valuesOf } from "./util"
+import { randInt } from "./util"
 import { DEVBOT, getConfigValue } from './config-manager'
 
 import { Database } from "bun:sqlite"
@@ -23,7 +23,6 @@ if (getLottery() === null) {
 type Stock = { buyPrice: number, shares: number }
 
 export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, sandCounter?: number }
-let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
