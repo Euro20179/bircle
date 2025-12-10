@@ -119,9 +119,9 @@ export default function*(): Generator<[string, CommandV2]> {
             const langs = stats.data.languages.map(v => `* ${v.name} - ${formatN(v.hours)}:${formatN(v.minutes)}:${formatN(v.seconds)} (${v.percent}%)`).join("\n")
             return crv(`Total hours: ${totalhours}\n${langs}`)
         }
-        const res = await fetch(`${wakapi}/api/compat/shields/v1/${args[0]}/today/`)
+        const res = await fetch(`${wakapi}/api/compat/wakatime/v1/users/${args[0]}/stats/today`)
         const data = await res.json()
-        return crv(`${args[0]} has spent ${data.message} coding today`)
+        return crv(`${args[0]} has spent ${data.data.human_readable_total} coding today`)
     }, "Euro info", {
         helpOptions: {
             langs: createHelpOption("list language usage")
