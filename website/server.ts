@@ -510,10 +510,12 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         sendFile(res, `./website/css/${mainPath}`, "text/css")
         return
     }
+
     else if (mainPath.endsWith(".js") && fs.existsSync(`./website/js/${mainPath}`)) {
         sendFile(res, `./website/js/${mainPath}`, "application/javascript")
         return
     }
+
     switch (mainPath) {
         case "user-styles.css": {
             let id = urlParams?.get("user-id")

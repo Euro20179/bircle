@@ -36,6 +36,7 @@ export default function*(): Generator<[string, CommandV2]> {
         return crv(String(necessary))
     }, "calculates the amount needed to reset")]
 
+
     yield [
         "points", ccmdV2(async function({ msg, args }) {
             const user = args.length ? await fetchUserFromClientOrGuild(args[0], msg.guild) : msg.author
@@ -903,6 +904,49 @@ current veto: ${vetoPercent * 100}%`,
                 if (opts['nw']) {
                     text += `${economy.playerLooseNetWorth(user.id)}\n`
                 }
+                if(opts["all-bots"]) {
+                    let ip = getToolIp()
+
+                    if (!ip) {
+                        return crv("Euro has not added the special file", {
+                            status: StatusCode.ERR
+                        })
+                    }
+
+                    let res;
+                    try {
+                        res = await fetch(`http://${ip}/total`)
+                    }
+                    catch (err) {
+                        return crv("Could not fetch data", { status: StatusCode.ERR })
+                    }
+
+                    let schoolRes;
+                    try {
+                        schoolRes = await fetch(`http://${ip}`, { method: "POST", body: JSON.stringify({ "id": user.id }), headers: { "Content-Type": "application/json" } })
+                    }
+                    catch (err) {
+                        return crv("Could not fetch money data", { status: StatusCode.ERR })
+                    }
+                    let schoolData
+                    try {
+                        schoolData = await schoolRes.json()
+                    }
+                    catch (err) {
+                        return crv("Could not get money json", { status: StatusCode.ERR })
+                    }
+
+                    let toolTotal = Number(await res.text())
+
+                    let economyTotal = economy.economyLooseGrandTotal().total
+
+                    const er = economyTotal / toolTotal
+
+                    let myEcon = economy.calculateAmountFromNetWorth(user.id, "100%")
+                    let toolEcon = schoolData.money * er
+
+                    text += `${myEcon + toolEcon}`
+                }
                 if (text) {
                     return { content: text, status: StatusCode.RETURN }
                 }
@@ -926,6 +970,7 @@ current veto: ${vetoPercent * 100}%`,
                 "t": createHelpOption("Show the  last time they got taxed"),
                 "nw": createHelpOption("Get the raw networth of a player"),
                 "no-round": createHelpOption("No rounding"),
+                "all-bots": createHelpOption("Gets money on all bots combined")
             }
         ),
     ]
