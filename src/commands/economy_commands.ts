@@ -904,6 +904,9 @@ current veto: ${vetoPercent * 100}%`,
                 if (opts['nw']) {
                     text += `${economy.playerLooseNetWorth(user.id)}\n`
                 }
+                if(opts["loan"]) {
+                    text += `${economy.calculateLoanAmountFromString(user.id, "100%")}\n`
+                }
                 if(opts["all-bots"]) {
                     let ip = getToolIp()
 
@@ -945,7 +948,7 @@ current veto: ${vetoPercent * 100}%`,
                     let myEcon = economy.calculateAmountFromNetWorth(user.id, "100%")
                     let toolEcon = schoolData.money * er
 
-                    text += `${myEcon + toolEcon}`
+                    text += `${myEcon + toolEcon}\n`
                 }
                 if (text) {
                     return { content: text, status: StatusCode.RETURN }
