@@ -335,8 +335,8 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 res.end("Permission denied")
                 break;
             }
-            const ip = req.headers["x-real-ip"]
-            editConfig("secrets.twin-bot-ip", `${ip}:3000` || getConfigValue("secrets.twin-bot-ip"))
+            // const ip = req.headers["x-real-ip"]
+            // editConfig("secrets.twin-bot-ip", `${ip}:3000` || getConfigValue("secrets.twin-bot-ip"))
             let userId = subPaths[0]
             if (!userId) {
                 res.writeHead(400)
