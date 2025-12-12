@@ -106,6 +106,9 @@ export default function*(): Generator<[string, CommandV2]> {
 
     yield ["coding", ccmdV2(async function({ args, opts }) {
         const wakapi = getConfigValue("general.wakapi")
+        if(args.length < 1) {
+            return crv("No user given", { status: StatusCode.ERR })
+        }
         if (opts.getBool("langs", false)) {
             const res = await fetch(`${wakapi}/api/compat/wakatime/v1/users/${args[0]}/stats/`)
             const stats = await res.json()

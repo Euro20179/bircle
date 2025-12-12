@@ -972,6 +972,7 @@ current veto: ${vetoPercent * 100}%`,
                 "l": createHelpOption("Show the last time they got money from talking"),
                 "t": createHelpOption("Show the  last time they got taxed"),
                 "nw": createHelpOption("Get the raw networth of a player"),
+                "loan": createHelpOption("Show the debt amount"),
                 "no-round": createHelpOption("No rounding"),
                 "all-bots": createHelpOption("Gets money on all bots combined")
             }
