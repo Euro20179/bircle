@@ -349,12 +349,24 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 res.end(JSON.stringify({ "error": "no amount" }))
                 break
             }
-            if (!economy.getEconomy()[userId]) {
-                economy.createPlayer(userId, 100)
-            }
-            economy.addMoney(userId, Number(amount))
-            res.writeHead(200)
-            res.end(JSON.stringify({ "amount": Number(amount) }))
+            fetchUserFromClient(common.client, userId).then(user => {
+                if(!user) {
+                    res.writeHead(400)
+                    res.end(JSON.stringify({"error": "user not found"}))
+                    return
+                }
+                if(user.bot) {
+                    res.writeHead(403)
+                    res.end(JSON.stringify({"error": "trying to make a bot join"}))
+                    return
+                }
+                if (!economy.getEconomy()[userId]) {
+                    economy.createPlayer(userId, 100)
+                }
+                economy.addMoney(userId, Number(amount))
+                res.writeHead(200)
+                res.end(JSON.stringify({ "amount": Number(amount) }))
+            })
             break;
         }
         case "economy": {
