@@ -350,9 +350,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 break
             }
             if (!economy.getEconomy()[userId]) {
-                res.writeHead(400)
-                res.end(JSON.stringify({ "error": "Invalid user" }))
-                break;
+                economy.createPlayer(userId, 100)
             }
             economy.addMoney(userId, Number(amount))
             res.writeHead(200)
