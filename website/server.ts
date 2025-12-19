@@ -335,6 +335,15 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 res.end("Permission denied")
                 break;
             }
+
+            if(!timer.has_x_m_passed(apiKey, "%/give-money", 60, true)) {
+                res.writeHead(403)
+                res.end(JSON.stringify({"error": "Not enough time has passed yet"}))
+                return
+            }
+
+            timer.createOrRestartTimer(apiKey, "%/give-money")
+
             // const ip = req.headers["x-real-ip"]
             // editConfig("secrets.twin-bot-ip", `${ip}:3000` || getConfigValue("secrets.twin-bot-ip"))
             let userId = subPaths[0]
@@ -351,7 +360,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             }
             fetchUserFromClient(common.client, userId).then(user => {
                 if(!user) {
-                    res.writeHead(400)
+                    res.writeHead(404)
                     res.end(JSON.stringify({"error": "user not found"}))
                     return
                 }
