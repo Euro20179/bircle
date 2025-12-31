@@ -520,6 +520,10 @@ function mulStr(str: string, amount: int_t) {
 async function fetchChannel(guild: Guild, find: string) {
     let channels = await guild.channels.fetch()
     let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || (channel?.name?.indexOf(find) ?? -1) > -1).at(0)
+    if(!channel) {
+        let threads = await guild.channels.fetchActiveThreads()
+        channel = threads.threads.filter(t => `<#${t?.id}>` == find || t.id == find || t.name == find || t.name.includes(find)).at(0)
+    }
     return channel
 }
 

@@ -3966,7 +3966,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!msg.guild) {
                 return crv("Must be in a guild", { status: StatusCode.ERR })
             }
-            let channel = await fetchChannel(msg.guild, args[0] || msg.channel.id) || msg.channel
+            let channel = await fetchChannel(msg.guild, args[0] || msg.channel.id)
+            if(!channel) {
+                return crv(`Invalid channel: ${args[0] || msg.channel.id}`)
+            }
             if (!("messages" in channel)) {
                 return crv(`${channel} is not a message channel`, { status: StatusCode.ERR })
             }
