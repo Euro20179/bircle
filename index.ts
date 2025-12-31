@@ -38,8 +38,6 @@ import configManager, { GLOBAL_CURRENCY_SIGN } from './src/config-manager'
 
 const nodemailer = require("nodemailer")
 
-import { exec } from 'lips'
-
 exec('(let (a 10))').then(res => {
     console.log(res)
 })
