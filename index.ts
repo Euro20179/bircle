@@ -252,7 +252,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     let att = m.attachments.at(0)
-    if (att?.name?.endsWith(".bircle")) {
+    if (m.content != `${local_prefix}run` && att?.name?.endsWith(".bircle")) {
         let res = await fetch(att.url)
         m.attachments.delete(m.attachments.keyAt(0) as string)
 
