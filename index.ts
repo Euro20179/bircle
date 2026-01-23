@@ -54,16 +54,18 @@ Array.prototype.shuffle = function() {
     return this;
 }
 
-common.client.on(Events.GuildMemberAdd, async (member) => {
-    try {
-        let role = await member.guild?.roles.fetch("427570287232417793")
-        if (role)
-            member.roles.add(role)
-    }
-    catch (err) {
-        console.error(err)
-    }
-})
+// removed because the role is now added manually
+
+// common.client.on(Events.GuildMemberAdd, async (member) => {
+//     try {
+//         let role = await member.guild?.roles.fetch("427570287232417793")
+//         if (role)
+//             member.roles.add(role)
+//     }
+//     catch (err) {
+//         console.error(err)
+//     }
+// })
 
 common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
