@@ -1,5 +1,5 @@
 ///<reference path="src/types.d.ts" />
-import { ChannelType, Events, ChatInputCommandInteraction } from 'discord.js'
+import { ChannelType, Events, ChatInputCommandInteraction, GuildMember } from 'discord.js'
 import cmds from './src/command-parser/cmds'
 
 
@@ -54,18 +54,47 @@ Array.prototype.shuffle = function() {
     return this;
 }
 
-// removed because the role is now added manually
 
-// common.client.on(Events.GuildMemberAdd, async (member) => {
-//     try {
-//         let role = await member.guild?.roles.fetch("427570287232417793")
-//         if (role)
-//             member.roles.add(role)
-//     }
-//     catch (err) {
-//         console.error(err)
-//     }
-// })
+async function addAAAARole(member: GuildMember) {
+    try {
+        let aaaaRole = await member.guild?.roles.fetch("1464045188564647956")
+        if(aaaaRole) {
+            let hasA = false
+            for (let name of [member.user.username, member.user.globalName, member.nickname]) {
+                if(name?.toLowerCase().includes("a")) {
+                    member.roles.add(aaaaRole)
+                    hasA = true
+                    break;
+                }
+            }
+
+            if(!hasA) {
+                member.roles.remove(aaaaRole)
+            }
+        }
+    } catch(err) {
+        console.error(err)
+    }
+}
+
+common.client.on(Events.GuildMemberAdd, async (member) => {
+    await addAAAARole(member)
+
+    // removed because the role is now added manually
+
+    // try {
+    //     let role = await member.guild?.roles.fetch("427570287232417793")
+    //     if (role)
+    //         member.roles.add(role)
+    // }
+    // catch (err) {
+    //     console.error(err)
+    // }
+})
+
+common.client.on(Events.GuildMemberUpdate, async (_, newMember) => {
+    await addAAAARole(newMember)
+})
 
 common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
