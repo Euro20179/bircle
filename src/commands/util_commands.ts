@@ -4202,7 +4202,18 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     )
                 }
             }
-        }, "Manages custom leaderboards")
+        }, "Manages custom leaderboards", {
+            docs: `<h3>Actions</h3>
+<ul>
+    <li> create &lt;name&gt;: create a leaderboard with name
+    <li> list: list leaderbaords
+    <li> - &lt;player&gt; &lt;leaderbard&gt;: subtract 1 point to a player on a leaderboard
+    <li> + &lt;player&gt; &lt;leaderbard&gt;: add 1 point to a player on a leaderboard
+    <li> padd &lt;player&gt; &lt;leaderboard&gt;: add a player to a leaderboard
+    <li> get &lt;leaderboard&gt;
+</ul>
+`
+        })
     ]
 
     yield [
