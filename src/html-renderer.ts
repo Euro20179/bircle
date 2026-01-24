@@ -3,15 +3,15 @@ import * as cheerio from "cheerio"
 function renderElementChildren(elem: cheerio.Element, indentation = 0, baseUrl = "") {
     let text = ""
 
-    if (elem.type == "text")
-        return elem.data
+    if (elem.type == "text") {
+        return elem.data?.replaceAll(/\s+/g, " ")
+    }
     else if (elem.type == "comment")
         return ""
 
     for (let child of elem.children) {
         if (child.type === "text") {
-            text += child.data
-            // text += child.data?.replaceAll(/\s+/g, " ")
+            text += child.data?.replaceAll(/\s+/g, " ")
         }
         else if (child.type === "tag") {
             text += renderELEMENT(child, indentation, baseUrl)
@@ -25,7 +25,7 @@ function renderLiElement(elem: cheerio.Element, indentation = 0, baseUrl = "", m
         return ""
     }
     marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
-    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation + 1, baseUrl) + "\n"
+    return "\t".repeat(indentation - 1) + marker + renderElementChildren(elem, indentation + 1, baseUrl) + "\n"
 }
 
 function renderUlElement(elem: cheerio.Element, indentation = 0, baseUrl = "") {
@@ -69,7 +69,7 @@ function renderSElement(elem: cheerio.Element, indentation = 0, baseUrl="") {
 
 function renderAElement(elem: cheerio.TagElement, indentation = 0, baseUrl = "") {
     let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? ""
-    return `${'\t'.repeat(indentation)}[${renderElementChildren(elem, indentation, baseUrl)}](${baseUrl}${href})`
+    return `[${renderElementChildren(elem, indentation, baseUrl)}](${baseUrl}${href})`
 }
 
 function renderBlockcodeElement(elem: cheerio.TagElement, indentation = 0, baseUrl="") {
@@ -94,16 +94,16 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0, baseUrl = "")
 }
 
 function renderPElement(elem: cheerio.TagElement, indentation = 0, baseUrl = "") {
-    return `\n${'\t'.repeat(indentation)}${renderElementChildren(elem, indentation, baseUrl)}\n`
+    return `\n${renderElementChildren(elem, indentation, baseUrl)}\n`
 }
 
 function renderHxElement(elem: cheerio.TagElement, indentation = 0, baseUrl = ""){
-    return `\n${'\t'.repeat(indentation)}${'#'.repeat(Number(elem.name[1]))} ${renderElementChildren(elem, indentation, baseUrl)}\n`
+    return `\n${'#'.repeat(Number(elem.name[1]))} ${renderElementChildren(elem, indentation, baseUrl)}\n`
 }
 
 const ELEMENT_RENDERERS: {[key: string]: (elem: cheerio.TagElement, indentation: number, baseUrl: string) => string} = {
-    br: (_, indentation) => `\n${"\t".repeat(indentation)}\n`,
-    ul: (elem, indentation, baseUrl) => `\n${renderUlElement(elem, indentation, baseUrl)}${"\t".repeat(indentation)}`,
+    br: (_, indentation) => `\n\n`,
+    ul: (elem, indentation, baseUrl) => `\n${renderUlElement(elem, indentation, baseUrl)}`,
     li: renderLiElement,
     a: renderAElement,
     lh: renderLHElement,
@@ -137,7 +137,7 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0, baseUrl="") {
         }
     }
     if (elem.type === "text") {
-        text += "\t".repeat(indentation) + elem.data?.replaceAll(/\s+/g, " ")
+        text += elem.data?.replaceAll(/\s+/g, " ")
     }
     return text
 
