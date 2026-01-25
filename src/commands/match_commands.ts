@@ -26,7 +26,7 @@ export default function*() {
         if(!msg.guild) return { content: "Not in a guild", status: StatusCode.ERR }
         const search = match[1].toLowerCase()
         const roles = await msg.guild.roles.fetch()
-        const role = roles.find((val) => val.name.toLowerCase().startsWith(search))
+        const role = roles.find((val) => val.name.toLowerCase().startsWith(search) && val.name !== "Mascots")
         if(!role) return { content: "Role not found", status: StatusCode.ERR }
         const self_roles = [
             "she/her",
