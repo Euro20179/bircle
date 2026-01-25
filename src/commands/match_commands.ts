@@ -22,6 +22,36 @@ export default function*() {
         info: "same as [stop"
     })]
 
+    yield [createMatchCommand(async function({ msg, match}) {
+        if(!msg.guild) return { content: "Not in a guild", status: StatusCode.ERR }
+        const search = match[1].toLowerCase()
+        const roles = await msg.guild.roles.fetch()
+        const role = roles.find((val) => val.name.toLowerCase().startsWith(search))
+        if(!role) return { content: "Role not found", status: StatusCode.ERR }
+        const self_roles = [
+            "she/her",
+            "he/him",
+            "they/them",
+            "all/ask pronouns",
+            "vc ping",
+            "event ping",
+            "contest ping",
+            "bored",
+            "poll ping",
+            "max pins viewer",
+            "club penguin mascot",
+            "off topic",
+            "mascot"
+        ]
+        if(!self_roles.includes(role.name.toLowerCase())) {
+            return { content: `${role.name} is not a self role`, status: StatusCode.ERR }
+        }
+        await msg.member?.roles.add(role)
+        return { content: "Added role: " + role.name, status: StatusCode.RETURN }
+    }, /!role (.*)/i, "!role", {
+        info: "Assign a self role"
+    })]
+
     yield [createMatchCommand(async function({ msg, match }) {
         return await globals.PROCESS_MANAGER.spawn_cmd_then_die({
             msg, command: `calc -python ${match[1] ?? ""}`, prefix: ""
