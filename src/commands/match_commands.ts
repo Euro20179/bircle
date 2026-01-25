@@ -46,8 +46,13 @@ export default function*() {
         if(!self_roles.includes(role.name.toLowerCase())) {
             return { content: `${role.name} is not a self role`, status: StatusCode.ERR }
         }
-        await msg.member?.roles.add(role)
-        return { content: "Added role: " + role.name, status: StatusCode.RETURN }
+        if (msg.member?.roles.cache.map(v => v.name).includes(role.name)) {
+            await msg.member?.roles.remove(role)
+            return { content: "**Removed** role: " + role.name, status: StatusCode.RETURN }
+        } else {
+            await msg.member?.roles.add(role)
+            return { content: "**Added** role: " + role.name, status: StatusCode.RETURN }
+        }
     }, /!role (.*)/i, "!role", {
         info: "Assign a self role"
     })]
