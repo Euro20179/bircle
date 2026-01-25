@@ -2433,13 +2433,14 @@ Valid formats:
             if (!Object.keys(json).length) {
                 return crv("Could not get data", { status: StatusCode.ERR })
             }
-            let weatherJson = json[1].data.body.response.rich.results[0].data
+            let weatherJson = json[1].data.body.response.rich.results[0].weather
+            fs.writeFileSync("./test", JSON.stringify(weatherJson))
 
             let excluded_cities = fs.readFileSync('./command-perms/city', 'utf-8').split("\n")
             // if (json.props.generic) {
             //     return crv("Generic city found, invalid json")
             // }
-            let found_city = weatherJson.city.name
+            let found_city = weatherJson.location.name
             let repalaceCity = false
             if (excluded_cities.includes(found_city)) {
                 repalaceCity = true
@@ -2462,7 +2463,7 @@ Valid formats:
                 })
                 return crv(str)
             }
-            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg: _, weather, wind_gust, pressure, uvi, clouds } = weatherJson.current
+            let { temp, feels_like, humidity, dew_point, wind, weather, pressure, uvi, clouds } = weatherJson.current_weather
 
             function getTempColor(temp: number) {
                 return {
@@ -2484,8 +2485,8 @@ Valid formats:
 
             let feelsLikeF = feels_like * (9 / 5) + 32
 
-            let windMPH = wind_speed / 1.6093440006147
-            let windGustMPH = wind_gust / 1.6093440006147
+            let windMPH = wind.speed / 1.6093440006147
+            let windGustMPH = wind.gust / 1.6093440006147
             let dewF = dew_point * (9 / 5) + 32
             let pressureHg = pressure / 33.86386725
 
@@ -2498,14 +2499,14 @@ Valid formats:
                 dewF = Math.round(dewF)
                 dew_point = Math.round(dew_point)
                 windGustMPH = Math.round(windGustMPH)
-                wind_speed = Math.round(wind_speed)
+                wind.speed = Math.round(wind.speed)
                 pressure = Math.round(pressure)
                 pressureHg = Math.round(pressureHg * 100) / 100
             }
 
-            let name = weatherJson.city.state ? `${found_city}, ${weatherJson.city.state}` : `${found_city}, ${weatherJson.city.country}`
-            let icon = `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
-            let descriptionData = titleStr(weather[0].description)
+            let name = weatherJson.location.state ? `${found_city}, ${weatherJson.location.state}` : `${found_city}, ${weatherJson.location.country}`
+            let icon = `https://openweathermap.org/img/wn/${weather.icon}@2x.png`
+            let descriptionData = titleStr(weather.description)
 
 
             let fEmbeds: EmbedBuilder[] = []
@@ -2515,12 +2516,12 @@ Valid formats:
             let forecastCEmbeds: EmbedBuilder[] = []
 
             for (let day of weatherJson.daily) {
-                let high = day.temp.max
-                let highF = day.temp.max * (9 / 5) + 32
-                let low = day.temp.min
-                let lowF = day.temp.min * (9 / 5) + 32
-                let status = titleStr(day.weather[0].description) || "Unknown"
-                let icon = `https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`
+                let high = day.temperature.max
+                let highF = day.temperature.max * (9 / 5) + 32
+                let low = day.temperature.min
+                let lowF = day.temperature.min * (9 / 5) + 32
+                let status = titleStr(day.weather.description) || "Unknown"
+                let icon = `https://openweathermap.org/img/wn/${day.weather.icon}@2x.png`
                 let avg = (highF + lowF) / 2
                 let color = getTempColor(avg)
                 if (!opts.getBool("no-round", false)) {
@@ -2531,7 +2532,7 @@ Valid formats:
                 }
                 forecastCEmbeds.push(new EmbedBuilder()
                     .setColor(color as ColorResolvable)
-                    .setTitle(day['dti18n'])
+                    .setTitle(day['date_i18n'] || "Unknown day")
                     .setAuthor({ name })
                     .setDescription(titleStr(status))
                     .setThumbnail(icon)
@@ -2543,7 +2544,7 @@ Valid formats:
                 )
                 forecastEmbeds.push(new EmbedBuilder()
                     .setColor(color as ColorResolvable)
-                    .setTitle(day['dti18n'])
+                    .setTitle(day['date_i18n'] || "Unknown day")
                     .setAuthor({ name })
                     .setDescription(titleStr(status))
                     .setThumbnail(icon)
@@ -2565,7 +2566,7 @@ Valid formats:
                     name: "Feels Like", value: `${feelsLikeF}°`, inline: true
                 })
             let frontPageC = new EmbedBuilder()
-                .setFooter({ text: `Humidity: ${humidity}%\nWind: ${wind_speed}Km` })
+                .setFooter({ text: `Humidity: ${humidity}%\nWind: ${wind.speed}Km` })
                 .setThumbnail(icon)
                 .setFields({
 
