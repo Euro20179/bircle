@@ -3297,7 +3297,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 return { content: "No one", status: StatusCode.RETURN }
             }
             if ((embed.data.fields?.length || 0) < 1) {
-                embed.addFields(efd([`members: ${i}`, memberTexts[i]]))
+                embed.addFields(efd([`members`, memberTexts[i]]))
             }
             embed.addFields(efd(["Member count", String(memberCount)]))
             return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
