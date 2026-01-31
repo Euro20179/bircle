@@ -54,7 +54,6 @@ Array.prototype.shuffle = function() {
     return this;
 }
 
-
 async function addAAAARole(member: GuildMember) {
     try {
         let aaaaRole = await member.guild?.roles.fetch("1464045188564647956")

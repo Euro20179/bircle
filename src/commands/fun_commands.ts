@@ -489,17 +489,9 @@ export default function*(): Generator<[string, CommandV2]> {
         let messages: any[] = []
         let temp = opts.getNumber("t", 0.8)
         let ctx = opts.getNumber("ctx", 2048)
-        let model = opts.getString("m", "qwen3:0.6b")
+        let model = opts.getString("m", "qwen3:4b")
         let approved_models = [
-            "deepseek-r1:8b",
-            "llama3",
-            "llama3.1",
-            "qwen2.5-coder",
-            "dolphin-llama3.1-kittens",
-            "geema3:4b",
             "qwen3:4b",
-            "qwen3:1.7b",
-            "qwen3:0.6b",
         ]
         if (opts.getBool("l", false)) {
             return crv(approved_models.join("\n"))
