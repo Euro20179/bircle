@@ -4437,7 +4437,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         })]
 
     yield [
-        "channel-info", ccmdV2(async function({ msg, args }) {
+        "channel-info", ccmdV2(async function({ msg, args, opts }) {
             if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
             let channel
             if (!args.join(" ").trim().length)
@@ -4450,8 +4450,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.setTitle("name" in channel ? channel.name : "Unknown name")
             let pinned
             if ("messages" in channel && (pinned = await channel.messages.fetchPinned())) {
+                const maxPins = opts.getNumber("mp", 250)
                 let pinCount = pinned.size
-                let daysTillFull = (daysSinceCreation / pinCount) * (250 - pinCount)
+                let daysTillFull = (daysSinceCreation / pinCount) * (maxPins - pinCount)
                 const yearsTillFull = daysTillFull / 365.2425
                 embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", `${Math.round(daysTillFull * 100) / 100} (${Math.round(yearsTillFull * 100) / 100} years)`, true]))
             }
@@ -4466,7 +4467,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 embed.addFields(efd(["Position", channel.position.toString(), true]))
             }
             return { embeds: [embed], status: StatusCode.RETURN }
-        }, "Gets info about a channel")
+        }, "Gets info about a channel", {
+            helpArguments: {
+                channel: createHelpArgument("The channel to get info on")
+            },
+            helpOptions: {
+                mp: createHelpOption("max pins amount")
+            }
+        })
     ]
 
     yield [
