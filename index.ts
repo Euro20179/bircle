@@ -18,7 +18,7 @@ import command_commons from './src/common_to_commands'
 
 import globals  from './src/globals'
 import useTracker from './src/use-tracker'
-import { defer, isMsgChannel } from './src/util'
+import { defer, fetchUser, fetchUserFromClientOrGuild, isMsgChannel } from './src/util'
 import { format, getOptsUnix } from './src/parsing'
 import { getOpt } from './src/user-options'
 import common from './src/common'
@@ -221,8 +221,15 @@ async function handleEarnings(m: Message) {
     }
 }
 
+const staffchannel = configManager.getConfigValue("general.staff-channel")
+
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
+
+    if (m.channel.id == staffchannel) {
+        console.log(m, m.poll)
+    }
+
     if (m.member?.roles.cache.find(
         (v: any) => common.BLACKLISTED_ROLES()?.includes(v.id)
     ) || common.BLACKLISTED_USERS().includes(m.author.id)) {

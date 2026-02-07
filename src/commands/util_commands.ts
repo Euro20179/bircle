@@ -4408,7 +4408,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             let role = argShapeResults['role'] as Role
             let fmt = argShapeResults['fmt'] as string
-            if (fmt) {
+            if (fmt != BADVALUE) {
                 return crv(
                     format(fmt, {
                         i: role.id,
