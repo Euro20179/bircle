@@ -4421,7 +4421,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.setTitle(role.name)
             embed.setColor(role.color)
             embed.addFields(efd(["id", String(role.id), true]))
-            embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
+            embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
             return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
         }, "Gets information about a role", {
