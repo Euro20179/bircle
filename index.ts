@@ -174,6 +174,8 @@ async function handlePingResponse(m: Message) {
     }
 }
 
+
+
 function handleMinuteInterest(activePet: string | false, m: Message) {
     let percent = economy.calculateBaseInterest({
         puffle_chat_count: Number(hasItem(m.author.id, "puffle chat")),

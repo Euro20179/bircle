@@ -3191,7 +3191,7 @@ Valid formats:
             if (!snipe) {
                 return { content: "no snipe", status: StatusCode.ERR }
             }
-            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
+            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, allowedMentions: { parse: [] },  status: StatusCode.RETURN }
             let files = snipe.attachments?.toJSON()
             if (files) {
                 rv["files"] = files as unknown as CommandFile[]

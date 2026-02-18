@@ -14,7 +14,7 @@ import leaderboards from '../leaderboards'
 
 import htmlRenderer from '../html-renderer'
 
-import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
+import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, EmbedBuilder, Role, TextChannel, User, ButtonStyle, MessagePin, FetchPinnedMessagesOptions } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, crv, promptUser, cho, PagedEmbed, crvFile } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply, base10ToRoman, rotN, formatMember, searchMsg, binStrToDec, fracBinStrToDec, isSafeFilePath, isBetween, reduce } from '../util'
 import iterators from '../iterators'
@@ -4448,10 +4448,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new EmbedBuilder()
             embed.setTitle("name" in channel ? channel.name : "Unknown name")
-            let pinned
-            if ("messages" in channel && (pinned = await channel.messages.fetchPinned())) {
+            if ("messages" in channel) {
+                let all: MessagePin<boolean>[] = []
+                let pinned
+                do {
+                    let options: FetchPinnedMessagesOptions = pinned
+                        ?  {
+                            before: pinned.items[pinned.items.length - 1].pinnedTimestamp
+                        }
+                        : {}
+                    pinned = await channel.messages.fetchPins(options)
+                }while(pinned.hasMore)
+
                 const maxPins = opts.getNumber("mp", 250)
-                let pinCount = pinned.size
+                let pinCount = all.length
                 let daysTillFull = (daysSinceCreation / pinCount) * (maxPins - pinCount)
                 const yearsTillFull = daysTillFull / 365.2425
                 embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", `${Math.round(daysTillFull * 100) / 100} (${Math.round(yearsTillFull * 100) / 100} years)`, true]))
