@@ -4458,6 +4458,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         }
                         : {}
                     pinned = await channel.messages.fetchPins(options)
+                    all = all.concat(pinned.items)
                 }while(pinned.hasMore)
 
                 const maxPins = opts.getNumber("mp", 250)
