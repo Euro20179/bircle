@@ -4009,11 +4009,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (seconds.length === 1) seconds = `0${seconds}`
 
                     let content = message.content
-                    if (opts.getBool('rev', false)) {
-                        content = content.split("\n").reverse().join("\n")
-                    }
 
-                    text += `${date.getMonth()}/${date.getDate()}/${date.getFullYear()} ${hours}:${minutes}:${seconds} <${message.author.username}> ${content}\n`
+                    const reversed = content.split("\n").reverse()
+                    reversed[0] = `\n${reversed[0]}`
+                    reversed[reversed.length - 1] = `${date.getMonth()}/${date.getDate()}/${date.getFullYear()} ${hours}:${minutes}:${seconds} <${message.author.username}> ${reversed[reversed.length - 1]}`
+                    text += reversed.join("\n")
                 }
                 stream.write(text)
 
