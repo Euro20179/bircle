@@ -14,7 +14,7 @@ import { AliasV2, CommandCategory } from "./common_to_commands"
 import events from './events'
 
 import { formatMoney, getOpt } from "./user-options"
-import { getConfigValue } from "./config-manager"
+import configManager, { getConfigValue } from "./config-manager"
 import { format, parseRangeString } from "./parsing"
 
 import units from './units'
@@ -52,6 +52,23 @@ function fracBinStrToDec(str: string) {
         }
     }
     return ans
+}
+
+function projectE_getEMC(requested_item: string, multiplier: number = 1) {
+    if (typeof requested_item !== 'string') {
+        throw new Error("item must be a string")
+    }
+
+    requested_item = requested_item.toLowerCase()
+    const file = configManager.getConfigValue("general.emc-file")
+    const data = JSON.parse(fs.readFileSync(file, "utf-8"))
+    for(let item of data) {
+        const [mod, item_name] = item["item"].toLowerCase().split(":")
+        if(item_name == requested_item || `${mod}:${item_name}` == requested_item) {
+            return item["emc"] * multiplier
+        }
+    }
+    return 0
 }
 
 //these pair of functions exist because using a for loop on a generator that *returns* a value
@@ -782,6 +799,9 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         base10ToRoman,
         rotN,
         clamp,
+        emc: projectE_getEMC,
+        BUY: 1,
+        SELL: 0.2,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
