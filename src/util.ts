@@ -54,15 +54,18 @@ function fracBinStrToDec(str: string) {
     return ans
 }
 
+let emc_cache: any[]
 function projectE_getEMC(requested_item: string, multiplier: number = 1) {
     if (typeof requested_item !== 'string') {
         throw new Error("item must be a string")
     }
 
     requested_item = requested_item.toLowerCase()
-    const file = configManager.getConfigValue("general.emc-file")
-    const data = JSON.parse(fs.readFileSync(file, "utf-8"))
-    for(let item of data) {
+    if(!emc_cache) {
+        const file = configManager.getConfigValue("general.emc-file")
+        emc_cache = JSON.parse(fs.readFileSync(file, "utf-8"))
+    }
+    for(let item of emc_cache) {
         const [mod, item_name] = item["item"].toLowerCase().split(":")
         if(item_name == requested_item || `${mod}:${item_name}` == requested_item) {
             return item["emc"] * multiplier
