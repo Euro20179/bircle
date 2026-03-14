@@ -1,6 +1,7 @@
 import fs from 'fs'
 import vm from 'vm'
 import https from 'https'
+import net from 'net'
 import * as cheerio from "cheerio"
 
 import { Stream } from 'stream'
@@ -252,6 +253,36 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 s: createHelpOption("Output seperator between numbers")
             },
             gen_opts: true
+        })
+    ]
+
+    yield [
+        "server-online", ccmdV2(async function({ args, msg }) {
+            const [ip, port] = args
+            if(!ip || !port) {
+                return crv("ip and or port not given")
+            }
+
+            const s = new net.Socket()
+            s.on("error", err => {
+                handleSending(msg, {
+                    content: `Failed to connect, ${err.message}`,
+                    status: StatusCode.ERR
+                })
+            })
+            let con = s.connect({
+                host: ip,
+                port: Number(port)
+            }, () => {
+                con.destroy()
+                handleSending(msg, crv("online"))
+            })
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Checks if a server on an ip and port is online", {
+            helpArguments: {
+                ip: createHelpArgument("The ip to connect to", true),
+                port: createHelpArgument("The port to connect to", true)
+            }
         })
     ]
 
